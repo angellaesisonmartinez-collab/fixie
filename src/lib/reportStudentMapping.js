@@ -105,6 +105,36 @@ export const AUTHENTIC_REPORT_STUDENTS = {
     uuid: 'd168ef6a-b9c3-4f47-8860-5a1a0c28f76f',
     avatar: mariaOrtizAvatar,
   },
+  'LR-25': {
+    student_id: '24-2026-106',
+    name: 'Bianca Allyzon Antonio',
+    first_name: 'Bianca Allyzon',
+    last_name: 'Antonio',
+    year_block: '2nd year, BLK 2',
+    email: 'bianca@gmail.com',
+    uuid: 'c52fa8d2-b505-4249-b012-060e313fe18e',
+    avatar: getStudentAvatar({ student_id: '24-2026-106' }),
+  },
+  'LR-26': {
+    student_id: '24-2026-107',
+    name: 'Chryztel Geene Salvador',
+    first_name: 'Chryztel Geene',
+    last_name: 'Salvador',
+    year_block: '2nd year, BLK 1',
+    email: 'geene@gmail.com',
+    uuid: 'e101ced6-cc94-4d17-83e7-c519782f7dba',
+    avatar: getStudentAvatar({ student_id: '24-2026-107' }),
+  },
+  'LR-27': {
+    student_id: '24-2026-108',
+    name: 'John Lester Tan',
+    first_name: 'John Lester',
+    last_name: 'Tan',
+    year_block: '3rd year, BLK 1',
+    email: 'lester@gmail.com',
+    uuid: 'bbb5f955-b361-4929-8055-031d61dd4f58',
+    avatar: getStudentAvatar({ student_id: '24-2026-108' }),
+  },
 };
 
 /**

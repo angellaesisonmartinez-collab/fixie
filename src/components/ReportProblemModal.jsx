@@ -326,19 +326,15 @@ export default function ReportProblemModal({
         } catch {}
       }
 
-      // Persist locally so reports survive refreshes even when backend tables are unavailable
+      // Persist locally for this student so reports survive refreshes even when backend tables are unavailable
       try {
-        const stored = localStorage.getItem('fixie_student_reports');
-        const existing = stored ? JSON.parse(stored) : [];
-        const updated = [newReportData, ...(Array.isArray(existing) ? existing.filter((x) => (x.id || x.report_id) !== generatedId) : [])];
-        localStorage.setItem('fixie_student_reports', JSON.stringify(updated));
-
         if (studentId) {
           const studentStored = localStorage.getItem(`fixie_student_reports_${studentId}`);
           const studentExisting = studentStored ? JSON.parse(studentStored) : [];
           const studentUpdated = [newReportData, ...(Array.isArray(studentExisting) ? studentExisting.filter((x) => (x.id || x.report_id) !== generatedId) : [])];
           localStorage.setItem(`fixie_student_reports_${studentId}`, JSON.stringify(studentUpdated));
         }
+        localStorage.removeItem('fixie_student_reports');
       } catch {}
 
       // 3. Dispatch real-time cross-side sync

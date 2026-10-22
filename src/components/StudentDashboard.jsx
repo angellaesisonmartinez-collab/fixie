@@ -112,6 +112,22 @@ export default function StudentDashboard({
     return DEFAULT_STUDENT;
   });
 
+  // Ensure any contaminated global reports cache is purged from localStorage
+  useEffect(() => {
+    try {
+      localStorage.removeItem('fixie_student_reports');
+    } catch {}
+  }, []);
+
+  // Keep activeStudent in sync if parent passes updated userProfile
+  useEffect(() => {
+    if (userProfile && (userProfile.student_id || userProfile.id)) {
+      if (userProfile.student_id !== activeStudent?.student_id || userProfile.id !== activeStudent?.id) {
+        setActiveStudent(userProfile);
+      }
+    }
+  }, [userProfile]);
+
   // Resolve authentic student record directly from Supabase students table
   useEffect(() => {
     let isMounted = true;

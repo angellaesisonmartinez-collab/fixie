@@ -15,6 +15,7 @@ import Footer from './components/Footer';
 import ReportDetailsModal from './components/ReportDetailsModal';
 import StudentProfileModal from './components/StudentProfileModal';
 import TechnicalAccountModal from './components/TechnicalAccountModal';
+import { clearAdminDashboardCache } from './lib/adminDashboardService';
 import './App.css';
 
 
@@ -443,6 +444,7 @@ function App() {
           try {
             sessionStorage.removeItem('fixie_authenticated_tech');
           } catch {}
+          clearAdminDashboardCache();
           window.location.hash = '';
         }}
       />

@@ -110,8 +110,19 @@ export default function StudentSubmittedReportsPage({
   };
 
   // Filter & search logic
+  const isTargetJohnLester =
+    activeStudentId === '24-2026-108' ||
+    studentProfile?.username === '24-2026-108' ||
+    studentProfile?.email === 'lester@gmail.com' ||
+    studentProfile?.id === 'bbb5f955-b361-4929-8055-031d61dd4f58';
+
   const filteredReports = useMemo(() => {
     return reportsList.filter((r) => {
+      // LR-27 must strictly appear ONLY in John Lester's account
+      if ((r.report_id === 'LR-27' || r.id === 'LR-27') && !isTargetJohnLester) {
+        return false;
+      }
+
       const st = r.status;
       const disp = r.display_status || r.displayStatus;
 

@@ -28,6 +28,7 @@ import AdminDashboard from './AdminDashboard';
 import StudentDashboard from './StudentDashboard';
 import { supabase } from '../lib/supabase';
 import { fetchStudentReportsAndStats } from '../lib/studentReportsService';
+import { fetchAdminDashboardData, clearAdminDashboardCache } from '../lib/adminDashboardService';
 
 
 export default function LoginPage() {
@@ -326,6 +327,8 @@ export default function LoginPage() {
         sessionStorage.setItem('fixie_authenticated_tech', JSON.stringify(tpProfile));
         sessionStorage.removeItem('fixie_authenticated_student');
       } catch {}
+      // Optimistically prefetch technical dashboard data from Supabase
+      fetchAdminDashboardData().catch(() => {});
       setIdentifier('');
       setPassword('');
       return;
@@ -345,6 +348,7 @@ export default function LoginPage() {
         sessionStorage.removeItem('fixie_authenticated_student');
         sessionStorage.removeItem('fixie_authenticated_tech');
       } catch {}
+      clearAdminDashboardCache();
       setCurrentUser(null);
       setUserProfile(null);
       setIdentifier('');

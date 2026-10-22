@@ -16,6 +16,7 @@ import React from 'react';
  */
 export default function RecentReportsList({
   reports = [],
+  loading = false,
   onSelectReport = () => {},
 }) {
   return (
@@ -43,7 +44,37 @@ export default function RecentReportsList({
             </tr>
           </thead>
           <tbody>
-            {reports.slice(0, 5).map((report) => (
+            {loading && reports.length === 0 ? (
+              [...Array(5)].map((_, idx) => (
+                <tr key={`recent-loading-row-${idx}`} className="reports-table-data-row loading-skeleton-row">
+                  <td className="cell-id">
+                    <div className="skeleton-line skeleton-badge" />
+                  </td>
+                  <td className="cell-equipment">
+                    <div className="skeleton-line skeleton-title" />
+                    <div className="skeleton-line skeleton-sub" />
+                  </td>
+                  <td className="cell-reported">
+                    <div className="skeleton-line skeleton-title" />
+                    <div className="skeleton-line skeleton-sub" />
+                  </td>
+                  <td className="cell-location">
+                    <div className="skeleton-line skeleton-title" />
+                    <div className="skeleton-line skeleton-sub" />
+                  </td>
+                  <td className="cell-submitted">
+                    <div className="skeleton-line skeleton-title" />
+                    <div className="skeleton-line skeleton-sub" />
+                  </td>
+                  <td className="cell-status">
+                    <div className="skeleton-line skeleton-pill" />
+                  </td>
+                  <td className="cell-action">
+                    <div className="skeleton-line skeleton-btn" />
+                  </td>
+                </tr>
+              ))
+            ) : reports.slice(0, 5).map((report) => (
               <tr key={report.id || report.report_id} className="reports-table-data-row">
                 {/* Column 1: ID Badge */}
                 <td className="cell-id">
@@ -123,7 +154,7 @@ export default function RecentReportsList({
       {/* Table Footer Banner */}
       <div className="reports-table-footer-banner">
         <span className="reports-table-footer-mono">
-          Showing <strong>{Math.min(reports.length, 5)}</strong> recent reports
+          Showing <strong>{loading && reports.length === 0 ? '...' : Math.min(reports.length, 5)}</strong> recent reports
         </span>
       </div>
     </section>

@@ -2698,6 +2698,14 @@ body,
   line-height: 1;
 }
 
+.stat-number-serif.stat-number-loading {
+  display: inline-block;
+  color: #718096;
+  opacity: 0.6;
+  letter-spacing: 2px;
+  animation: fixie-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
 .stat-card-divider-line {
   height: 0.5px;
   background-color: #EEF2EF;

@@ -45,6 +45,11 @@ import {
 import { formatStudentName, formatYearBlock } from '../lib/studentFormatUtils';
 import { getReportAttachment } from '../lib/reportAttachmentUtils';
 import { resolveAuthenticReportStudent } from '../lib/reportStudentMapping';
+import {
+  fetchAdminDashboardData,
+  getCachedAdminDashboardData,
+  clearAdminDashboardCache,
+} from '../lib/adminDashboardService';
 
 // Fallback avatar lookup for known students
 const avatarMap = {
@@ -99,6 +104,7 @@ export default function AdminDashboard({ currentUser, userProfile, onSignOut, in
     try {
       sessionStorage.removeItem('fixie_authenticated_tech');
     } catch {}
+    clearAdminDashboardCache();
     if (onSignOut) {
       onSignOut();
     } else {
@@ -168,291 +174,32 @@ export default function AdminDashboard({ currentUser, userProfile, onSignOut, in
     }
   }, [initialNav]);
 
-  // Live stat metrics (initialized from Supabase state)
-  const [stats, setStats] = useState({
-    totalStudents: 13,
-    totalReports: 24,
-    totalGuides: 25,
-    onHoldReports: 1,
-    resolvedThisMonth: 10,
-  });
+  // Live stat metrics & recent reports - initialized strictly from cache or null loading state
+  const initialData = getCachedAdminDashboardData();
+  const [stats, setStats] = useState(initialData?.stats || null);
+  const [statsLoading, setStatsLoading] = useState(!initialData?.stats);
+  const [recentReports, setRecentReports] = useState(initialData?.recentReports || []);
+  const [recentReportsLoading, setRecentReportsLoading] = useState(!initialData?.recentReports);
 
-  // Recent 5 reports data (initialized to match database specification)
-  const [recentReports, setRecentReports] = useState([
-    {
-      id: 'LR-24',
-      report_id: 'LR-24',
-      unitNumber: 'PC-#14',
-      unit_number: 'PC-#14',
-      equipment: 'Monitor',
-      reportedByName: 'Maria Ortiz',
-      student_name: 'Maria Ortiz',
-      reportedByYearBlock: '3rd year, BLK 1',
-      student_year_block: '3rd year, BLK 1',
-      studentId: '24-0872-090',
-      student_id: '24-0872-090',
-      email: 'maria.ortiz@gmail.com',
-      avatar: mariaOrtizAvatar,
-      locationCenter: 'Computer Center 3',
-      location_center: 'Computer Center 3',
-      locationRoom: 'Room 203',
-      location_room: 'Room 203',
-      submittedDate: 'Oct 17, 2026',
-      submitted_date: 'Oct 17, 2026',
-      submittedTime: '10:40 AM',
-      submitted_time: '10:40 AM',
-      status: 'Submitted',
-      displayStatus: 'UNDER REVIEW',
-      statusClass: 'status-under-review',
-      description: 'Screen display flickers intermittently when running graphics applications.',
-      attachment: {
-        name: 'pc014_monitor_display.jpg',
-        size: '1.4MB',
-      },
-      history: [
-        { action: 'Submitted by Maria Ortiz', time: 'Oct 17, 10:40 AM' },
-      ],
-      remarks: null,
-    },
-    {
-      id: 'LR-23',
-      report_id: 'LR-23',
-      unitNumber: 'PC-#12',
-      unit_number: 'PC-#12',
-      equipment: 'Network/Internet',
-      reportedByName: 'Jennelyn Vergara',
-      student_name: 'Jennelyn Vergara',
-      reportedByYearBlock: '3rd year, BLK 2',
-      student_year_block: '3rd year, BLK 2',
-      studentId: '24-2026-340',
-      student_id: '24-2026-340',
-      email: 'jennelynvergara@gmail.com',
-      avatar: jennelynAvatar,
-      locationCenter: 'Computer Center 4',
-      locationRoom: 'Room 204',
-      submittedDate: 'Oct 16, 2026',
-      submittedTime: '9:30 AM',
-      status: 'Submitted',
-      displayStatus: 'UNDER REVIEW',
-      statusClass: 'status-under-review',
-      description: 'No ethernet connection detected; LAN port indicator is unlit.',
-      remarks: null,
-    },
-    {
-      id: 'LR-22',
-      report_id: 'LR-22',
-      unitNumber: 'PC-#23',
-      unit_number: 'PC-#23',
-      equipment: 'Network/Internet',
-      reportedByName: 'Reyn Arahan',
-      student_name: 'Reyn Arahan',
-      reportedByYearBlock: '3rd year, BLK 1',
-      student_year_block: '3rd year, BLK 1',
-      studentId: '24-7345-853',
-      student_id: '24-7345-853',
-      email: 'reynarahan@gmail.com',
-      avatar: reynAvatar,
-      locationCenter: 'Computer Center 3',
-      locationRoom: 'Room 203',
-      submittedDate: 'Oct 15, 2026',
-      submittedTime: '1:30 PM',
-      status: 'Under Repair',
-      displayStatus: 'UNDER REPAIR',
-      statusClass: 'status-under-repair',
-      description: 'Damaged RJ-45 jack causing packet loss and intermittent drops.',
-      remarks: 'Port keystone needs replacement. Parts requisition submitted.',
-    },
-    {
-      id: 'LR-21',
-      report_id: 'LR-21',
-      unitNumber: 'PC-#03',
-      unit_number: 'PC-#03',
-      equipment: 'Network/Internet',
-      reportedByName: 'Juan Dela Cruz',
-      student_name: 'Juan Dela Cruz',
-      reportedByYearBlock: '2nd year, BLK 2',
-      student_year_block: '2nd year, BLK 2',
-      studentId: '24-0031-267',
-      student_id: '24-0031-267',
-      email: 'jualdelacruz@gmail.com',
-      avatar: juanAvatar,
-      locationCenter: 'Computer Center 6',
-      locationRoom: 'Room 206',
-      submittedDate: 'Oct 14, 2026',
-      submittedTime: '2:45 PM',
-      status: 'Resolved',
-      displayStatus: 'RESOLVED',
-      statusClass: 'status-resolved',
-      description: 'High packet loss encountered during lab networking practical exercise.',
-      remarks: 'Re-crimped RJ-45 connector and tested continuous ping at 0% drop rate.',
-    },
-    {
-      id: 'LR-20',
-      report_id: 'LR-20',
-      unitNumber: 'PC-#13',
-      unit_number: 'PC-#13',
-      equipment: 'Network/Internet',
-      reportedByName: 'Maria Reyes',
-      student_name: 'Maria Reyes',
-      reportedByYearBlock: '1st year, BLK 1',
-      student_year_block: '1st year, BLK 1',
-      studentId: '24-8521-063',
-      student_id: '24-8521-063',
-      email: 'mariareyes@gmail.com',
-      avatar: mariaAvatar,
-      locationCenter: 'Computer Center 5',
-      locationRoom: 'Room 205',
-      submittedDate: 'Oct 12, 2026',
-      submittedTime: '3:15 PM',
-      status: 'Resolved',
-      displayStatus: 'RESOLVED',
-      statusClass: 'status-resolved',
-      description: 'Slow gateway response and intermittent DNS lookup timeouts.',
-      remarks: 'Replaced patch cable with Cat6 shielded cable. Full gigabit link restored.',
-    },
-  ]);
-
-  // Fetch live stats and 5 recent reports from Supabase
+  // Fetch live stats and 5 recent reports from Supabase (single source of truth)
   useEffect(() => {
     let isMounted = true;
 
-    async function fetchDashboardData() {
+    async function fetchDashboardData(forceRefresh = false) {
       try {
-        // Execute all dashboard queries in parallel with Promise.all
-        const [
-          studentRes,
-          reportRes,
-          onHoldRes,
-          guideRes,
-          resolvedRes,
-          recentReportsRes,
-        ] = await Promise.all([
-          supabase.from('students').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-          supabase.from('reports').select('*', { count: 'exact', head: true }),
-          supabase.from('reports').select('*', { count: 'exact', head: true }).or('status.eq.On Hold,status.eq.on_hold'),
-          supabase.from('guides').select('*', { count: 'exact', head: true }),
-          supabase.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'Resolved'),
-          supabase
-            .from('reports')
-            .select('*, students(*)')
-            .order('created_at', { ascending: false })
-            .order('report_id', { ascending: false })
-            .limit(5),
-        ]);
-
-        const studentCount = studentRes?.count;
-        const reportCount = reportRes?.count;
-        const onHoldCount = onHoldRes?.count;
-        const guideCount = guideRes?.count;
-        const thisMonthResolved = resolvedRes?.count ?? 10;
-        const dbReports = recentReportsRes?.data;
-
-        if (isMounted) {
-          setStats({
-            totalStudents: studentCount ?? 13,
-            totalReports: reportCount ?? 24,
-            totalGuides: guideCount ?? 25,
-            onHoldReports: onHoldCount ?? 0,
-            resolvedThisMonth: thisMonthResolved,
-          });
-        }
-
-        if (dbReports && dbReports.length > 0 && isMounted) {
-          const formatted = dbReports.map((r) => {
-            const reportId = r.report_id || `LR-${r.id.slice(0, 4)}`;
-            const st = resolveAuthenticReportStudent(reportId, r.students);
-
-            // Format student name consistently (no middle initial or middle name)
-            const studentName = formatStudentName(st) || 'Student';
-            const yearBlock = formatYearBlock(st.year_block) || '3rd year, BLK 2';
-
-            // Split location
-            let locationCenter = 'Computer Center';
-            let locationRoom = 'Room';
-            if (r.room) {
-              const parts = r.room.split(',');
-              if (parts.length >= 2) {
-                locationCenter = parts[0].trim();
-                locationRoom = parts[1].trim();
-              } else {
-                locationCenter = r.room;
-              }
-            }
-
-            // Format date & time
-            const dateObj = new Date(r.created_at);
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const submittedDate = `${months[dateObj.getMonth()]} ${dateObj.getDate()}, ${dateObj.getFullYear()}`;
-
-            let hours = dateObj.getHours();
-            const minutes = dateObj.getMinutes().toString().padStart(2, '0');
-            const ampm = hours >= 12 ? 'PM' : 'AM';
-            hours = hours % 12;
-            hours = hours ? hours : 12;
-            const submittedTime = `${hours}:${minutes} ${ampm}`;
-
-            // Map display status and badge style
-            let displayStatus = 'RESOLVED';
-            let statusClass = 'status-resolved';
-            if (r.status === 'Submitted' || r.status === 'Reviewed' || r.status === 'Under Review') {
-              displayStatus = 'UNDER REVIEW';
-              statusClass = 'status-under-review';
-            } else if (r.status === 'Under Repair') {
-              displayStatus = 'UNDER REPAIR';
-              statusClass = 'status-under-repair';
-            } else if (r.status === 'On Hold' || r.status === 'on_hold') {
-              displayStatus = 'ON HOLD';
-              statusClass = 'status-on-hold';
-            }
-
-            // Avatar lookup
-            const avatar =
-              st.avatar ||
-              avatarMap[st.student_id] ||
-              avatarMap[st.email] ||
-              avatarMap[studentName] ||
-              avatarMap[st.name] ||
-              null;
-
-            return {
-              id: reportId,
-              report_id: reportId,
-              unitNumber: r.unit_number || 'PC-#01',
-              unit_number: r.unit_number || 'PC-#01',
-              equipment: r.equipment || 'Equipment',
-              reportedByName: studentName,
-              student_name: studentName,
-              reportedByYearBlock: yearBlock,
-              student_year_block: yearBlock,
-              studentId: st.student_id || 'N/A',
-              student_id: st.student_id || 'N/A',
-              email: st.email || '',
-              avatar,
-              locationCenter,
-              location_center: locationCenter,
-              locationRoom,
-              location_room: locationRoom,
-              submittedDate,
-              submitted_date: submittedDate,
-              submittedTime,
-              submitted_time: submittedTime,
-              raw_created_at: r.created_at,
-              status: r.status,
-              displayStatus,
-              display_status: displayStatus,
-              statusClass,
-              status_class: statusClass,
-              description: r.description,
-              remarks: r.remarks,
-              photo_url: r.photo_url || null,
-              attachment: getReportAttachment(r),
-            };
-          });
-
-          setRecentReports(formatted);
+        const data = await fetchAdminDashboardData(forceRefresh);
+        if (isMounted && data) {
+          setStats(data.stats);
+          setRecentReports(data.recentReports);
+          setStatsLoading(false);
+          setRecentReportsLoading(false);
         }
       } catch (err) {
-        console.warn('Dashboard live sync note:', err.message);
+        console.warn('Dashboard live sync note:', err?.message || err);
+        if (isMounted) {
+          setStatsLoading(false);
+          setRecentReportsLoading(false);
+        }
       }
     }
 
@@ -463,13 +210,13 @@ export default function AdminDashboard({ currentUser, userProfile, onSignOut, in
     try {
       dashboardChannel = safeRealtimeChannel('admin-dashboard-global-sync')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, () => {
-          fetchDashboardData();
+          fetchDashboardData(true);
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, () => {
-          fetchDashboardData();
+          fetchDashboardData(true);
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'guides' }, () => {
-          fetchDashboardData();
+          fetchDashboardData(true);
         })
         .subscribe();
     } catch (chanErr) {
@@ -477,29 +224,10 @@ export default function AdminDashboard({ currentUser, userProfile, onSignOut, in
     }
 
     // 2. Cross-component event listeners for instant reactivity across Fixie
-    const handleReportUpdate = () => fetchDashboardData();
-    const handleStudentStatusUpdate = (e) => {
-      if (e?.detail?.status === 'deactivated') {
-        setStats((prev) => ({
-          ...prev,
-          totalStudents: Math.max(0, prev.totalStudents - 1),
-        }));
-      } else if (e?.detail?.status === 'active') {
-        setStats((prev) => ({
-          ...prev,
-          totalStudents: prev.totalStudents + 1,
-        }));
-      }
-      fetchDashboardData();
-    };
-    const handleStudentRegistered = () => {
-      setStats((prev) => ({
-        ...prev,
-        totalStudents: prev.totalStudents + 1,
-      }));
-      fetchDashboardData();
-    };
-    const handleGuideUpdate = () => fetchDashboardData();
+    const handleReportUpdate = () => fetchDashboardData(true);
+    const handleStudentStatusUpdate = () => fetchDashboardData(true);
+    const handleStudentRegistered = () => fetchDashboardData(true);
+    const handleGuideUpdate = () => fetchDashboardData(true);
 
     window.addEventListener('fixie_report_status_updated', handleReportUpdate);
     window.addEventListener('fixie_student_status_changed', handleStudentStatusUpdate);
@@ -594,7 +322,9 @@ export default function AdminDashboard({ currentUser, userProfile, onSignOut, in
         ) : (
           <DashboardContent
             stats={stats}
+            statsLoading={statsLoading}
             recentReports={recentReports}
+            recentReportsLoading={recentReportsLoading}
             onSelectReport={(report) => setSelectedReport(report)}
             onNavigate={(navTarget, filter = 'ALL') => {
               if (filter && filter !== 'ALL') {

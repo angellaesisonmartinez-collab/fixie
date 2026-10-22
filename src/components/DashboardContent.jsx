@@ -12,17 +12,15 @@ import RecentReportsList from './RecentReportsList';
  * - Part 4: Recent Reports List
  */
 export default function DashboardContent({
-  stats = {
-    totalStudents: 13,
-    totalReports: 24,
-    totalGuides: 25,
-    onHoldReports: 0,
-    resolvedThisMonth: 10,
-  },
+  stats = null,
+  statsLoading = false,
   recentReports = [],
+  recentReportsLoading = false,
   onSelectReport = () => {},
   onNavigate = () => {},
 }) {
+  const isStatsLoading = statsLoading || !stats;
+
   return (
     <div className="dashboard-content-layout">
       {/* Part 2: Banner with Circle Ring */}
@@ -33,7 +31,8 @@ export default function DashboardContent({
         {/* Card 1: TOTAL STUDENTS */}
         <StatCard
           title="TOTAL STUDENTS"
-          value={stats.totalStudents}
+          value={stats?.totalStudents}
+          loading={isStatsLoading}
           icon={User}
           caption="Registered student accounts in Fixie."
           onClick={() => onNavigate('Students')}
@@ -42,7 +41,8 @@ export default function DashboardContent({
         {/* Card 2: TOTAL REPORTS */}
         <StatCard
           title="TOTAL REPORTS"
-          value={stats.totalReports}
+          value={stats?.totalReports}
+          loading={isStatsLoading}
           icon={FileText}
           caption="Reported laboratory issues."
           onClick={() => onNavigate('Reports')}
@@ -51,7 +51,8 @@ export default function DashboardContent({
         {/* Card 3: TOTAL GUIDES */}
         <StatCard
           title="TOTAL GUIDES"
-          value={stats.totalGuides}
+          value={stats?.totalGuides}
+          loading={isStatsLoading}
           icon={BookOpen}
           caption="Laboratory safety & guidelines."
           onClick={() => onNavigate('Laboratory Guides')}
@@ -60,7 +61,8 @@ export default function DashboardContent({
         {/* Card 4: ON HOLD (Replacing Resolved) */}
         <StatCard
           title="ON HOLD"
-          value={stats.onHoldReports ?? 0}
+          value={stats?.onHoldReports}
+          loading={isStatsLoading}
           icon={PauseCircle}
           caption="Reports currently placed on hold."
           isOnHold={true}
@@ -71,6 +73,7 @@ export default function DashboardContent({
       {/* Part 4: Recent Reports List (Image 5) */}
       <RecentReportsList
         reports={recentReports}
+        loading={recentReportsLoading}
         onSelectReport={onSelectReport}
       />
     </div>

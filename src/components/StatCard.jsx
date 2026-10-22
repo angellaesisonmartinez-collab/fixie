@@ -24,7 +24,10 @@ export default function StatCard({
   isResolved = false,
   isOnHold = false,
   onClick,
+  loading = false,
 }) {
+  const isLoading = loading || value === null || value === undefined;
+
   return (
     <div
       className={`dashboard-stat-card ${isResolved ? 'stat-card-resolved-border' : ''} ${isOnHold ? 'stat-card-on-hold' : ''}`}
@@ -43,7 +46,13 @@ export default function StatCard({
 
       {/* Large Metric Number */}
       <div className="stat-card-value-display">
-        <span className="stat-number-serif">{value}</span>
+        {isLoading ? (
+          <span className="stat-number-serif stat-number-loading" aria-label="Loading metric">
+            ...
+          </span>
+        ) : (
+          <span className="stat-number-serif">{value}</span>
+        )}
       </div>
 
       {/* Divider Line between number and caption */}

@@ -165,14 +165,49 @@ export function createEmptyStudentReportsData() {
  */
 export function getCachedStudentReports(studentKey) {
   if (!studentKey) return null;
+  const isLester =
+    studentKey === '24-2026-108' ||
+    studentKey === 'bbb5f955-b361-4929-8055-031d61dd4f58' ||
+    studentKey === 'lester@gmail.com';
+
+  const cleanData = (parsed) => {
+    if (!parsed || !Array.isArray(parsed.reports)) return null;
+    if (!isLester) {
+      const hasLR27 = parsed.reports.some(
+        (r) => r.report_id === 'LR-27' || r.id === 'LR-27'
+      );
+      if (hasLR27) {
+        parsed.reports = parsed.reports.filter(
+          (r) => r.report_id !== 'LR-27' && r.id !== 'LR-27'
+        );
+        parsed.activeReports = (parsed.activeReports || []).filter(
+          (r) => r.report_id !== 'LR-27' && r.id !== 'LR-27'
+        );
+        parsed.recentReports = (parsed.recentReports || []).filter(
+          (r) => r.report_id !== 'LR-27' && r.id !== 'LR-27'
+        );
+        if (parsed.stats) {
+          parsed.stats.total = parsed.reports.length;
+          parsed.stats.resolved = parsed.reports.filter(
+            (r) => r.status === 'Resolved' || r.display_status === 'RESOLVED'
+          ).length;
+          parsed.stats.resolvedCount = parsed.stats.resolved;
+          parsed.stats.activeReportsCount = parsed.activeReports.length;
+        }
+      }
+    }
+    return parsed;
+  };
+
   if (studentReportsCache.has(studentKey)) {
-    return studentReportsCache.get(studentKey);
+    const memData = cleanData(studentReportsCache.get(studentKey));
+    if (memData) return memData;
   }
   try {
     const stored = sessionStorage.getItem(`fixie_student_reports_cache_${studentKey}`);
     if (stored) {
-      const parsed = JSON.parse(stored);
-      if (parsed && Array.isArray(parsed.reports)) {
+      const parsed = cleanData(JSON.parse(stored));
+      if (parsed) {
         studentReportsCache.set(studentKey, parsed);
         return parsed;
       }
@@ -209,6 +244,7 @@ export function invalidateStudentReportsCache(studentKey) {
 /**
  * Shared function to fetch authentic reports and statistics from Supabase
  * for a specific student with parallel queries and request deduplication.
+ * Uses Supabase as the single source of truth.
  */
 export async function fetchStudentReportsAndStats(student) {
   if (!student) {
@@ -237,13 +273,17 @@ export async function fetchStudentReportsAndStats(student) {
       let resolvedEmail = sEmail;
       let resolvedName = student.name || student.full_name || `${student.first_name || ''} ${student.last_name || ''}`.trim();
 
-      // Only query students table if both UUID and student_id are missing
-      if (!resolvedUuid || !resolvedId) {
+      const isUuid = (val) =>
+        typeof val === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+      // Verify and resolve student profile if UUID or student_id is missing or not a valid UUID
+      if (!isUuid(resolvedUuid) || !resolvedId) {
         try {
           let query = supabase.from('students').select('*');
           if (resolvedId) query = query.eq('student_id', resolvedId);
           else if (resolvedEmail) query = query.eq('email', resolvedEmail);
-          else if (resolvedUuid) query = query.eq('id', resolvedUuid);
+          else if (isUuid(resolvedUuid)) query = query.eq('id', resolvedUuid);
 
           const { data: dbSt } = await query.maybeSingle();
           if (dbSt) {
@@ -257,15 +297,41 @@ export async function fetchStudentReportsAndStats(student) {
         }
       }
 
+      const isTargetJohnLester =
+        resolvedId === '24-2026-108' ||
+        resolvedUuid === 'bbb5f955-b361-4929-8055-031d61dd4f58' ||
+        resolvedEmail === 'lester@gmail.com';
+
       const reportsMap = new Map();
 
-      // Helper to add reports safely without duplication
+      // Helper to add reports safely without duplication and with strict ownership verification
       const addReports = (list) => {
         if (!Array.isArray(list)) return;
         for (const item of list) {
           if (!item) continue;
           const key = item.report_id || item.id;
           if (!key) continue;
+
+          // LR-27 MUST ONLY appear in John Lester's account
+          if (key === 'LR-27') {
+            if (!isTargetJohnLester) {
+              continue;
+            }
+          }
+
+          // Check ownership: report must belong to this student
+          const itemStudentId = item.student_id || item.studentId;
+          const itemStudentUuid = item.student_uuid || item.canonicalUuid || item.canonical_uuid || item.user_id;
+
+          const matchesId = resolvedId && itemStudentId === resolvedId;
+          const matchesUuid = resolvedUuid && (itemStudentId === resolvedUuid || itemStudentUuid === resolvedUuid);
+          const matchesJoinedStudent = item.students && (item.students.id === resolvedUuid || item.students.student_id === resolvedId);
+
+          if (!matchesId && !matchesUuid && !matchesJoinedStudent) {
+            // Strictly reject reports that do not belong to the logged-in student
+            continue;
+          }
+
           const normalized = normalizeStudentReportItem(item, {
             id: resolvedUuid,
             student_id: resolvedId,
@@ -300,34 +366,30 @@ export async function fetchStudentReportsAndStats(student) {
         }
       };
 
-      // Incorporate locally submitted reports from localStorage immediately
+      // Only incorporate locally submitted reports for THIS student (DO NOT load global 'fixie_student_reports')
       try {
         if (resolvedId) {
           const studentStored = localStorage.getItem(`fixie_student_reports_${resolvedId}`);
           if (studentStored) addReports(JSON.parse(studentStored));
         }
-        const globalStored = localStorage.getItem('fixie_student_reports');
-        if (globalStored) addReports(JSON.parse(globalStored));
       } catch {}
 
-      // Prepare parallel queries for Supabase
+      // Prepare parallel queries for Supabase (filtered strictly by student)
       const queryPromises = [];
 
       // Query 1: `reports_of_student` table
       if (resolvedId || resolvedUuid) {
-        const orFilter = [
-          resolvedId ? `student_id.eq.${resolvedId}` : null,
-          resolvedUuid ? `student_id.eq.${resolvedUuid}` : null,
-        ]
-          .filter(Boolean)
-          .join(',');
+        let rosQuery = supabase.from('reports_of_student').select('*').order('date_submitted', { ascending: false });
+        if (resolvedId && resolvedUuid) {
+          rosQuery = rosQuery.or(`student_id.eq.${resolvedId},student_id.eq.${resolvedUuid}`);
+        } else if (resolvedId) {
+          rosQuery = rosQuery.eq('student_id', resolvedId);
+        } else {
+          rosQuery = rosQuery.eq('student_id', resolvedUuid);
+        }
 
         queryPromises.push(
-          supabase
-            .from('reports_of_student')
-            .select('*')
-            .or(orFilter)
-            .order('date_submitted', { ascending: false })
+          rosQuery
             .then(({ data, error }) => {
               if (!error && Array.isArray(data)) return { type: 'ros', data };
               return { type: 'ros', data: [] };
@@ -336,25 +398,17 @@ export async function fetchStudentReportsAndStats(student) {
         );
       }
 
-      // Query 2: canonical `reports` table
-      if (resolvedUuid || resolvedId) {
-        let repQuery = supabase
-          .from('reports')
-          .select('*, students(*)')
-          .order('created_at', { ascending: false });
-
-        if (resolvedUuid && resolvedId) {
-          repQuery = repQuery.or(`student_id.eq.${resolvedUuid},student_id.eq.${resolvedId}`);
-        } else if (resolvedUuid) {
-          repQuery = repQuery.eq('student_id', resolvedUuid);
-        } else {
-          repQuery = repQuery.eq('student_id', resolvedId);
-        }
-
+      // Query 2: canonical `reports` table (single source of truth - strictly filtered by UUID)
+      if (resolvedUuid && isUuid(resolvedUuid)) {
         queryPromises.push(
-          repQuery
+          supabase
+            .from('reports')
+            .select('*, students(*)')
+            .eq('student_id', resolvedUuid)
+            .order('created_at', { ascending: false })
             .then(({ data, error }) => {
               if (!error && Array.isArray(data)) return { type: 'rep', data };
+              if (error) console.warn('Supabase reports query notice:', error.message);
               return { type: 'rep', data: [] };
             })
             .catch(() => ({ type: 'rep', data: [] }))
@@ -362,19 +416,12 @@ export async function fetchStudentReportsAndStats(student) {
       }
 
       // Query 3: `saved_guides` for this student
-      const guideOrFilter = [
-        resolvedUuid ? `student_id.eq.${resolvedUuid}` : null,
-        resolvedId ? `student_id.eq.${resolvedId}` : null,
-      ]
-        .filter(Boolean)
-        .join(',');
-
-      if (guideOrFilter) {
+      if (resolvedUuid && isUuid(resolvedUuid)) {
         queryPromises.push(
           supabase
             .from('saved_guides')
             .select('guide_id')
-            .or(guideOrFilter)
+            .eq('student_id', resolvedUuid)
             .then(({ data, error }) => {
               if (!error && Array.isArray(data)) {
                 return { type: 'saved_guides', data: data.map((row) => row.guide_id).filter(Boolean) };
@@ -382,22 +429,6 @@ export async function fetchStudentReportsAndStats(student) {
               return { type: 'saved_guides', data: [] };
             })
             .catch(() => ({ type: 'saved_guides', data: [] }))
-        );
-      }
-
-      // Query 4: Check for student-specific table ({name}_reports)
-      if (resolvedName) {
-        const customTableName = getStudentReportsTableName(resolvedName);
-        queryPromises.push(
-          supabase
-            .from(customTableName)
-            .select('*')
-            .order('date_submitted', { ascending: false })
-            .then(({ data, error }) => {
-              if (!error && Array.isArray(data)) return { type: 'custom', data };
-              return { type: 'custom', data: [] };
-            })
-            .catch(() => ({ type: 'custom', data: [] }))
         );
       }
 
@@ -552,23 +583,64 @@ export function useStudentReports(studentProfile, { enabled = true } = {}) {
   useEffect(() => {
     if (!enabled || !studentKey) return;
 
-    // 1. Supabase real-time channel with collision-safe unique name
+    // 1. Supabase real-time channel with collision-safe unique name and student-specific filter
     let channel = null;
     try {
-      channel = safeRealtimeChannel(`student-reports-sync-${studentKey}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, () => {
-          loadData(true);
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'reports_of_student' }, () => {
-          loadData(true);
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'report_status_history' }, () => {
-          loadData(true);
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'saved_guides' }, () => {
-          loadData(true);
-        })
-        .subscribe();
+      const isUuid = (val) =>
+        typeof val === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+      const studentUuid = studentProfile?.id;
+      const validUuid = isUuid(studentUuid) ? studentUuid : null;
+      const schoolId = studentProfile?.student_id;
+
+      let ch = safeRealtimeChannel(`student-reports-sync-${studentKey}`);
+
+      if (validUuid) {
+        ch = ch.on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'reports',
+            filter: `student_id=eq.${validUuid}`,
+          },
+          () => {
+            loadData(true);
+          }
+        );
+      }
+
+      if (schoolId) {
+        ch = ch.on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'reports_of_student',
+            filter: `student_id=eq.${schoolId}`,
+          },
+          () => {
+            loadData(true);
+          }
+        );
+      }
+
+      if (validUuid) {
+        ch = ch.on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'saved_guides',
+            filter: `student_id=eq.${validUuid}`,
+          },
+          () => {
+            loadData(true);
+          }
+        );
+      }
+
+      channel = ch.subscribe();
     } catch (chanErr) {
       console.warn('Realtime subscription setup note:', chanErr);
     }
@@ -579,6 +651,15 @@ export function useStudentReports(studentProfile, { enabled = true } = {}) {
       const targetId = payload.report_id || payload.id || payload.reportId;
       const newStatus = payload.new_status || payload.newStatus || payload.status;
       const newRemarks = payload.remarks !== undefined ? payload.remarks : payload.newRemarks;
+
+      // LR-27 updates should only ever affect John Lester's account
+      if (targetId === 'LR-27') {
+        const isLester =
+          studentKey === '24-2026-108' ||
+          studentKey === 'bbb5f955-b361-4929-8055-031d61dd4f58' ||
+          studentKey === 'lester@gmail.com';
+        if (!isLester) return;
+      }
 
       // Optimistically update matching report in memory for instantaneous UI update
       if (targetId && newStatus) {
@@ -607,7 +688,14 @@ export function useStudentReports(studentProfile, { enabled = true } = {}) {
           });
 
           if (!matched) {
-            loadData(true);
+            // Only reload if the report update payload explicitly belongs to this student
+            const payloadStudent = payload.student_id || payload.student_uuid || payload.studentId;
+            if (
+              payloadStudent &&
+              (payloadStudent === studentProfile?.id || payloadStudent === studentProfile?.student_id)
+            ) {
+              loadData(true);
+            }
             return prev;
           }
 
@@ -649,8 +737,6 @@ export function useStudentReports(studentProfile, { enabled = true } = {}) {
           return updated;
         });
       }
-
-      loadData(true);
     });
 
     // 3. Cross-component window events
