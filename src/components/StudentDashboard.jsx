@@ -17,6 +17,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { supabase, safeRealtimeChannel, safeRemoveChannel } from '../lib/supabase';
+import { registerVisibilityAndOnlineSync } from '../lib/realtimeSyncService';
 import fixieLogo from '../assets/fixie-logo.svg';
 import angelAvatar from '../assets/avatars/angel.png';
 import { getStudentAvatar } from '../lib/studentAvatarUtils';
@@ -318,6 +319,13 @@ export default function StudentDashboard({
       window.removeEventListener('fixie_student_status_changed', handleStatusEvent);
     };
   }, [studentProfile.student_id, onAccountDisabled, onSignOut]);
+
+  // Tab visibility and network reconnect refetching for Student Dashboard
+  useEffect(() => {
+    return registerVisibilityAndOnlineSync(() => {
+      if (refetchReports) refetchReports();
+    });
+  }, [refetchReports]);
 
   // Status filter state for navigating into My Reports
   const [reportsFilter, setReportsFilter] = useState('ALL');

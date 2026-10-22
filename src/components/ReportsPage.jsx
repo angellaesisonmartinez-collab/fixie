@@ -22,7 +22,7 @@ import { parseReportDateTime } from '../lib/reportDateUtils';
 import { resolveAuthenticReportStudent } from '../lib/reportStudentMapping';
 import { getStudentAvatar } from '../lib/studentAvatarUtils';
 import { getReportAttachment } from '../lib/reportAttachmentUtils';
-import { broadcastReportStatusUpdate, subscribeToReportUpdates } from '../lib/realtimeSyncService';
+import { broadcastReportStatusUpdate, broadcastReportDeleted, subscribeToReportUpdates, registerVisibilityAndOnlineSync } from '../lib/realtimeSyncService';
 import angelAvatar from '../assets/avatars/angel.png';
 import jennelynAvatar from '../assets/avatars/jennelyn.png';
 import reynAvatar from '../assets/avatars/reyn.png';
@@ -782,27 +782,115 @@ function TechnicalPersonnelReportsPage({
   useEffect(() => {
     fetchLiveReports(false);
 
-    // 1. Supabase Realtime channel for table 'reports'
-    let channel = null;
-    try {
-      channel = safeRealtimeChannel('public:reports-live-sync')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, (payload) => {
-          console.log('⚡ Realtime reports update detected:', payload);
-          fetchLiveReports(false);
-        })
-        .subscribe();
-    } catch (chanErr) {
-      console.warn('Reports realtime setup note:', chanErr);
-    }
-
-    // 2. Realtime and Broadcast listener for instant multi-tab & cross-component sync
+    // Realtime and Broadcast listener for instant multi-tab & cross-component sync
     const handleSyncPayload = (payload) => {
       if (!payload) return;
       const targetId = payload.report_id || payload.reportId || payload.id;
+      const eventType = payload.eventType || (payload.report ? 'INSERT' : 'UPDATE');
       const newStatus = payload.new_status || payload.newStatus || payload.status;
       const newRemarks = payload.remarks !== undefined ? payload.remarks : payload.newRemarks;
 
-      if (targetId && newStatus) {
+      if (eventType === 'DELETE') {
+        // DELETE: remove item directly by ID
+        setReportsList((prevList) => {
+          const updated = prevList.filter(
+            (r) => r.report_id !== targetId && r.id !== targetId && r.canonicalUuid !== targetId
+          );
+          cachedTechnicalReports = updated;
+          try {
+            if (typeof window !== 'undefined' && window.sessionStorage) {
+              sessionStorage.setItem('fixie_technical_reports_cache', JSON.stringify(updated));
+            }
+          } catch {}
+          return updated;
+        });
+      } else if (eventType === 'INSERT') {
+        // INSERT: add new report item directly to list (avoiding duplicate by ID)
+        const rawReport = payload.report || payload.new || payload;
+        const reportId = rawReport.report_id || rawReport.id || targetId || `LR-${Date.now()}`;
+        const st = resolveAuthenticReportStudent(reportId, rawReport.students || rawReport);
+        const studentName = formatStudentName(st) || rawReport.student_name || rawReport.reportedByName || 'Student Reporter';
+        const yearBlock = formatYearBlock(st?.year_block || rawReport.student_year_block || rawReport.reportedByYearBlock) || '3rd year, BLK 2';
+
+        let locCenter = 'Computer Center';
+        let locRoom = 'Room';
+        if (rawReport.room) {
+          const parts = String(rawReport.room).split(',');
+          if (parts.length >= 2) {
+            locCenter = parts[0].trim();
+            locRoom = parts[1].trim();
+          } else {
+            locCenter = rawReport.room;
+          }
+        }
+
+        const parsedDT = parseReportDateTime(rawReport);
+        const submittedDate = parsedDT.submittedDate;
+        const submittedTime = parsedDT.submittedTime;
+
+        let displayStatus = 'UNDER REVIEW';
+        let statusClass = 'status-under-review';
+        if (rawReport.status === 'Under Repair') {
+          displayStatus = 'UNDER REPAIR';
+          statusClass = 'status-under-repair';
+        } else if (rawReport.status === 'On Hold' || rawReport.status === 'on_hold') {
+          displayStatus = 'ON HOLD';
+          statusClass = 'status-on-hold';
+        } else if (rawReport.status === 'Resolved') {
+          displayStatus = 'RESOLVED';
+          statusClass = 'status-resolved';
+        }
+
+        const newMapped = {
+          id: rawReport.id || reportId,
+          report_id: reportId,
+          unit_number: rawReport.unit_number || rawReport.unitNumber || 'PC-#01',
+          unitNumber: rawReport.unit_number || rawReport.unitNumber || 'PC-#01',
+          equipment: rawReport.equipment || 'Equipment',
+          student_name: studentName,
+          reportedByName: studentName,
+          student_year_block: yearBlock,
+          reportedByYearBlock: yearBlock,
+          student_id: st?.student_id || rawReport.student_id || 'N/A',
+          studentId: st?.student_id || rawReport.student_id || 'N/A',
+          student_email: st?.email || rawReport.student_email || '',
+          email: st?.email || rawReport.student_email || '',
+          location_center: locCenter,
+          locationCenter: locCenter,
+          location_room: locRoom,
+          locationRoom: locRoom,
+          submitted_date: submittedDate,
+          submittedDate: submittedDate,
+          submitted_time: submittedTime,
+          submittedTime: submittedTime,
+          raw_created_at: rawReport.created_at || new Date().toISOString(),
+          status: rawReport.status || 'Submitted',
+          display_status: displayStatus,
+          displayStatus: displayStatus,
+          status_class: statusClass,
+          statusClass: statusClass,
+          description: rawReport.description || '',
+          remarks: rawReport.remarks || null,
+          photo_url: rawReport.photo_url || null,
+          attachment: getReportAttachment(rawReport),
+        };
+
+        setReportsList((prevList) => {
+          const exists = prevList.some(
+            (r) => r.report_id === reportId || r.id === newMapped.id || (rawReport.id && r.id === rawReport.id)
+          );
+          if (exists) return prevList;
+          const updated = [newMapped, ...prevList];
+          cachedTechnicalReports = updated;
+          try {
+            if (typeof window !== 'undefined' && window.sessionStorage) {
+              sessionStorage.setItem('fixie_technical_reports_cache', JSON.stringify(updated));
+            }
+          } catch {}
+          return updated;
+        });
+      } else if (targetId && newStatus) {
+        // UPDATE: replace item by ID
         let displayStatus = 'RESOLVED';
         let statusClass = 'status-resolved';
         if (newStatus === 'Submitted' || newStatus === 'Under Review') {
@@ -834,7 +922,9 @@ function TechnicalPersonnelReportsPage({
                 ...r,
                 status: newStatus,
                 display_status: displayStatus,
+                displayStatus: displayStatus,
                 status_class: statusClass,
+                statusClass: statusClass,
                 remarks: newRemarks !== undefined ? newRemarks : r.remarks,
               };
             }
@@ -849,14 +939,44 @@ function TechnicalPersonnelReportsPage({
           return updated;
         });
       }
+
       fetchLiveReports(false);
     };
 
+    // 1. Supabase Realtime channel for table 'reports' and 'reports_of_student'
+    let channel = null;
+    try {
+      channel = safeRealtimeChannel('public:reports-live-sync')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, (payload) => {
+          const data = payload.new || payload.old || {};
+          handleSyncPayload({
+            ...data,
+            eventType: payload.eventType,
+            new: payload.new,
+            old: payload.old,
+          });
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'reports_of_student' }, (payload) => {
+          const data = payload.new || payload.old || {};
+          handleSyncPayload({
+            ...data,
+            eventType: payload.eventType,
+            new: payload.new,
+            old: payload.old,
+          });
+        })
+        .subscribe();
+    } catch (chanErr) {
+      console.warn('Reports realtime setup note:', chanErr);
+    }
+
     const unsubSync = subscribeToReportUpdates(handleSyncPayload);
+    const unsubVisibility = registerVisibilityAndOnlineSync(() => fetchLiveReports(false));
 
     return () => {
       safeRemoveChannel(channel);
       unsubSync();
+      unsubVisibility();
     };
   }, []);
 

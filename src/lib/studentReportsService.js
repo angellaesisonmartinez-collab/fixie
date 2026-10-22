@@ -5,7 +5,7 @@ import { formatStudentName, formatYearBlock } from './studentFormatUtils.js';
 import { getReportAttachment } from './reportAttachmentUtils.js';
 import { resolveAuthenticReportStudent } from './reportStudentMapping.js';
 import { getStudentAvatar } from './studentAvatarUtils.js';
-import { subscribeToReportUpdates } from './realtimeSyncService.js';
+import { subscribeToReportUpdates, registerVisibilityAndOnlineSync } from './realtimeSyncService.js';
 import angelAvatar from '../assets/avatars/angel.png';
 
 /**
@@ -583,7 +583,173 @@ export function useStudentReports(studentProfile, { enabled = true } = {}) {
   useEffect(() => {
     if (!enabled || !studentKey) return;
 
-    // 1. Supabase real-time channel with collision-safe unique name and student-specific filter
+    // Helper to compute stats from a reports array
+    const recomputeStudentStats = (reportsArr, prevStats = {}) => {
+      let submitted = 0;
+      let underReview = 0;
+      let underRepair = 0;
+      let onHold = 0;
+      let resolved = 0;
+
+      reportsArr.forEach((r) => {
+        if (r.status === 'Submitted') submitted += 1;
+        if (r.status === 'Submitted' || r.status === 'Reviewed' || r.status === 'Under Review') underReview += 1;
+        if (r.status === 'Under Repair' || r.status === 'Under repair') underRepair += 1;
+        if (r.status === 'On Hold' || r.status === 'on_hold') onHold += 1;
+        if (r.status === 'Resolved') resolved += 1;
+      });
+
+      const activeReportsList = reportsArr.filter(
+        (r) => r.status !== 'Resolved' && r.display_status !== 'RESOLVED'
+      );
+
+      return {
+        stats: {
+          ...prevStats,
+          total: reportsArr.length,
+          submitted,
+          underReview,
+          underRepair,
+          onHold,
+          resolved,
+          activeReportsCount: activeReportsList.length,
+          resolvedCount: resolved,
+        },
+        activeReports: activeReportsList,
+        recentReports: reportsArr.slice(0, 3),
+      };
+    };
+
+    const handleSyncReportPayload = (payload) => {
+      if (!payload) return;
+      const targetId = payload.report_id || payload.id || payload.reportId;
+      const eventType = payload.eventType || (payload.report ? 'INSERT' : 'UPDATE');
+      const newStatus = payload.new_status || payload.newStatus || payload.status;
+      const newRemarks = payload.remarks !== undefined ? payload.remarks : payload.newRemarks;
+
+      // LR-27 updates should only ever affect John Lester's account
+      if (targetId === 'LR-27') {
+        const isLester =
+          studentKey === '24-2026-108' ||
+          studentKey === 'bbb5f955-b361-4929-8055-031d61dd4f58' ||
+          studentKey === 'lester@gmail.com';
+        if (!isLester) return;
+      }
+
+      if (eventType === 'DELETE') {
+        setData((prev) => {
+          if (!prev || !Array.isArray(prev.reports)) return prev;
+          const updatedReports = prev.reports.filter(
+            (r) =>
+              r.report_id !== targetId &&
+              r.id !== targetId &&
+              r.canonicalUuid !== targetId &&
+              r.report_uuid !== targetId
+          );
+          if (updatedReports.length === prev.reports.length) return prev;
+          const computed = recomputeStudentStats(updatedReports, prev.stats);
+          const updated = {
+            ...prev,
+            reports: updatedReports,
+            activeReports: computed.activeReports,
+            recentReports: computed.recentReports,
+            stats: computed.stats,
+          };
+          setCachedStudentReports(studentKey, updated);
+          return updated;
+        });
+      } else if (eventType === 'INSERT') {
+        const rawReport = payload.report || payload.new || payload;
+        const payloadStudent =
+          rawReport.student_id ||
+          rawReport.studentId ||
+          rawReport.student_uuid ||
+          payload.student_id ||
+          payload.studentId;
+
+        const belongsToThisStudent =
+          !payloadStudent ||
+          payloadStudent === studentProfile?.id ||
+          payloadStudent === studentProfile?.student_id ||
+          payloadStudent === studentKey;
+
+        if (belongsToThisStudent) {
+          const normalized = normalizeStudentReportItem(rawReport, studentProfile);
+          if (normalized) {
+            setData((prev) => {
+              if (!prev || !Array.isArray(prev.reports)) return prev;
+              const exists = prev.reports.some(
+                (r) =>
+                  r.report_id === normalized.report_id ||
+                  r.id === normalized.id ||
+                  (normalized.canonicalUuid && (r.canonicalUuid === normalized.canonicalUuid || r.id === normalized.canonicalUuid))
+              );
+              if (exists) return prev;
+              const updatedReports = [normalized, ...prev.reports];
+              const computed = recomputeStudentStats(updatedReports, prev.stats);
+              const updated = {
+                ...prev,
+                reports: updatedReports,
+                activeReports: computed.activeReports,
+                recentReports: computed.recentReports,
+                stats: computed.stats,
+              };
+              setCachedStudentReports(studentKey, updated);
+              return updated;
+            });
+          }
+        }
+      } else if (targetId && (newStatus || newRemarks !== undefined)) {
+        setData((prev) => {
+          if (!prev || !Array.isArray(prev.reports)) return prev;
+          let matched = false;
+          const updatedReports = prev.reports.map((r) => {
+            const isMatch =
+              r.report_id === targetId ||
+              r.id === targetId ||
+              r.canonicalUuid === targetId ||
+              r.report_uuid === targetId ||
+              (payload.canonicalUuid && (r.canonicalUuid === payload.canonicalUuid || r.report_uuid === payload.canonicalUuid || r.id === payload.canonicalUuid)) ||
+              (payload.reportCode && (r.report_id === payload.reportCode || r.id === payload.reportCode));
+
+            if (isMatch) {
+              matched = true;
+              return normalizeStudentReportItem({
+                ...r,
+                status: newStatus || r.status,
+                remarks: newRemarks !== undefined ? newRemarks : r.remarks,
+                updated_at: payload.updated_at || new Date().toISOString(),
+              });
+            }
+            return r;
+          });
+
+          if (!matched) {
+            const payloadStudent = payload.student_id || payload.student_uuid || payload.studentId;
+            if (
+              payloadStudent &&
+              (payloadStudent === studentProfile?.id || payloadStudent === studentProfile?.student_id)
+            ) {
+              loadData(true);
+            }
+            return prev;
+          }
+
+          const computed = recomputeStudentStats(updatedReports, prev.stats);
+          const updated = {
+            ...prev,
+            reports: updatedReports,
+            activeReports: computed.activeReports,
+            recentReports: computed.recentReports,
+            stats: computed.stats,
+          };
+          setCachedStudentReports(studentKey, updated);
+          return updated;
+        });
+      }
+    };
+
+    // 1. Supabase real-time channel with collision-safe unique name
     let channel = null;
     try {
       const isUuid = (val) =>
@@ -604,7 +770,14 @@ export function useStudentReports(studentProfile, { enabled = true } = {}) {
             table: 'reports',
             filter: `student_id=eq.${validUuid}`,
           },
-          () => {
+          (p) => {
+            handleSyncReportPayload({
+              ...p.new,
+              ...p.old,
+              eventType: p.eventType,
+              new: p.new,
+              old: p.old,
+            });
             loadData(true);
           }
         );
@@ -619,7 +792,14 @@ export function useStudentReports(studentProfile, { enabled = true } = {}) {
             table: 'reports_of_student',
             filter: `student_id=eq.${schoolId}`,
           },
-          () => {
+          (p) => {
+            handleSyncReportPayload({
+              ...p.new,
+              ...p.old,
+              eventType: p.eventType,
+              new: p.new,
+              old: p.old,
+            });
             loadData(true);
           }
         );
@@ -645,99 +825,8 @@ export function useStudentReports(studentProfile, { enabled = true } = {}) {
       console.warn('Realtime subscription setup note:', chanErr);
     }
 
-    // 2. Centralized Realtime and Broadcast listener
-    const unsubscribeSync = subscribeToReportUpdates((payload) => {
-      if (!payload) return;
-      const targetId = payload.report_id || payload.id || payload.reportId;
-      const newStatus = payload.new_status || payload.newStatus || payload.status;
-      const newRemarks = payload.remarks !== undefined ? payload.remarks : payload.newRemarks;
-
-      // LR-27 updates should only ever affect John Lester's account
-      if (targetId === 'LR-27') {
-        const isLester =
-          studentKey === '24-2026-108' ||
-          studentKey === 'bbb5f955-b361-4929-8055-031d61dd4f58' ||
-          studentKey === 'lester@gmail.com';
-        if (!isLester) return;
-      }
-
-      // Optimistically update matching report in memory for instantaneous UI update
-      if (targetId && newStatus) {
-        setData((prev) => {
-          if (!prev || !Array.isArray(prev.reports)) return prev;
-          let matched = false;
-          const updatedReports = prev.reports.map((r) => {
-            const isMatch =
-              r.report_id === targetId ||
-              r.id === targetId ||
-              r.canonicalUuid === targetId ||
-              r.report_uuid === targetId ||
-              (payload.canonicalUuid && (r.canonicalUuid === payload.canonicalUuid || r.report_uuid === payload.canonicalUuid || r.id === payload.canonicalUuid)) ||
-              (payload.reportCode && (r.report_id === payload.reportCode || r.id === payload.reportCode));
-
-            if (isMatch) {
-              matched = true;
-              return normalizeStudentReportItem({
-                ...r,
-                status: newStatus,
-                remarks: newRemarks !== undefined ? newRemarks : r.remarks,
-                updated_at: payload.updated_at || new Date().toISOString(),
-              });
-            }
-            return r;
-          });
-
-          if (!matched) {
-            // Only reload if the report update payload explicitly belongs to this student
-            const payloadStudent = payload.student_id || payload.student_uuid || payload.studentId;
-            if (
-              payloadStudent &&
-              (payloadStudent === studentProfile?.id || payloadStudent === studentProfile?.student_id)
-            ) {
-              loadData(true);
-            }
-            return prev;
-          }
-
-          let submitted = 0;
-          let underReview = 0;
-          let underRepair = 0;
-          let onHold = 0;
-          let resolved = 0;
-
-          updatedReports.forEach((r) => {
-            if (r.status === 'Submitted') submitted += 1;
-            if (r.status === 'Submitted' || r.status === 'Reviewed' || r.status === 'Under Review') underReview += 1;
-            if (r.status === 'Under Repair' || r.status === 'Under repair') underRepair += 1;
-            if (r.status === 'On Hold' || r.status === 'on_hold') onHold += 1;
-            if (r.status === 'Resolved') resolved += 1;
-          });
-
-          const activeReportsList = updatedReports.filter(
-            (r) => r.status !== 'Resolved' && r.display_status !== 'RESOLVED'
-          );
-
-          const updated = {
-            ...prev,
-            reports: updatedReports,
-            activeReports: activeReportsList,
-            stats: {
-              ...prev.stats,
-              total: updatedReports.length,
-              submitted,
-              underReview,
-              underRepair,
-              onHold,
-              resolved,
-              activeReportsCount: activeReportsList.length,
-              resolvedCount: resolved,
-            },
-          };
-          setCachedStudentReports(studentKey, updated);
-          return updated;
-        });
-      }
-    });
+    // 2. Centralized Realtime Broadcast & Cross-tab listener
+    const unsubscribeSync = subscribeToReportUpdates(handleSyncReportPayload);
 
     // 3. Cross-component window events
     const handleStatusUpdate = () => loadData(true);
@@ -764,9 +853,13 @@ export function useStudentReports(studentProfile, { enabled = true } = {}) {
     window.addEventListener('fixie_report_submitted', handleStatusUpdate);
     window.addEventListener('fixie_saved_guides_updated', handleSavedUpdate);
 
+    // 4. Tab visibility and network reconnect refetching
+    const unsubVisibility = registerVisibilityAndOnlineSync(() => loadData(true));
+
     return () => {
       safeRemoveChannel(channel);
       unsubscribeSync();
+      unsubVisibility();
       window.removeEventListener('fixie_report_status_updated', handleStatusUpdate);
       window.removeEventListener('fixie_report_submitted', handleStatusUpdate);
       window.removeEventListener('fixie_saved_guides_updated', handleSavedUpdate);

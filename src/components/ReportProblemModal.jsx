@@ -23,6 +23,7 @@ import {
   formatManilaDateTime,
 } from '../lib/reportDateUtils';
 import { getStudentReportsTableName } from '../lib/studentReportsService';
+import { broadcastReportSubmission } from '../lib/realtimeSyncService';
 
 const EQUIPMENT_OPTIONS = [
   'Monitor',
@@ -323,7 +324,7 @@ export default function ReportProblemModal({
               date_time: `${submittedDate}, ${submittedTime}`,
             },
           ]);
-        } catch {}
+        } catch { }
       }
 
       // Persist locally for this student so reports survive refreshes even when backend tables are unavailable
@@ -335,14 +336,14 @@ export default function ReportProblemModal({
           localStorage.setItem(`fixie_student_reports_${studentId}`, JSON.stringify(studentUpdated));
         }
         localStorage.removeItem('fixie_student_reports');
-      } catch {}
+      } catch { }
 
-      // 3. Dispatch real-time cross-side sync
-      window.dispatchEvent(
-        new CustomEvent('fixie_report_status_updated', {
-          detail: { reportId: generatedId, newStatus: 'Submitted', newRemarks: null, report: newReportData },
-        })
-      );
+      // 3. Broadcast real-time cross-side sync to all screens
+      try {
+        broadcastReportSubmission(newReportData);
+      } catch (bcErr) {
+        console.warn('Realtime broadcast submission note:', bcErr);
+      }
 
       setSubmittedReport(newReportData);
 

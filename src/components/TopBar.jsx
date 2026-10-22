@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { subscribeToReportUpdates } from '../lib/realtimeSyncService';
 
 /**
  * TopBar Component
@@ -42,8 +43,51 @@ export default function TopBar({
     },
   ],
 }) {
+  const [notificationsList, setNotificationsList] = useState(notifications);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const popoverRef = useRef(null);
+
+  // Subscribe to real-time report activity
+  useEffect(() => {
+    const unsub = subscribeToReportUpdates((payload) => {
+      if (!payload) return;
+      const targetId = payload.report_id || payload.id || payload.reportId;
+      const newStatus = payload.new_status || payload.newStatus || payload.status;
+      if (!targetId || !newStatus) return;
+
+      const dotClass =
+        newStatus === 'Resolved'
+          ? 'dot-green'
+          : newStatus === 'Under Repair'
+          ? 'dot-blue'
+          : 'dot-amber';
+
+      const statusText =
+        newStatus === 'Resolved'
+          ? 'marked as Resolved'
+          : newStatus === 'Under Repair'
+          ? 'moved to Under Repair'
+          : newStatus === 'On Hold'
+          ? 'placed On Hold'
+          : 'is Under Review';
+
+      const subText = `${payload.equipment || 'Equipment'} • ${payload.unit_number || payload.unitNumber || 'Workstation'} • ${payload.room || payload.computer_center || 'Computer Lab'}`;
+
+      const newNotif = {
+        id: String(Date.now()),
+        reportId: targetId,
+        status: statusText,
+        sub: subText,
+        time: 'Just now',
+        dotClass,
+        unread: true,
+      };
+
+      setNotificationsList((prev) => [newNotif, ...prev.slice(0, 9)]);
+    });
+
+    return () => unsub();
+  }, []);
 
   // Close notifications popover on click outside
   useEffect(() => {
@@ -74,10 +118,33 @@ export default function TopBar({
           <button
             type="button"
             className="top-bar-icon-btn bell-btn"
-            onClick={() => setNotificationsOpen(!notificationsOpen)}
+            onClick={() => {
+              const willOpen = !notificationsOpen;
+              setNotificationsOpen(willOpen);
+              if (willOpen) {
+                // Mark all notifications as read upon opening
+                setNotificationsList((prev) => prev.map((n) => ({ ...n, unread: false })));
+              }
+            }}
             aria-label="Notifications"
             title="Notifications"
+            style={{ position: 'relative' }}
           >
+            {notificationsList.some((n) => n.unread) && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '5px',
+                  right: '5px',
+                  width: '8px',
+                  height: '8px',
+                  backgroundColor: '#D97706',
+                  borderRadius: '50%',
+                  border: '1.5px solid #FFFFFF',
+                  pointerEvents: 'none'
+                }}
+              />
+            )}
             {/* Bell Icon matching Image 2: dome + 2px gap + rim bar + clapper in #204C35 */}
             <svg
               className="top-bar-svg-icon bell-icon-svg"
@@ -125,7 +192,7 @@ export default function TopBar({
                 </button>
               </div>
               <div className="popover-body">
-                {notifications.map((item) => (
+                {notificationsList.map((item) => (
                   <div key={item.id} className={`popover-item ${item.unread ? 'unread' : ''}`}>
                     <div className={`item-dot ${item.dotClass}`} />
                     <div className="item-text">

@@ -6,7 +6,7 @@ import { formatStudentName, formatYearBlock } from '../lib/studentFormatUtils';
 import { parseReportDateTime, formatManilaDateTime, formatManilaHistoryTime, getManilaSubmissionDate } from '../lib/reportDateUtils';
 import { resolveAuthenticReportStudent } from '../lib/reportStudentMapping';
 import { getReportAttachment } from '../lib/reportAttachmentUtils';
-import { broadcastReportStatusUpdate, subscribeToReportUpdates } from '../lib/realtimeSyncService';
+import { broadcastReportStatusUpdate, subscribeToReportUpdates, registerVisibilityAndOnlineSync } from '../lib/realtimeSyncService';
 import './StudentReportDetailsModal.css';
 
 /**
@@ -661,7 +661,9 @@ export default function ReportDetailsModal({
   // Synchronize on mount and subscribe to realtime report updates
   useEffect(() => {
     loadFreshReportAndHistory();
-    const unsub = subscribeToReportUpdates((updateData) => {
+
+    const handleReportUpdateLive = (updateData) => {
+      if (!updateData) return;
       const targetId = report?.report_id || report?.id;
       const matches =
         !updateData.reportId ||
@@ -672,10 +674,69 @@ export default function ReportDetailsModal({
         (updateData.report_id && (updateData.report_id === report?.report_id || updateData.report_id === targetId));
 
       if (matches) {
+        // Immediate local state update for zero lag
+        const newSt = updateData.newStatus || updateData.status;
+        if (newSt) {
+          setCurrentStatus(newSt);
+          if (newSt === 'On Hold' || newSt === 'on_hold') {
+            setHasBeenOnHold(true);
+          }
+        }
+        const newRem = updateData.remarks !== undefined ? updateData.remarks : updateData.newRemarks;
+        if (newRem !== undefined) {
+          setRemarks(newRem || '');
+          setEditedRemarks(newRem || '');
+        }
+        if (updateData.timestamps) {
+          setTimestamps((prev) => ({ ...prev, ...updateData.timestamps }));
+        }
+
+        // Fresh audit history and row verification
         loadFreshReportAndHistory();
       }
+    };
+
+    const unsub = subscribeToReportUpdates(handleReportUpdateLive);
+
+    // Supabase Realtime CDC channel for this report and report_status_history
+    let modalChannel = null;
+    try {
+      const currentReportId = report?.report_id || report?.id;
+      if (currentReportId) {
+        modalChannel = safeRealtimeChannel(`report-details-modal-${currentReportId}`)
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'reports' },
+            (payload) => {
+              handleReportUpdateLive({
+                ...payload.new,
+                ...payload.old,
+                eventType: payload.eventType,
+              });
+            }
+          )
+          .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'report_status_history' },
+            () => {
+              loadFreshReportAndHistory();
+            }
+          )
+          .subscribe();
+      }
+    } catch (chanErr) {
+      console.warn('Report details modal realtime note:', chanErr);
+    }
+
+    const unsubVisibility = registerVisibilityAndOnlineSync(() => {
+      loadFreshReportAndHistory();
     });
-    return () => unsub();
+
+    return () => {
+      unsub();
+      unsubVisibility();
+      safeRemoveChannel(modalChannel);
+    };
   }, [report, loadFreshReportAndHistory]);
 
   // Sync state only when a different report is opened

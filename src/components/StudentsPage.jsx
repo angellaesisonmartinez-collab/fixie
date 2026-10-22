@@ -20,6 +20,11 @@ import {
   Lock
 } from 'lucide-react';
 import { supabase, safeRealtimeChannel, safeRemoveChannel } from '../lib/supabase';
+import {
+  subscribeToStudentUpdates,
+  registerVisibilityAndOnlineSync,
+  broadcastStudentChange,
+} from '../lib/realtimeSyncService';
 import { sendStudentCredentialsEmail, generateDefaultStudentPassword } from '../lib/emailService';
 import { getVisiblePages, getDisplayedCount } from '../lib/paginationUtils';
 import { formatStudentName, formatYearBlock } from '../lib/studentFormatUtils';
@@ -490,20 +495,88 @@ export default function StudentsPage() {
   useEffect(() => {
     fetchStudents(false);
 
-    // Subscribe to real-time changes
+    // Direct local state updater for instant UI reaction
+    const handleStudentLiveUpdate = (payload) => {
+      if (!payload) return;
+      const targetId = payload.student_id || payload.id;
+      const eventType = payload.eventType || 'UPDATE';
+
+      if (eventType === 'DELETE') {
+        // DELETE: remove directly by ID
+        setStudentsList((prev) => prev.filter((s) => s.id !== targetId && s.student_id !== targetId));
+      } else if (eventType === 'INSERT') {
+        // INSERT: add new student directly to top of list
+        const raw = payload.student || payload.new || payload;
+        const fullName = formatStudentName(raw) || raw.name || `${raw.first_name || ''} ${raw.last_name || ''}`.trim();
+        const yearBlock = formatYearBlock(raw.year_block);
+        const normStatus = raw.status === 'active' ? 'active' : 'deactivated';
+        const newSt = {
+          ...raw,
+          name: fullName,
+          year_block: yearBlock,
+          date_registered: raw.date_registered || (raw.created_at ? raw.created_at.split('T')[0] : '2026-09-01'),
+          status: normStatus,
+        };
+        setStudentsList((prev) => {
+          const exists = prev.some((s) => s.id === newSt.id || s.student_id === newSt.student_id);
+          if (exists) return prev;
+          const updated = [newSt, ...prev];
+          updated.sort(sortStudentsByRegistrationDateDesc);
+          return updated;
+        });
+      } else {
+        // UPDATE: replace student by ID
+        setStudentsList((prev) =>
+          prev.map((s) => {
+            if (s.id === targetId || s.student_id === targetId) {
+              const updatedStatus = payload.status || (payload.new && payload.new.status) || s.status;
+              const normStatus = updatedStatus === 'active' ? 'active' : 'deactivated';
+              return {
+                ...s,
+                ...payload,
+                status: normStatus,
+                email: payload.email || s.email,
+                year_block: payload.year_block ? formatYearBlock(payload.year_block) : s.year_block,
+              };
+            }
+            return s;
+          })
+        );
+      }
+
+      fetchStudents(false);
+    };
+
+    // 1. Supabase Realtime channel subscription
     let channel = null;
     try {
       channel = safeRealtimeChannel('public:students-sync')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, () => {
-          fetchStudents(false);
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, (payload) => {
+          const data = payload.new || payload.old || {};
+          handleStudentLiveUpdate({
+            ...data,
+            eventType: payload.eventType,
+            new: payload.new,
+            old: payload.old,
+          });
         })
         .subscribe();
     } catch (chanErr) {
       console.warn('Students realtime setup note:', chanErr);
     }
 
+    // 2. Cross-tab & broadcast listener
+    const unsubStudents = subscribeToStudentUpdates(handleStudentLiveUpdate);
+
+    // 3. Tab visibility and network reconnect refetching
+    const unsubVisibility = registerVisibilityAndOnlineSync(() => {
+      fetchStudents(false);
+    });
+
     return () => {
       safeRemoveChannel(channel);
+      unsubStudents();
+      unsubVisibility();
     };
   }, []);
 
@@ -698,6 +771,9 @@ export default function StudentsPage() {
           detail: { studentId: submittedStudentId, status: 'active' },
         })
       );
+      try {
+        broadcastStudentChange(insertedRecord, 'insert');
+      } catch {}
 
       // Prepend newly registered student to list at the top and maintain sort order
       setStudentsList((prev) => [
@@ -795,6 +871,14 @@ export default function StudentsPage() {
           },
         })
       );
+      try {
+        broadcastStudentChange({
+          ...editingStudent,
+          year_block: editYearBlock,
+          email: updatedEmail,
+          email_last_updated: timestampToStore,
+        }, 'update');
+      } catch {}
       try {
         localStorage.setItem(
           'fixie_student_profile_override',
@@ -914,6 +998,9 @@ export default function StudentsPage() {
           detail: { studentId: disablingStudent.student_id, status: 'deactivated' },
         })
       );
+      try {
+        broadcastStudentChange({ student_id: disablingStudent.student_id, status: 'deactivated' }, 'update');
+      } catch {}
 
       // Update in-memory state
       setStudentsList((prev) =>

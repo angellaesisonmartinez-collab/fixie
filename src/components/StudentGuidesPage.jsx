@@ -11,6 +11,10 @@ import {
   BookOpen
 } from 'lucide-react';
 import { supabase, safeRealtimeChannel, safeRemoveChannel } from '../lib/supabase';
+import {
+  subscribeToGuideUpdates,
+  registerVisibilityAndOnlineSync,
+} from '../lib/realtimeSyncService';
 import { formatGuideDateDisplay, getGuideSortTime } from '../lib/guideDateUtils';
 import { getVisiblePages, getDisplayedCount } from '../lib/paginationUtils';
 import Banner from './Banner';
@@ -216,21 +220,48 @@ export default function StudentGuidesPage({ studentProfile, currentUser }) {
   useEffect(() => {
     fetchGuides();
 
+    const handleGuideLiveUpdate = (payload) => {
+      if (!payload) return;
+      const targetId = payload.id;
+      const eventType = payload.eventType || 'UPDATE';
+
+      if (eventType === 'DELETE') {
+        setGuidesList((prev) => prev.filter((g) => g.id !== targetId));
+      } else if (eventType === 'INSERT') {
+        const newGuide = payload.guide || payload.new || payload;
+        if (newGuide?.id) {
+          setGuidesList((prev) => {
+            const exists = prev.some((g) => g.id === newGuide.id);
+            if (exists) return prev;
+            return sortGuidesByPublicationDate([newGuide, ...prev]);
+          });
+        }
+      } else {
+        setGuidesList((prev) =>
+          prev.map((g) => (g.id === targetId ? { ...g, ...payload, ...(payload.new || {}) } : g))
+        );
+      }
+      fetchGuides();
+    };
+
     let channel = null;
     try {
       channel = safeRealtimeChannel('public:student-guides-sync')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'guides' }, () => {
-          fetchGuides();
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'guides' }, (payload) => {
+          const data = payload.new || payload.old || {};
+          handleGuideLiveUpdate({
+            ...data,
+            eventType: payload.eventType,
+            new: payload.new,
+            old: payload.old,
+          });
         })
         .subscribe();
     } catch (chanErr) {
       console.warn('Student guides realtime setup note:', chanErr);
     }
 
-    const handleGuideUpdateEvent = () => {
-      fetchGuides();
-    };
-    window.addEventListener('fixie_guide_updated', handleGuideUpdateEvent);
+    const unsubGuides = subscribeToGuideUpdates(handleGuideLiveUpdate);
 
     const handleStorageEvent = (e) => {
       if (e.key === 'fixie_guides_last_updated' || e.key === 'fixie_guide_action') {
@@ -249,12 +280,20 @@ export default function StudentGuidesPage({ studentProfile, currentUser }) {
     };
     window.addEventListener('storage', handleStorageEvent);
 
+    const unsubVisibility = registerVisibilityAndOnlineSync(() => {
+      fetchGuides();
+      if (studentUuid) {
+        fetchSavedGuides(studentUuid);
+      }
+    });
+
     return () => {
       safeRemoveChannel(channel);
-      window.removeEventListener('fixie_guide_updated', handleGuideUpdateEvent);
+      unsubGuides();
+      unsubVisibility();
       window.removeEventListener('storage', handleStorageEvent);
     };
-  }, [viewedTimesStorageKey, savedStorageKey]);
+  }, [viewedTimesStorageKey, savedStorageKey, studentUuid]);
 
   useEffect(() => {
     if (studentUuid) {

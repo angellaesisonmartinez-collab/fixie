@@ -25,6 +25,7 @@ import {
   formatManilaLiveClock,
 } from '../lib/reportDateUtils';
 import { getStudentReportsTableName } from '../lib/studentReportsService';
+import { broadcastReportSubmission } from '../lib/realtimeSyncService';
 import Banner from './Banner';
 import './SubmitReportPage.css';
 
@@ -538,12 +539,12 @@ export default function SubmitReportPage({
         localStorage.removeItem('fixie_student_reports');
       } catch {}
 
-      // 3. Dispatch realtime event for cross-side sync to Technical Personnel
-      window.dispatchEvent(
-        new CustomEvent('fixie_report_status_updated', {
-          detail: { reportId: generatedId, newStatus: 'Submitted', newRemarks: null, report: newReportData },
-        })
-      );
+      // 3. Broadcast realtime event for cross-side sync to Technical Personnel & all screens
+      try {
+        broadcastReportSubmission(newReportData);
+      } catch (bcErr) {
+        console.warn('Realtime broadcast submission note:', bcErr);
+      }
 
       // Close confirmation modal
       setIsConfirmModalOpen(false);

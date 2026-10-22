@@ -49,7 +49,14 @@ import {
   fetchAdminDashboardData,
   getCachedAdminDashboardData,
   clearAdminDashboardCache,
+  formatAdminDashboardReport,
 } from '../lib/adminDashboardService';
+import {
+  subscribeToReportUpdates,
+  subscribeToStudentUpdates,
+  subscribeToGuideUpdates,
+  registerVisibilityAndOnlineSync,
+} from '../lib/realtimeSyncService';
 
 // Fallback avatar lookup for known students
 const avatarMap = {
@@ -205,17 +212,115 @@ export default function AdminDashboard({ currentUser, userProfile, onSignOut, in
 
     fetchDashboardData();
 
-    // 1. Supabase Realtime subscriptions on reports, students, and guides (Phase 6 Deliverable #2)
+    // Direct local state updater for instant UI reaction (zero lag)
+    const handleReportLiveUpdate = (payload) => {
+      if (!isMounted || !payload) return;
+      const targetId = payload.report_id || payload.id || payload.reportId;
+      const eventType = payload.eventType || (payload.report ? 'INSERT' : 'UPDATE');
+      const newStatus = payload.newStatus || payload.status;
+      const newRemarks = payload.remarks !== undefined ? payload.remarks : payload.newRemarks;
+
+      if (eventType === 'DELETE') {
+        // DELETE: remove item directly from local state and decrement totalReports
+        setRecentReports((prev) => prev.filter((r) => r.id !== targetId && r.report_id !== targetId));
+        setStats((prev) => ({
+          ...prev,
+          totalReports: Math.max(0, (prev?.totalReports || 1) - 1),
+        }));
+      } else if (eventType === 'INSERT') {
+        // INSERT: add new item directly to top of recent reports
+        const rawReport = payload.report || payload.new || payload;
+        const formatted = formatAdminDashboardReport(rawReport);
+        if (formatted) {
+          setRecentReports((prev) => {
+            const exists = prev.some((r) => r.id === formatted.id || r.report_id === formatted.report_id);
+            if (exists) return prev;
+            return [formatted, ...prev].slice(0, 5);
+          });
+        }
+        setStats((prev) => {
+          const isHold = newStatus === 'On Hold' || newStatus === 'on_hold';
+          const isRes = newStatus === 'Resolved';
+          return {
+            ...prev,
+            totalReports: (prev?.totalReports || 0) + 1,
+            onHoldReports: isHold ? (prev?.onHoldReports || 0) + 1 : (prev?.onHoldReports || 0),
+            resolvedThisMonth: isRes ? (prev?.resolvedThisMonth || 0) + 1 : (prev?.resolvedThisMonth || 0),
+          };
+        });
+      } else {
+        // UPDATE: replace item by ID and recompute relevant stat cards
+        setRecentReports((prev) =>
+          prev.map((r) => {
+            if (r.id === targetId || r.report_id === targetId) {
+              let displayStatus = 'RESOLVED';
+              let statusClass = 'status-resolved';
+              if (newStatus === 'Submitted' || newStatus === 'Under Review' || newStatus === 'Reviewed') {
+                displayStatus = 'UNDER REVIEW';
+                statusClass = 'status-under-review';
+              } else if (newStatus === 'Under Repair' || newStatus === 'Under repair') {
+                displayStatus = 'UNDER REPAIR';
+                statusClass = 'status-under-repair';
+              } else if (newStatus === 'On Hold' || newStatus === 'on_hold') {
+                displayStatus = 'ON HOLD';
+                statusClass = 'status-on-hold';
+              }
+
+              return {
+                ...r,
+                status: newStatus || r.status,
+                displayStatus,
+                display_status: displayStatus,
+                statusClass,
+                status_class: statusClass,
+                remarks: newRemarks !== undefined ? newRemarks : r.remarks,
+              };
+            }
+            return r;
+          })
+        );
+      }
+
+      // Background verification from Supabase single source of truth
+      fetchDashboardData(true);
+    };
+
+    // 1. Supabase Realtime subscription on core tables (Phase 6 Deliverable #2)
     let dashboardChannel = null;
     try {
       dashboardChannel = safeRealtimeChannel('admin-dashboard-global-sync')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, () => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, (payload) => {
+          const data = payload.new || payload.old || {};
+          handleReportLiveUpdate({
+            ...data,
+            eventType: payload.eventType,
+            new: payload.new,
+            old: payload.old,
+          });
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'reports_of_student' }, (payload) => {
+          const data = payload.new || payload.old || {};
+          handleReportLiveUpdate({
+            ...data,
+            eventType: payload.eventType,
+            new: payload.new,
+            old: payload.old,
+          });
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setStats((prev) => ({ ...prev, totalStudents: (prev?.totalStudents || 0) + 1 }));
+          } else if (payload.eventType === 'UPDATE' && payload.new?.status !== 'active') {
+            setStats((prev) => ({ ...prev, totalStudents: Math.max(0, (prev?.totalStudents || 1) - 1) }));
+          }
           fetchDashboardData(true);
         })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, () => {
-          fetchDashboardData(true);
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'guides' }, () => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'guides' }, (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setStats((prev) => ({ ...prev, totalGuides: (prev?.totalGuides || 0) + 1 }));
+          } else if (payload.eventType === 'DELETE') {
+            setStats((prev) => ({ ...prev, totalGuides: Math.max(0, (prev?.totalGuides || 1) - 1) }));
+          }
           fetchDashboardData(true);
         })
         .subscribe();
@@ -223,24 +328,21 @@ export default function AdminDashboard({ currentUser, userProfile, onSignOut, in
       console.warn('Dashboard realtime setup note:', chanErr);
     }
 
-    // 2. Cross-component event listeners for instant reactivity across Fixie
-    const handleReportUpdate = () => fetchDashboardData(true);
-    const handleStudentStatusUpdate = () => fetchDashboardData(true);
-    const handleStudentRegistered = () => fetchDashboardData(true);
-    const handleGuideUpdate = () => fetchDashboardData(true);
+    // 2. Realtime Broadcast & Cross-window listener for instant sync
+    const unsubReports = subscribeToReportUpdates(handleReportLiveUpdate);
+    const unsubStudents = subscribeToStudentUpdates(() => fetchDashboardData(true));
+    const unsubGuides = subscribeToGuideUpdates(() => fetchDashboardData(true));
 
-    window.addEventListener('fixie_report_status_updated', handleReportUpdate);
-    window.addEventListener('fixie_student_status_changed', handleStudentStatusUpdate);
-    window.addEventListener('fixie_student_registered', handleStudentRegistered);
-    window.addEventListener('fixie_guide_updated', handleGuideUpdate);
+    // 3. Tab visibility and network reconnect refetching
+    const unsubVisibility = registerVisibilityAndOnlineSync(() => fetchDashboardData(true));
 
     return () => {
       isMounted = false;
       safeRemoveChannel(dashboardChannel);
-      window.removeEventListener('fixie_report_status_updated', handleReportUpdate);
-      window.removeEventListener('fixie_student_status_changed', handleStudentStatusUpdate);
-      window.removeEventListener('fixie_student_registered', handleStudentRegistered);
-      window.removeEventListener('fixie_guide_updated', handleGuideUpdate);
+      unsubReports();
+      unsubStudents();
+      unsubGuides();
+      unsubVisibility();
     };
   }, []);
 

@@ -13,6 +13,11 @@ import {
   BookOpen
 } from 'lucide-react';
 import { supabase, safeRealtimeChannel, safeRemoveChannel } from '../lib/supabase';
+import {
+  subscribeToGuideUpdates,
+  registerVisibilityAndOnlineSync,
+  broadcastGuideChange,
+} from '../lib/realtimeSyncService';
 import StudentGuidesPage from './StudentGuidesPage';
 import fixieMascotSuccess from '../assets/fixie-mascot-success.png';
 import { formatGuideDateDisplay, getGuideSortTime } from '../lib/guideDateUtils';
@@ -135,27 +140,60 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
   useEffect(() => {
     fetchGuides();
 
+    const handleGuideLiveUpdate = (payload) => {
+      if (!payload) return;
+      const targetId = payload.id;
+      const eventType = payload.eventType || 'UPDATE';
+
+      if (eventType === 'DELETE') {
+        setGuidesList((prev) => prev.filter((g) => g.id !== targetId));
+      } else if (eventType === 'INSERT') {
+        const newGuide = payload.guide || payload.new || payload;
+        if (newGuide?.id) {
+          setGuidesList((prev) => {
+            const exists = prev.some((g) => g.id === newGuide.id);
+            if (exists) return prev;
+            return [newGuide, ...prev];
+          });
+        }
+      } else {
+        setGuidesList((prev) =>
+          prev.map((g) => (g.id === targetId ? { ...g, ...payload, ...(payload.new || {}) } : g))
+        );
+      }
+      fetchGuides();
+    };
+
     // 1. Supabase Realtime channel subscription
     let channel = null;
     try {
       channel = safeRealtimeChannel('public:guides-management-sync')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'guides' }, (payload) => {
-          fetchGuides();
+          const data = payload.new || payload.old || {};
+          handleGuideLiveUpdate({
+            ...data,
+            eventType: payload.eventType,
+            new: payload.new,
+            old: payload.old,
+          });
         })
         .subscribe();
     } catch (chanErr) {
       console.warn('Guides realtime setup note:', chanErr);
     }
 
-    // 2. Cross-component event listener
-    const handleGuideUpdateEvent = () => {
+    // 2. Cross-component & broadcast listener
+    const unsubGuides = subscribeToGuideUpdates(handleGuideLiveUpdate);
+
+    // 3. Tab visibility and network reconnect refetching
+    const unsubVisibility = registerVisibilityAndOnlineSync(() => {
       fetchGuides();
-    };
-    window.addEventListener('fixie_guide_updated', handleGuideUpdateEvent);
+    });
 
     return () => {
       safeRemoveChannel(channel);
-      window.removeEventListener('fixie_guide_updated', handleGuideUpdateEvent);
+      unsubGuides();
+      unsubVisibility();
     };
   }, []);
 
