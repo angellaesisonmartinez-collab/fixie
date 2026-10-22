@@ -1,0 +1,786 @@
+/* ====================================================
+   SUBMIT LABORATORY REPORT PAGE STYLES
+   Pixel-perfect implementation of student problem reporting
+   ==================================================== */
+
+.submit-report-page-root {
+  width: 100%;
+  margin: 0 auto;
+  padding: 8px 0 40px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-family: 'Plus Jakarta Sans', var(--font-sans), sans-serif;
+  color: #0D2B1D;
+  box-sizing: border-box;
+}
+
+/* Page Header Card: matching Technical Personnel Hero Banner */
+.submit-report-header,
+.submit-report-hero-banner.dashboard-hero-card {
+  background-color: #FFFFFF !important;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 24px 26px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  min-height: 139px;
+  height: 139px;
+  box-sizing: border-box;
+  margin-bottom: 4px;
+}
+
+.submit-report-title {
+  font-family: 'Barlow Semi Condensed', 'Cambria', sans-serif;
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #0A2916;
+  margin: 0 0 6px 0;
+  line-height: 1.15;
+}
+
+.submit-report-subtitle {
+  font-family: 'Arial', sans-serif;
+  font-size: 14px;
+  color: #333333;
+  margin: 0;
+  line-height: 1.45;
+  font-weight: 500;
+}
+
+/* Main Form Wrapper */
+.submit-report-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Standard Section Card */
+.report-section-card {
+  background-color: #FFFFFF;
+  border-radius: 16px;
+  border: 1px solid rgba(13, 43, 29, 0.12);
+  padding: 24px 28px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+/* Card Header */
+.card-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 22px;
+  gap: 12px;
+}
+
+.card-header-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.step-number-badge {
+  background-color: #0D2B1D;
+  color: #FFFFFF;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.card-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.card-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #0D2B1D;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.card-subtitle {
+  font-size: 13px;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.step-pill-badge {
+  background-color: #C8F1D7;
+  color: #14532D;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 14px;
+  border-radius: 9999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.01em;
+}
+
+/* Form Fields & Grid */
+.card-form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.report-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.report-field-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1E293B;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.required-asterisk {
+  color: #EF4444;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+/* Select Dropdown with custom arrow */
+.report-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.report-select-input {
+  width: 100%;
+  height: 44px;
+  background-color: #FFFFFF;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  padding: 0 38px 0 14px;
+  font-size: 13.5px;
+  color: #334155;
+  font-family: inherit;
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.report-select-input:focus {
+  border-color: #10B981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+.select-chevron-icon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #64748B;
+}
+
+/* Text Input */
+.report-text-input {
+  width: 100%;
+  height: 44px;
+  background-color: #FFFFFF;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-size: 13.5px;
+  color: #334155;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.report-text-input:focus {
+  border-color: #10B981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+/* Helper text below unit input */
+.field-helper-text {
+  font-size: 11px;
+  color: #64748B;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.helper-highlight {
+  color: #15803D;
+  font-weight: 700;
+}
+
+/* Describe problem row */
+.field-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.char-counter {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.report-textarea-input {
+  width: 100%;
+  background-color: #FFFFFF;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 13.5px;
+  color: #334155;
+  font-family: inherit;
+  line-height: 1.5;
+  resize: vertical;
+  min-height: 72px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.report-textarea-input:focus {
+  border-color: #10B981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+.field-info-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #475569;
+  margin-top: 8px;
+  line-height: 1.4;
+}
+
+.info-circle-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #000000;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  font-style: italic;
+  font-family: serif;
+  flex-shrink: 0;
+}
+
+/* Step 3: Additional Information Layout */
+.additional-info-grid {
+  display: grid;
+  grid-template-columns: 46% 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* Left Dark Box: Student Info & Timestamp */
+.student-info-dark-card {
+  background-color: #07281A;
+  border-radius: 12px;
+  padding: 14px 14px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.student-info-section-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #FFFFFF;
+  margin: 0 0 4px 2px;
+}
+
+.student-meta-white-card {
+  background-color: #FFFFFF;
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.student-avatar-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.student-meta-texts {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+}
+
+.meta-sub-label {
+  font-size: 11px;
+  color: #64748B;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.meta-main-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #07281A;
+  line-height: 1.3;
+}
+
+.meta-desc-value {
+  font-size: 11.5px;
+  color: #64748B;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.meta-icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background-color: #E8EEFB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Right: Photo Upload Box */
+.photo-upload-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.photo-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.photo-section-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.optional-badge {
+  background-color: #22C55E;
+  color: #FFFFFF;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+}
+
+/* Dashed Dropzone */
+.photo-dropzone-box {
+  border: 1.5px dashed #818CF8;
+  border-radius: 12px;
+  background-color: #FAFBFD;
+  padding: 22px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  position: relative;
+}
+
+.photo-dropzone-box:hover {
+  background-color: #F3F4F6;
+  border-color: #6366F1;
+}
+
+.dropzone-cloud-icon {
+  color: #000000;
+  margin-bottom: 6px;
+}
+
+.dropzone-main-text {
+  font-size: 13px;
+  color: #0F172A;
+  font-weight: 600;
+  margin: 0;
+}
+
+.dropzone-browse-link {
+  color: #15803D;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.dropzone-sub-text {
+  font-size: 11px;
+  color: #64748B;
+  margin: 3px 0 0 0;
+}
+
+/* Uploaded File Chip / Row */
+.uploaded-file-chip {
+  background-color: #CADAD0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.file-chip-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.file-chip-icon-box {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background-color: #07281A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.file-chip-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+}
+
+.file-chip-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #07281A;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-chip-size {
+  font-size: 10.5px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.file-chip-remove-btn {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: #000000;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #FFFFFF;
+  flex-shrink: 0;
+  transition: transform 0.12s ease;
+  padding: 0;
+}
+
+.file-chip-remove-btn:hover {
+  transform: scale(1.1);
+}
+
+/* Bottom Action Bar */
+.report-bottom-bar {
+  background-color: #CADAD0;
+  border-radius: 12px;
+  padding: 14px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.bottom-bar-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.notice-alert-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: #000000;
+  color: #CADAD0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.notice-text {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #0F172A;
+  margin: 0;
+}
+
+.btn-submit-report {
+  background-color: #07281A;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 11px 22px;
+  font-size: 14.5px;
+  font-weight: 700;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, transform 0.12s ease;
+}
+
+.btn-submit-report:hover:not(:disabled) {
+  background-color: #0D3E28;
+  transform: translateY(-1px);
+}
+
+.btn-submit-report:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-submit-report:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.submit-paper-plane-icon {
+  color: #FFFFFF;
+}
+
+/* Error message banner */
+.report-error-alert {
+  background-color: #FEF2F2;
+  border: 1px solid #F87171;
+  color: #991B1B;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Field-specific Validation Errors */
+.field-error-text {
+  font-size: 11.5px;
+  color: #DC2626;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0 0 0;
+}
+
+.report-text-input.input-error,
+.report-select-input.input-error,
+.report-textarea-input.input-error {
+  border-color: #EF4444 !important;
+  background-color: #FEF2F2 !important;
+}
+
+.report-text-input.input-error:focus,
+.report-select-input.input-error:focus,
+.report-textarea-input.input-error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+}
+
+/* Readonly Input Styling */
+.report-readonly-input {
+  background-color: #F1F5F3 !important;
+  color: #475569 !important;
+  cursor: not-allowed !important;
+  border: 1px solid #CBD5E1 !important;
+}
+
+.file-chip-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* ====================================================
+   AFFECTED EQUIPMENT DROPDOWN (Matching Reports Filter)
+   ==================================================== */
+.report-equipment-dropdown-container {
+  width: 100%;
+  position: relative;
+  height: 44px;
+  background-color: #FFFFFF;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: #334155;
+  font-family: inherit;
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.report-equipment-dropdown-btn {
+  width: 100%;
+  height: 100%;
+  background-color: #FFFFFF;
+  border: none;
+  justify-content: space-between;
+  text-align: left;
+  user-select: none;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: #334155;
+  font-weight: 500;
+  border-radius: 7px;
+  padding: 0 14px;
+}
+
+.report-equipment-dropdown-btn:hover {
+  background-color: #FFFFFF;
+}
+
+.report-equipment-dropdown-btn span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.report-equipment-dropdown-btn:focus,
+.report-equipment-dropdown-btn:focus-visible {
+  outline: none;
+}
+
+.report-equipment-dropdown-btn.input-error {
+  border-color: #EF4444 !important;
+  background-color: #FEF2F2 !important;
+}
+
+.report-equipment-dropdown-btn.input-error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+}
+
+.report-equipment-dropdown-menu {
+  left: 0;
+  right: 0;
+  width: 100%;
+  box-sizing: border-box;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.equipment-placeholder-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748B;
+  letter-spacing: 0.01em;
+  font-family: inherit;
+}
+
+.equipment-selected-text {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #334155;
+  font-family: inherit;
+}
+
+.equipment-option-text {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.dropdown-arrow-icon {
+  color: #111111;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.dropdown-arrow-icon.rotate-180 {
+  transform: rotate(180deg);
+}
+
+/* ====================================================
+   RESPONSIVE ADJUSTMENTS
+   ==================================================== */
+@media (max-width: 868px) {
+  .additional-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .card-form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .report-section-card {
+    padding: 18px 16px;
+  }
+
+  .report-bottom-bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px;
+  }
+
+  .btn-submit-report {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .submit-report-title {
+    font-size: 28px;
+  }
+}

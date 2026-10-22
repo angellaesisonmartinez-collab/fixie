@@ -1,0 +1,315 @@
+/* ====================================================
+   REPORT SUBMITTED MODAL STYLES
+   Pixel-perfect implementation of student submission success modal
+   ==================================================== */
+
+.report-submitted-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  animation: modalFadeIn 0.15s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.report-submitted-card {
+  width: 100%;
+  max-width: 610px;
+  background-color: #FFFFFF;
+  border-radius: 18px;
+  border: 1.5px solid #0D2B1D;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  animation: cardSlideUp 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: 'Plus Jakarta Sans', var(--font-sans), sans-serif;
+}
+
+@keyframes cardSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Modal Header */
+.report-submitted-header {
+  background-color: #DAE7DF;
+  border-bottom: 1.5px solid #0D2B1D;
+  padding: 22px 28px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.submitted-check-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #13653F;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.submitted-header-texts {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.submitted-title {
+  font-size: 23px;
+  font-weight: 800;
+  color: #07281A;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.submitted-subtitle {
+  font-size: 13.5px;
+  color: #1E293B;
+  margin: 0;
+  line-height: 1.4;
+  font-weight: 400;
+}
+
+/* Modal Body */
+.report-submitted-body {
+  padding: 24px 28px;
+  background-color: #FFFFFF;
+}
+
+.incident-digest-container {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 18px 22px;
+}
+
+.incident-digest-heading {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #07281A;
+  margin: 0 0 12px 0;
+}
+
+.incident-digest-divider {
+  height: 1px;
+  background-color: #EDEDED;
+  margin-bottom: 18px;
+}
+
+/* 2-Column Info Grid */
+.incident-info-grid {
+  display: grid;
+  grid-template-columns: 36% 1fr;
+  gap: 20px;
+}
+
+.incident-info-left {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.incident-info-right {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.incident-info-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.incident-info-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #475569;
+  margin-bottom: 4px;
+}
+
+/* REPORT ID (Playfair Serif Font) */
+.incident-report-id {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #07281A;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+/* Headings for Equipment & Center */
+.incident-main-value {
+  font-size: 19px;
+  font-weight: 800;
+  color: #07281A;
+  line-height: 1.25;
+}
+
+.incident-sub-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1E293B;
+  margin-top: 2px;
+  line-height: 1.2;
+}
+
+/* DATE REPORTED (Monospace) */
+.incident-date-reported {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+  font-size: 16px;
+  font-weight: 700;
+  color: #07281A;
+  line-height: 1.3;
+}
+
+/* Problem description text */
+.incident-desc-text {
+  font-size: 13.5px;
+  color: #1E293B;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Attachment Chip */
+.incident-attachment-chip {
+  background-color: #B0C8B9;
+  border-radius: 6px;
+  padding: 6px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  align-self: flex-start;
+}
+
+.incident-attachment-icon-box {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background-color: #0D2B1D;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.incident-attachment-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.incident-attachment-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: #07281A;
+  line-height: 1.2;
+}
+
+.incident-attachment-size {
+  font-size: 9.5px;
+  color: #334155;
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+/* Modal Footer */
+.report-submitted-footer {
+  background-color: #DAE7DF;
+  border-top: 1.5px solid #0D2B1D;
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 20px;
+}
+
+.btn-submitted-done {
+  background: none;
+  border: none;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0D2B1D;
+  cursor: pointer;
+  padding: 8px 14px;
+  border-radius: 6px;
+  transition: opacity 0.15s ease;
+  font-family: inherit;
+}
+
+.btn-submitted-done:hover {
+  opacity: 0.75;
+}
+
+.btn-submitted-view {
+  background-color: #07281A;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 11px 32px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.12s ease;
+}
+
+.btn-submitted-view:hover {
+  background-color: #0D3E28;
+  transform: translateY(-1px);
+}
+
+.btn-submitted-view:active {
+  transform: translateY(0);
+}
+
+/* Responsive */
+@media (max-width: 580px) {
+  .incident-info-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .report-submitted-header {
+    padding: 18px 20px;
+  }
+
+  .report-submitted-body {
+    padding: 18px 20px;
+  }
+
+  .report-submitted-footer {
+    padding: 14px 20px;
+  }
+
+  .submitted-title {
+    font-size: 20px;
+  }
+}

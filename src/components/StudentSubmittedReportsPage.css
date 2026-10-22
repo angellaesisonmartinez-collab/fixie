@@ -1,0 +1,1055 @@
+/* ====================================================
+   STUDENT SUBMITTED REPORTS PAGE STYLES
+   Exact 1:1 replica of reference screenshot
+   ==================================================== */
+
+.student-submitted-reports-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 16px;
+  animation: fadeInStudents 0.25s ease-out;
+  padding-bottom: 24px;
+}
+
+/* Unified Page Background matching Technical Personnel (#F2F6F3) */
+.fixie-dashboard-content-pane.student-portal-layout,
+.fixie-dashboard-content-pane.student-my-reports-layout {
+  background-color: #F2F6F3;
+}
+
+.fixie-dashboard-content-pane.student-portal-layout .fixie-dashboard-main,
+.fixie-dashboard-content-pane.student-my-reports-layout .fixie-dashboard-main {
+  background-color: #F2F6F3;
+  padding: 14px 20px 24px 20px;
+}
+
+/* 1. Header Card - White card matching Technical Personnel Hero Banner (No Rings) */
+.student-reports-header-card,
+.student-reports-hero-banner.dashboard-hero-card {
+  background-color: #FFFFFF !important;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 24px 26px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  min-height: 139px;
+  height: 139px;
+  box-sizing: border-box;
+  margin-bottom: 2px;
+}
+
+.student-reports-header-left {
+  max-width: 680px;
+  z-index: 2;
+}
+
+.student-reports-header-title {
+  font-family: 'Barlow Semi Condensed', 'Cambria', sans-serif;
+  font-size: 38px;
+  font-weight: 800;
+  color: #0A2916;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  margin: 0 0 6px 0;
+}
+
+.student-reports-header-subtitle {
+  font-family: 'Arial', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333333;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.btn-student-report-problem {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #0B301D;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 22px;
+  font-family: 'Arial', sans-serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(11, 48, 29, 0.15);
+  flex-shrink: 0;
+}
+
+.btn-student-report-problem:hover {
+  background-color: #14492E;
+  transform: translateY(-1px);
+}
+
+.btn-student-report-problem:active {
+  transform: translateY(0);
+}
+
+/* 2. Four Stat Cards Grid */
+.student-stats-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+
+.student-stat-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 16px 20px 18px 20px;
+  border: 1px solid rgba(9, 38, 24, 0.08);
+  box-shadow: 0 2px 8px rgba(13, 43, 29, 0.02);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 108px;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.student-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(13, 43, 29, 0.06);
+}
+
+.student-stat-card.card-active {
+  border-color: #0b2e1e;
+  box-shadow: 0 0 0 1.5px #0b2e1e;
+}
+
+.student-stat-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.student-stat-card-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #092618;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.student-stat-icon-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.student-stat-icon-badge.badge-total {
+  background-color: #d4edd9;
+  color: #1e663b;
+}
+
+.student-stat-icon-badge.badge-review {
+  background-color: #f8ee96;
+  color: #856a14;
+}
+
+.student-stat-icon-badge.badge-repair {
+  background-color: #cce3fc;
+  color: #2563eb;
+}
+
+.student-stat-icon-badge.badge-resolved {
+  background-color: #16a34a;
+  color: #ffffff;
+}
+
+.student-stat-card-number {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 44px;
+  font-weight: 700;
+  color: #092618;
+  line-height: 1;
+}
+
+/* 3. Controls Bar: Matches Image 2 / Laboratory Guides Controls Bar */
+.student-reports-filter-bar-container,
+.student-reports-controls-bar {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+}
+
+.student-reports-filter-bar-container .reports-search-box-wrapper {
+  background-color: #EFF3F0;
+  border-radius: 8px;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgba(9, 38, 24, 0.05);
+  display: flex;
+  align-items: center;
+  flex: 1;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.student-reports-filter-bar-container .reports-search-box-wrapper:focus-within {
+  border-color: #092618;
+  background-color: #FFFFFF;
+}
+
+.student-reports-filter-bar-container .reports-search-icon {
+  color: #718096;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.student-reports-filter-bar-container .reports-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  color: #092618;
+  font-family: inherit;
+  font-weight: 500;
+  width: 100%;
+}
+
+.student-reports-filter-bar-container .reports-search-input::placeholder {
+  color: #8C9E94;
+}
+
+.student-reports-filter-bar-container .reports-filter-dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #EFF3F0;
+  border: 1px solid rgba(9, 38, 24, 0.05);
+  border-radius: 8px;
+  height: 40px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #092618;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+}
+
+.student-reports-filter-bar-container .reports-filter-dropdown-btn:hover {
+  background-color: #E5ECE7;
+}
+
+.student-reports-filter-bar-container .dropdown-arrow-icon {
+  color: #092618;
+  transition: transform 0.15s ease;
+}
+
+/* Dedicated On Hold Pill Button: Matches Technical Personnel UI screen button */
+.student-reports-filter-bar-container .reports-on-hold-pill-btn,
+.student-reports-controls-bar .reports-on-hold-pill-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background-color: #FBE8DA !important;
+  border: 1px solid rgba(160, 82, 45, 0.18) !important;
+  border-radius: 8px !important;
+  height: 40px !important;
+  padding: 0 16px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #8A431D !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  transition: all 0.15s ease !important;
+  box-shadow: none !important;
+}
+
+.student-reports-filter-bar-container .reports-on-hold-pill-btn:hover,
+.student-reports-controls-bar .reports-on-hold-pill-btn:hover {
+  background-color: #F6DEC9 !important;
+}
+
+.student-reports-filter-bar-container .reports-on-hold-pill-btn.pill-active,
+.student-reports-controls-bar .reports-on-hold-pill-btn.pill-active {
+  border: 1.5px solid #A0522D !important;
+  background-color: #F3D2BA !important;
+  box-shadow: 0 2px 6px rgba(160, 82, 45, 0.15) !important;
+  color: #8A431D !important;
+}
+
+.student-reports-filter-bar-container .reports-on-hold-badge-count,
+.student-reports-controls-bar .reports-on-hold-badge-count {
+  background-color: #A0522D !important;
+  color: #FFFFFF !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  padding: 2px 9px !important;
+  border-radius: 9999px !important;
+  line-height: 1 !important;
+  margin-left: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.15s ease !important;
+}
+
+.student-reports-filter-bar-container .reports-on-hold-pill-btn.pill-active .reports-on-hold-badge-count,
+.student-reports-controls-bar .reports-on-hold-pill-btn.pill-active .reports-on-hold-badge-count {
+  background-color: #A0522D !important;
+  color: #FFFFFF !important;
+}
+
+/* Reset / Refresh Button: Matches Image 2 */
+.student-reports-filter-bar-container .reports-refresh-btn {
+  width: 40px;
+  height: 40px;
+  background-color: #DBE9E0 !important;
+  border: none !important;
+  border-radius: 8px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #092618 !important;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease;
+  box-shadow: none !important;
+}
+
+.student-reports-filter-bar-container .reports-refresh-btn:hover {
+  background-color: #EFF3F0 !important;
+}
+
+.student-reports-filter-bar-container .reports-refresh-btn .refresh-icon.spin-anim,
+.student-reports-filter-bar-container .reports-refresh-btn .spin-anim {
+  animation: spinReports 0.7s linear infinite;
+}
+
+.student-search-box-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  background-color: #EFF3F0;
+  border-radius: 8px;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid rgba(9, 38, 24, 0.05);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.student-search-box-wrapper:focus-within {
+  background-color: #FFFFFF;
+  border-color: #072617;
+}
+
+.student-search-icon {
+  color: #718096;
+  flex-shrink: 0;
+}
+
+.student-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  color: #092618;
+  font-family: inherit;
+  font-weight: 500;
+  margin-left: 8px;
+  width: 100%;
+}
+
+.student-search-input::placeholder {
+  color: #8C9E94;
+}
+
+.student-clear-search-btn {
+  background: none;
+  border: none;
+  color: #718096;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+}
+
+.student-dropdown-relative {
+  position: relative;
+}
+
+.student-filter-dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #EFF3F0;
+  border: 1px solid rgba(9, 38, 24, 0.05);
+  border-radius: 8px;
+  height: 38px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #111111;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  font-family: inherit;
+}
+
+.student-filter-dropdown-btn:hover {
+  background-color: #E5ECE7;
+}
+
+.student-filter-dropdown-btn:active {
+  transform: scale(0.98);
+}
+
+.student-filter-dropdown-btn.date-filter-btn {
+  gap: 8px;
+}
+
+.student-cal-icon {
+  color: #475569;
+}
+
+.student-dropdown-arrow-icon {
+  color: #475569;
+  transition: transform 0.15s ease;
+}
+
+.student-dropdown-arrow-icon.rotate-180 {
+  transform: rotate(180deg);
+}
+
+.student-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background-color: #FFFFFF;
+  border: 1px solid rgba(9, 38, 24, 0.12);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  min-width: 170px;
+  z-index: 100;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.student-dropdown-menu-opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #092618;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.1s ease;
+  font-family: inherit;
+}
+
+.student-dropdown-menu-opt:hover {
+  background-color: #F1F6F3;
+}
+
+.student-dropdown-menu-opt.opt-active {
+  background-color: #E2ECE5;
+  font-weight: 700;
+}
+
+.student-opt-check {
+  color: #15803D;
+}
+
+.student-reports-refresh-btn {
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #111111;
+  cursor: pointer;
+  flex-shrink: 0;
+  background-color: #DBE9E0;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.student-reports-refresh-btn:hover {
+  background-color: #EFF3F0;
+}
+
+.student-reports-refresh-btn:active {
+  transform: scale(0.96);
+}
+
+.student-reports-refresh-btn .spin-anim {
+  animation: spinReports 0.7s linear infinite;
+}
+
+@keyframes spinReports {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 4. Reports Table Container Card */
+.student-reports-table-card {
+  background-color: #d2e5da;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(13, 43, 29, 0.04);
+  border: 1px solid rgba(9, 38, 24, 0.08);
+}
+
+.student-table-scroll-frame {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.student-reports-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.student-reports-table thead tr {
+  background-color: #d2e5da;
+  height: 42px;
+}
+
+.student-reports-table th {
+  padding: 10px 18px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  color: #163a26;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(9, 38, 24, 0.08);
+  white-space: nowrap;
+}
+
+.student-reports-table th.col-id {
+  padding-left: 24px;
+  width: 80px;
+}
+
+.student-reports-table th.col-equipment {
+  width: 22%;
+  min-width: 170px;
+}
+
+.student-reports-table th.col-center-room {
+  width: 25%;
+  min-width: 180px;
+}
+
+.student-reports-table th.col-submitted-date {
+  width: 22%;
+  min-width: 160px;
+}
+
+.student-reports-table th.col-status {
+  width: 16%;
+  min-width: 130px;
+  text-align: center;
+}
+
+.student-reports-table th.col-action {
+  padding-right: 24px;
+  width: 80px;
+  text-align: right;
+}
+
+.student-table-row {
+  border-bottom: 1px solid #ebf2ed;
+  background-color: #ffffff;
+  transition: background-color 0.12s ease;
+}
+
+.student-table-row:hover {
+  background-color: #f8fbf9;
+}
+
+.student-reports-table td {
+  padding: 11px 18px;
+  vertical-align: middle;
+}
+
+.student-reports-table td.cell-id {
+  padding-left: 24px;
+}
+
+.student-reports-table td.cell-action {
+  padding-right: 24px;
+  text-align: right;
+}
+
+/* Column 1: ID Pill Badge */
+.student-report-id-pill {
+  display: inline-block;
+  background-color: #173827;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 4px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* Column 2: Equipment */
+.student-equipment-col-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 220px;
+}
+
+.student-equipment-unit-bold {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #092618;
+}
+
+.student-equipment-type-sub {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #64748b;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.3;
+}
+
+/* Column 3: Location */
+.student-location-col-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.student-location-center-bold {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #092618;
+  white-space: nowrap;
+}
+
+.student-location-room-sub {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+/* Column 4: Date & Time Submitted */
+.student-submitted-col-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.student-submitted-date-bold {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #092618;
+  white-space: nowrap;
+}
+
+.student-submitted-time-sub {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+/* Column 5: Status Capsule Badge */
+.student-status-capsule {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.student-status-capsule.status-under-review {
+  background-color: #fbf5d5;
+  color: #856a14;
+}
+
+.student-status-capsule.status-reviewed {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.student-status-capsule.status-under-repair {
+  background-color: #dbeafe;
+  color: #2563eb;
+}
+
+.student-status-capsule.status-on-hold {
+  background-color: #fcd9bd;
+  color: #9a3412;
+}
+
+.student-status-capsule.status-resolved {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+/* Column 6: Action Button */
+.student-btn-view-action {
+  background-color: #dce8e0;
+  color: #164e2e;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 16px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.08s ease;
+  white-space: nowrap;
+}
+
+.student-btn-view-action:hover {
+  background-color: #cde0d4;
+}
+
+.student-btn-view-action:active {
+  transform: translateY(1px);
+}
+
+/* Empty Table State */
+.student-reports-empty-cell {
+  text-align: center;
+  padding: 40px 20px;
+  background-color: #ffffff;
+}
+
+.student-reports-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: #4b5563;
+  font-size: 13.5px;
+}
+
+.student-reset-filters-btn {
+  background: none;
+  border: none;
+  color: #092618;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Table Footer: Results Counter and Pagination */
+.student-reports-table-footer {
+  background-color: #d2e5da;
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(9, 38, 24, 0.06);
+}
+
+.student-showing-reports-count {
+  font-family: monospace, 'Courier New', Courier, sans-serif;
+  font-size: 11.5px;
+  color: #163a26;
+}
+
+.student-showing-reports-count strong {
+  font-weight: 700;
+}
+
+.student-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.student-page-nav-btn {
+  background-color: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #4b5563;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.student-page-nav-btn:hover:not(:disabled) {
+  background-color: #f9fafb;
+  color: #111827;
+}
+
+.student-page-nav-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.student-page-num-btn {
+  min-width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  padding: 0 4px;
+}
+
+.student-page-num-btn.active-page-pill {
+  background-color: #173827;
+  color: #ffffff;
+  border-color: #173827;
+}
+
+.student-page-num-btn:hover:not(.active-page-pill) {
+  background-color: #f3f4f6;
+}
+
+/* 5. Info Notice Banner below table */
+.student-reports-notice-banner {
+  background-color: #d2e5da;
+  border-radius: 8px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(9, 38, 24, 0.08);
+}
+
+.student-notice-icon-circle {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: #0c2b1d;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.student-notice-text {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #0c2b1d;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .student-stats-cards-grid,
+  .reports-metric-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .student-reports-header-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .student-reports-filter-bar-container,
+  .student-reports-controls-bar {
+    flex-wrap: wrap;
+  }
+
+  .reports-search-box-wrapper,
+  .student-search-box-wrapper {
+    min-width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .student-stats-cards-grid,
+  .reports-metric-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ====================================================
+   TECHNICAL PERSONNEL MATCHING TABLE OVERRIDES
+   ==================================================== */
+.student-submitted-reports-container .reports-table-card-container {
+  background-color: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(13, 43, 29, 0.04);
+  border: 1px solid rgba(9, 38, 24, 0.08);
+}
+
+.student-submitted-reports-container .reports-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.student-submitted-reports-container .reports-data-table thead tr.reports-table-heading-row {
+  background-color: #DBE9E0;
+  height: 42px;
+}
+
+.student-submitted-reports-container .reports-data-table th {
+  padding: 8px 16px;
+  font-family: 'Arial', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #26392D;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border-bottom: none;
+}
+
+.student-submitted-reports-container .reports-table-data-row {
+  min-height: 56px;
+  height: 56px;
+  border-bottom: 1px solid #EDF2EE;
+  background-color: #ffffff;
+  transition: background-color 0.12s ease;
+}
+
+.student-submitted-reports-container .reports-table-data-row:hover {
+  background-color: #F8FAF9;
+}
+
+.student-submitted-reports-container .reports-data-table th.th-id {
+  padding-left: 24px;
+  width: 80px;
+}
+
+.student-submitted-reports-container .reports-data-table td.cell-id {
+  padding-left: 24px;
+}
+
+.student-submitted-reports-container .reports-data-table th.th-equipment {
+  width: 22%;
+  min-width: 180px;
+  max-width: 210px;
+}
+
+/* Equipment wrapping fix so long values never overlap adjacent column */
+.student-submitted-reports-container .equipment-col-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 200px;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.student-submitted-reports-container .equipment-unit-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #092618;
+}
+
+.student-submitted-reports-container .equipment-category-sub {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #64748B;
+  white-space: normal !important;
+  overflow-wrap: break-word !important;
+  word-break: break-word !important;
+  line-height: 1.35;
+}
+
+.student-submitted-reports-container .reports-data-table th.th-location {
+  width: 25%;
+  min-width: 180px;
+}
+
+.student-submitted-reports-container .reports-data-table th.th-submitted {
+  width: 22%;
+  min-width: 160px;
+}
+
+.student-submitted-reports-container .reports-data-table th.th-status {
+  width: 16%;
+  min-width: 130px;
+  text-align: center;
+}
+
+.student-submitted-reports-container .reports-data-table td.cell-status {
+  text-align: center;
+}
+
+.student-submitted-reports-container .reports-data-table th.th-action {
+  padding-right: 24px;
+  width: 90px;
+  text-align: right;
+}
+
+.student-submitted-reports-container .reports-data-table td.cell-action {
+  padding-right: 24px;
+  text-align: right;
+}
+
+.student-submitted-reports-container .reports-table-footer {
+  background-color: #D2E5DA;
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(9, 38, 24, 0.06);
+  font-size: 12px;
+  color: #1F2937;
+}
+
+.student-submitted-reports-container .student-reports-notice-banner {
+  background-color: #D2E5DA;
+  border-radius: 8px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(9, 38, 24, 0.08);
+  margin-top: 2px;
+}
+

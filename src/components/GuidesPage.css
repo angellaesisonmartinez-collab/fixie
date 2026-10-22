@@ -1,0 +1,1399 @@
+/* ====================================================
+   FIXIE TECHNICAL PERSONNEL: LABORATORY GUIDE MANAGEMENT
+   Exact UI Replica of Reference Screen
+   ==================================================== */
+
+.tech-guides-viewport {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  animation: fadeIn 0.2s ease-in-out;
+  padding-bottom: 32px;
+}
+
+/* 1. Top Header: Exact match to Students Page Top Header Styling */
+.tech-guides-header-row {
+  background-color: #FFFFFF;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 24px 26px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  min-height: 139px;
+  height: 139px;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+}
+
+.tech-guides-header-left {
+  max-width: 680px;
+  z-index: 2;
+}
+
+.tech-guides-header-title {
+  font-family: 'Barlow Semi Condensed', 'Cambria', sans-serif;
+  font-size: 38px;
+  font-weight: 800;
+  color: #0A2916;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  margin: 0 0 6px 0;
+}
+
+.tech-guides-header-subtitle {
+  font-family: 'Arial', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333333;
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* + Add Guide Action Button (matching Students Page primary button) */
+.tech-guides-btn-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #0B301D;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 22px;
+  font-family: 'Arial', sans-serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(9, 38, 24, 0.16);
+  transition: background-color 0.15s ease, transform 0.08s ease;
+  white-space: nowrap;
+}
+
+.tech-guides-btn-add:hover {
+  background-color: #0e3d25;
+  transform: translateY(-1px);
+}
+
+.tech-guides-btn-add:active {
+  transform: translateY(0);
+}
+
+/* 2. Stat Cards Grid: Exact replica of Active Students card UI */
+.tech-guides-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.tech-stat-card {
+  width: 100% !important;
+  min-width: 0;
+  box-sizing: border-box;
+  user-select: none;
+}
+
+/* All Guides Card - slightly greener appearance to distinguish while maintaining Fixie palette */
+.tech-stat-card.card-all-guides {
+  background-color: #EDF5F0;
+  border-color: #C6DACD;
+}
+
+.tech-stat-card.card-all-guides:hover {
+  border-color: #ADC8B6;
+}
+
+/* Active filter state for stat cards */
+.tech-stat-card.card-filter-active {
+  border: 1.5px solid #116B31;
+}
+
+/* Card badges matching palette */
+.badge-rules-gold {
+  background-color: #EFE386;
+  color: #854D0E;
+}
+
+.badge-reminders-blue {
+  background-color: #CFE2FE;
+  color: #2563EB;
+}
+
+.badge-howto-green {
+  background-color: #B5D1BF;
+  color: #083908;
+}
+
+/* 3. Search & Filter Bar: Matching Students Page Controls */
+.tech-guides-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+/* Steady Reset Button: Strictly stationary, does not rotate or shift */
+.students-refresh-icon-btn {
+  width: 40px;
+  height: 40px;
+  background-color: #DBE9E0;
+  border: none;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #111111;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease;
+  transform: none !important;
+  animation: none !important;
+}
+
+.students-refresh-icon-btn:hover {
+  background-color: #EFF3F0;
+}
+
+.students-refresh-icon-btn svg {
+  transform: none !important;
+  animation: none !important;
+}
+
+.students-filter-dropdown-trigger .rotate-180 {
+  transform: rotate(180deg);
+  transition: transform 0.15s ease;
+}
+
+@media (max-width: 960px) {
+  .tech-guides-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .tech-guides-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    height: auto;
+    min-height: auto;
+    gap: 14px;
+    padding: 18px 20px;
+  }
+
+  .tech-guides-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tech-guides-filter-bar {
+    flex-wrap: wrap;
+  }
+}
+
+/* 3. Information Guides Table Container */
+.tech-guides-table-card {
+  background-color: #FFFFFF;
+  border-radius: 10px;
+  border: 1px solid #D5E7DD;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.tech-guides-table-header {
+  background-color: #D5E7DD;
+  padding: 12px 20px;
+  border-bottom: 1px solid #C8DDD0;
+}
+
+.tech-guides-table-title {
+  font-family: 'Arial', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #13382C;
+  text-transform: uppercase;
+}
+
+.tech-guides-list-body {
+  background-color: #FFFFFF;
+}
+
+.tech-guide-row {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #EEF3EF;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.tech-guide-row:last-child {
+  border-bottom: none;
+}
+
+.tech-guide-row:hover {
+  background-color: #F8FAF9;
+}
+
+.tech-guide-row-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.tech-guide-row-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0D2B1D;
+  margin: 0 0 3px 0;
+  line-height: 1.3;
+}
+
+.tech-guide-row-desc {
+  font-size: 13px;
+  color: #4B5563;
+  margin: 0 0 8px 0;
+  line-height: 1.45;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 95%;
+}
+
+.tech-guide-row-date {
+  font-size: 11.5px;
+  color: #484a4c;
+  font-weight: 500;
+  display: block;
+  white-space: pre-wrap;
+}
+
+.tech-guide-row-badge-wrap {
+  flex-shrink: 0;
+}
+
+/* Badges Matching Reference Screenshot */
+.tech-guide-badge {
+  display: inline-block;
+  min-width: 84px;
+  padding: 4px 14px;
+  text-align: center;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: 0.01em;
+}
+
+.tech-guide-badge.badge-rules-pill {
+  background-color: #655E26;
+}
+
+.tech-guide-badge.badge-howto-pill {
+  background-color: #1F3B58;
+}
+
+.tech-guide-badge.badge-reminder-pill {
+  background-color: #23773A;
+}
+
+/* Empty State */
+.tech-guides-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.tech-guides-empty-state .empty-icon {
+  color: #94A3B8;
+  margin-bottom: 12px;
+}
+
+.tech-guides-empty-state .empty-text {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #334155;
+  margin: 0;
+}
+
+/* Table Footer Bar & Pagination Controls */
+.tech-guides-table-footer {
+  background-color: #D5E7DD;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #C8DDD0;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.tech-guides-footer-count {
+  font-family: 'Arial', sans-serif;
+  font-size: 12px;
+  color: #13382C;
+}
+
+.tech-guides-footer-count .count-num {
+  font-weight: 700;
+  color: #0A2916;
+}
+
+.tech-guides-pagination {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tech-pagination-btn {
+  background-color: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  font-family: inherit;
+}
+
+.tech-pagination-btn:hover:not(:disabled) {
+  background-color: #F1F5F9;
+  border-color: #94A3B8;
+}
+
+.tech-pagination-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tech-pagination-pages-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tech-pagination-page {
+  min-width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  font-family: inherit;
+}
+
+.tech-pagination-page.page-active {
+  background-color: #143E2B;
+  color: #FFFFFF;
+  border: 1px solid #143E2B;
+  font-weight: 700;
+}
+
+.tech-pagination-page.page-inactive {
+  background-color: #FFFFFF;
+  color: #374151;
+  border: 1px solid #CBD5E1;
+}
+
+.tech-pagination-page.page-inactive:hover {
+  background-color: #F1F5F9;
+}
+
+/* 4. Modals (Add, View, Edit) */
+.tech-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(7, 38, 23, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.tech-modal-card {
+  background-color: #FFFFFF;
+  border-radius: 14px;
+  max-width: 580px;
+  width: 100%;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  animation: modalScaleUp 0.2s ease-out;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes modalScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.tech-modal-header {
+  background-color: #072617;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tech-modal-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tech-modal-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #FFFFFF;
+  margin: 0;
+  font-family: 'Arial', sans-serif;
+}
+
+.tech-modal-subtitle {
+  font-size: 12.5px;
+  color: #B5D1BF;
+  margin: 0;
+}
+
+.tech-modal-close-icon {
+  background: transparent;
+  border: none;
+  color: #B5D1BF;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.12s ease;
+}
+
+.tech-modal-close-icon:hover {
+  color: #FFFFFF;
+}
+
+.tech-modal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.tech-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tech-form-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1F2937;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.tech-form-input,
+.tech-form-select,
+.tech-form-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: #111827;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tech-form-input:focus,
+.tech-form-select:focus,
+.tech-form-textarea:focus {
+  outline: none;
+  border-color: #0E4829;
+  box-shadow: 0 0 0 3px rgba(14, 72, 41, 0.15);
+}
+
+.tech-form-textarea {
+  resize: vertical;
+  min-height: 140px;
+  line-height: 1.5;
+}
+
+.tech-modal-footer {
+  background-color: #F8FAF9;
+  padding: 16px 24px;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.tech-btn-cancel {
+  background-color: #FFFFFF;
+  border: 1px solid #D1D5DB;
+  color: #374151;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.tech-btn-cancel:hover {
+  background-color: #F1F5F9;
+}
+
+.tech-btn-submit {
+  background-color: #0E4829;
+  color: #FFFFFF;
+  border: none;
+  padding: 9px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.tech-btn-submit:hover {
+  background-color: #143E2B;
+}
+
+.tech-btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* View Guide Details Modal Spec */
+.tech-view-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 14px;
+  background-color: #F8FAF9;
+  border-radius: 8px;
+  border: 1px solid #E2ECE5;
+}
+
+.tech-view-content-box {
+  background-color: #F8FAF9;
+  border: 1px solid #E2ECE5;
+  border-radius: 8px;
+  padding: 16px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.tech-view-text-block {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #1E293B;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.tech-btn-edit-mode {
+  background-color: #0E4829;
+  color: #FFFFFF;
+  border: none;
+  padding: 9px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.15s ease;
+}
+
+.tech-btn-edit-mode:hover {
+  background-color: #143E2B;
+}
+
+/* Toast Notification */
+.tech-guides-toast {
+  position: fixed;
+  top: 24px;
+  right: 28px;
+  z-index: 99999;
+  background-color: #072617;
+  color: #FFFFFF;
+  padding: 12px 20px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  animation: slideInRight 0.25s ease-out;
+}
+
+.tech-toast-icon-circle {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: #16A34A;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tech-toast-text {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Responsive Rules */
+@media (max-width: 900px) {
+  .tech-guides-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .tech-guides-header-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tech-guides-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tech-guide-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}
+
+/* ==========================================================================
+   IMAGE 1 REPLICATION: ADD GUIDE FORM MODAL
+   ========================================================================== */
+.add-guide-modal-card {
+  width: 100%;
+  max-width: 600px;
+  background-color: #FFFFFF;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  animation: modalPopIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.add-guide-modal-header {
+  background-color: #072617;
+  padding: 24px 28px 20px 28px;
+}
+
+.add-guide-modal-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #FFFFFF;
+  margin: 0 0 4px 0;
+  font-family: 'Barlow Semi Condensed', sans-serif;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+.add-guide-modal-subtitle {
+  font-size: 14.5px;
+  color: #E2ECE5;
+  margin: 0;
+  font-family: 'Arial', sans-serif;
+  font-weight: 400;
+}
+
+.add-guide-modal-body {
+  padding: 22px 28px 26px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.add-guide-error-banner {
+  background-color: #FEE2E2;
+  border: 1px solid #F87171;
+  color: #B91C1C;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.add-guide-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.add-guide-field-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+}
+
+/* Category 3-pill toggle row */
+.add-guide-category-group {
+  display: flex;
+  gap: 12px;
+}
+
+.add-guide-category-btn {
+  flex: 1;
+  height: 44px;
+  border-radius: 10px;
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  background-color: #FFFFFF;
+  color: #0F172A;
+  border: 1.5px solid #1E293B;
+}
+
+.add-guide-category-btn:hover {
+  background-color: #FFFFFF;
+}
+
+.add-guide-category-btn.active {
+  background-color: #072617;
+  color: #FFFFFF;
+  border: 1.5px solid #072617;
+  font-weight: 700;
+  box-shadow: 0 0 0 1px #072617;
+}
+
+.add-guide-category-btn.active:hover {
+  background-color: #072617;
+}
+
+/* Title Input */
+.add-guide-input {
+  width: 100%;
+  height: 46px;
+  border: 1.5px solid #94A3B8;
+  border-radius: 10px;
+  padding: 0 16px;
+  font-size: 15px;
+  color: #0F172A;
+  box-sizing: border-box;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.add-guide-input::placeholder {
+  color: #94A3B8;
+}
+
+.add-guide-input:focus {
+  border-color: #072617;
+  box-shadow: 0 0 0 3px rgba(7, 38, 23, 0.12);
+}
+
+/* Rich-Text Details Editor Box */
+.add-guide-editor-box {
+  border: 1.5px solid #94A3B8;
+  border-radius: 10px;
+  overflow: hidden;
+  background-color: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+}
+
+.add-guide-toolbar {
+  background-color: #E5E7EB;
+  border-bottom: 1.5px solid #D1D5DB;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  user-select: none;
+}
+
+.add-guide-toolbar-btn {
+  background: transparent;
+  border: none;
+  padding: 4px 6px;
+  border-radius: 4px;
+  color: #1E293B;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-family: inherit;
+  line-height: 1;
+  min-width: 26px;
+  height: 26px;
+  transition: background 0.12s ease;
+}
+
+.add-guide-toolbar-btn:hover {
+  background-color: #D1D5DB;
+}
+
+.add-guide-toolbar-btn:active {
+  background-color: #CBD5E1;
+}
+
+.add-guide-toolbar-btn.btn-bold {
+  font-weight: 800;
+  font-family: sans-serif;
+}
+
+.add-guide-toolbar-btn.btn-italic {
+  font-style: italic;
+  font-weight: 700;
+  font-family: serif;
+}
+
+.add-guide-toolbar-btn.btn-underline {
+  text-decoration: underline;
+  font-weight: 700;
+}
+
+.add-guide-toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background-color: #CBD5E1;
+  margin: 0 4px;
+}
+
+.add-guide-editor-content {
+  min-height: 190px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 14px 16px;
+  outline: none;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #1E293B;
+  font-family: inherit;
+}
+
+.add-guide-editor-content:empty::before {
+  content: attr(data-placeholder);
+  color: #64748B;
+  pointer-events: none;
+  font-style: normal;
+}
+
+.add-guide-editor-content b,
+.add-guide-editor-content strong {
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.add-guide-editor-content u {
+  text-decoration: underline;
+}
+
+.add-guide-editor-content i,
+.add-guide-editor-content em {
+  font-style: italic;
+}
+
+.add-guide-editor-content ul,
+.add-guide-editor-content ol {
+  padding-left: 22px;
+  margin: 8px 0 12px 0;
+}
+
+.add-guide-editor-content li {
+  margin-bottom: 4px;
+}
+
+/* Modal Footer */
+.add-guide-modal-footer {
+  background-color: #072617;
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 20px;
+}
+
+.add-guide-btn-cancel {
+  background: transparent;
+  border: none;
+  color: #FFFFFF;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 10px 14px;
+  transition: opacity 0.15s ease;
+  font-family: inherit;
+}
+
+.add-guide-btn-cancel:hover {
+  opacity: 0.85;
+}
+
+.add-guide-btn-publish {
+  background-color: #FFFFFF;
+  color: #072617;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 800;
+  padding: 12px 34px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  font-family: inherit;
+}
+
+.add-guide-btn-publish:hover {
+  background-color: #F1F5F9;
+}
+
+.add-guide-btn-publish:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   IMAGE 2 REPLICATION: GUIDE PUBLISHED SUCCESS MODAL
+   ========================================================================== */
+.guide-published-modal-card {
+  width: 100%;
+  max-width: 520px;
+  background-color: #FFFFFF;
+  border-radius: 18px;
+  border: 2px solid #072617;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+  text-align: center;
+  animation: modalPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.guide-published-top {
+  background-color: #DAE8DF;
+  padding: 40px 24px 34px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.guide-published-mascot {
+  width: 115px;
+  height: auto;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.guide-published-title {
+  font-size: 28px;
+  font-weight: 900;
+  color: #000000;
+  margin: 0 0 10px 0;
+  font-family: 'Barlow Semi Condensed', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.guide-published-subtitle {
+  font-size: 16px;
+  font-weight: 400;
+  color: #1E293B;
+  margin: 0;
+  font-family: 'Arial', sans-serif;
+}
+
+.guide-published-bottom {
+  background-color: #FFFFFF;
+  padding: 18px 24px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.guide-published-continue-btn {
+  background-color: #072617;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 12px 36px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  font-family: inherit;
+}
+
+.guide-published-continue-btn:hover {
+  background-color: #0E4829;
+}
+
+/* Rich text container in view modal */
+.tech-view-rich-content {
+  font-size: 14px;
+  line-height: 1.65;
+  color: #1E293B;
+}
+
+.tech-view-rich-content p {
+  margin: 0 0 10px 0;
+}
+
+.tech-view-rich-content b,
+.tech-view-rich-content strong {
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.tech-view-rich-content u {
+  text-decoration: underline;
+}
+
+.tech-view-rich-content i,
+.tech-view-rich-content em {
+  font-style: italic;
+}
+
+.tech-view-rich-content ul,
+.tech-view-rich-content ol {
+  padding-left: 22px;
+  margin: 8px 0 12px 0;
+}
+
+.tech-view-rich-content li {
+  margin-bottom: 4px;
+}
+
+/* ==========================================================================
+   IMAGE 1 REPLICATION: GUIDE DETAILS MODAL
+   ========================================================================== */
+.guide-details-modal-card {
+  width: 100%;
+  max-width: 620px;
+  background-color: #FFFFFF;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  animation: modalPopIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.guide-details-modal-header {
+  background-color: #072617;
+  padding: 24px 32px 20px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.guide-details-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+
+.guide-details-header-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #FFFFFF;
+  margin: 0;
+  font-family: 'Barlow Semi Condensed', sans-serif;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.guide-details-header-date {
+  font-size: 14px;
+  color: #CBD5E1;
+  margin: 0;
+  font-family: 'Arial', sans-serif;
+  font-weight: 400;
+  white-space: pre-wrap;
+}
+
+.guide-details-header-right {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.guide-details-category-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  padding: 6px 20px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: 'Arial', sans-serif;
+  white-space: nowrap;
+}
+
+.guide-details-category-pill.category-howto {
+  background-color: #D4EBF8;
+  color: #1E3A5F;
+}
+
+.guide-details-category-pill.category-rules {
+  background-color: #E8E7D5;
+  color: #4B4619;
+}
+
+.guide-details-category-pill.category-reminder {
+  background-color: #D6EADF;
+  color: #18522B;
+}
+
+.guide-details-modal-body {
+  padding: 28px 32px;
+  max-height: 65vh;
+  overflow-y: auto;
+  background-color: #FFFFFF;
+}
+
+.guide-details-lead {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+  font-family: 'Arial', sans-serif;
+}
+
+.guide-details-paragraph {
+  font-size: 15px;
+  color: #1F2937;
+  margin: 0 0 12px 0;
+  line-height: 1.6;
+}
+
+.guide-details-bullet-list {
+  margin: 0;
+  padding-left: 22px;
+  color: #111827;
+  list-style-type: disc;
+}
+
+.guide-details-bullet-item {
+  font-size: 15.5px;
+  line-height: 1.6;
+  margin-bottom: 8px;
+  color: #111827;
+  font-family: 'Arial', sans-serif;
+}
+
+.guide-details-rich-content {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #111827;
+}
+
+.guide-details-rich-content p {
+  margin: 0 0 12px 0;
+}
+
+.guide-details-rich-content b,
+.guide-details-rich-content strong {
+  font-weight: 700;
+  color: #111827;
+}
+
+.guide-details-rich-content ul,
+.guide-details-rich-content ol {
+  padding-left: 22px;
+  margin: 8px 0 14px 0;
+}
+
+.guide-details-rich-content li {
+  margin-bottom: 6px;
+}
+
+.guide-details-modal-footer {
+  background-color: #072617;
+  padding: 18px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 24px;
+}
+
+.guide-details-btn-close {
+  background: transparent;
+  border: none;
+  color: #FFFFFF;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 10px 18px;
+  font-family: inherit;
+  transition: opacity 0.15s ease;
+}
+
+.guide-details-btn-close:hover {
+  opacity: 0.85;
+}
+
+.guide-details-btn-edit {
+  background-color: #FFFFFF;
+  color: #072617;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 800;
+  padding: 11px 36px;
+  min-width: 140px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color 0.15s ease;
+}
+
+.guide-details-btn-edit:hover {
+  background-color: #F1F5F9;
+}
+
+/* ==========================================================================
+   IMAGE 2 REPLICATION: EDIT GUIDE SCREEN / MODAL
+   ========================================================================== */
+.edit-guide-modal-card {
+  width: 100%;
+  max-width: 600px;
+  background-color: #FFFFFF;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  animation: modalPopIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.edit-guide-modal-header {
+  background-color: #072617;
+  padding: 24px 28px 20px 28px;
+}
+
+.edit-guide-modal-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #FFFFFF;
+  margin: 0 0 4px 0;
+  font-family: 'Barlow Semi Condensed', sans-serif;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+.edit-guide-modal-subtitle {
+  font-size: 14.5px;
+  color: #E2ECE5;
+  margin: 0;
+  font-family: 'Arial', sans-serif;
+  font-weight: 400;
+}
+
+.edit-guide-modal-body {
+  padding: 22px 28px 26px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.edit-guide-modal-footer {
+  background-color: #072617;
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 24px;
+}
+
+.edit-guide-btn-cancel {
+  background: transparent;
+  border: none;
+  color: #FFFFFF;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 10px 14px;
+  transition: opacity 0.15s ease;
+  font-family: inherit;
+}
+
+.edit-guide-btn-cancel:hover {
+  opacity: 0.85;
+}
+
+.edit-guide-btn-update {
+  background-color: #FFFFFF;
+  color: #072617;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 800;
+  padding: 12px 36px;
+  min-width: 140px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  font-family: inherit;
+}
+
+.edit-guide-btn-update:hover {
+  background-color: #F1F5F9;
+}
+
+.edit-guide-btn-update:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

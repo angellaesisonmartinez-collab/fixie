@@ -1,0 +1,762 @@
+/* ====================================================
+   STUDENT REPORT DETAILS MODAL STYLES
+   Exact 1:1 replica of the 4 reference modal states:
+   1. Submitted Modal
+   2. Reviewed Modal
+   3. Under Repair Modal
+   4. Resolved Modal
+   ==================================================== */
+
+.student-report-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  background-color: rgba(4, 20, 12, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  animation: fadeInStudentModal 0.2s ease-out;
+}
+
+@keyframes fadeInStudentModal {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.student-report-modal-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 580px;
+  box-shadow: 0 24px 48px -8px rgba(4, 20, 12, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 94vh;
+}
+
+/* 1. Modal Dark Green Header */
+.student-report-modal-header {
+  background-color: #0b2e1e;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  padding: 20px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.student-report-id-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+  margin: 0;
+  line-height: 1;
+}
+
+/* Header Status Badges (Submitted, Reviewed, Under repair, Resolved) */
+.student-status-header-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  padding: 6px 20px;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.student-status-header-pill.pill-submitted {
+  background-color: #9a8b38;
+  color: #ffffff;
+}
+
+.student-status-header-pill.pill-reviewed {
+  background-color: #72b1e4;
+  color: #0c2b1d;
+}
+
+.student-status-header-pill.pill-repair {
+  background-color: #9c8f33;
+  color: #ffffff;
+}
+
+.student-status-header-pill.pill-resolved {
+  background-color: #4ade80;
+  color: #0c2b1d;
+}
+
+.student-status-header-pill.pill-on-hold {
+  background-color: #ea580c;
+  color: #ffffff;
+}
+
+/* 2. Stepper Workflow */
+.student-workflow-stepper-wrap {
+  background-color: #ffffff;
+  padding: 24px 32px 18px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.student-stepper-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  z-index: 2;
+  min-width: 60px;
+}
+
+.student-stepper-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.student-stepper-circle.circle-inactive {
+  background-color: #ffffff;
+  border: 1.5px solid #d1d5db;
+  color: #9ca3af;
+  font-weight: 600;
+}
+
+.student-stepper-circle.circle-active-blue {
+  background-color: #ebf5ff;
+  border: 1.5px solid #93c5fd;
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.student-stepper-circle.circle-completed-green {
+  background-color: #dcfce7;
+  border: 1.5px solid #86efac;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.student-stepper-circle.circle-resolved-blue {
+  background-color: #ebf5ff;
+  border: 1.5px solid #93c5fd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.student-stepper-label {
+  font-size: 12px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.student-stepper-label.label-active {
+  color: #111827;
+  font-weight: 700;
+}
+
+.student-stepper-label.label-muted {
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.student-stepper-line {
+  flex: 1;
+  height: 2px;
+  margin: 0 4px;
+  margin-bottom: 22px;
+  transition: background-color 0.2s ease;
+}
+
+.student-stepper-line.line-green {
+  background-color: #4ade80;
+}
+
+.student-stepper-line.line-gray {
+  background-color: #e5e7eb;
+}
+
+/* 3. Modal Scrollable Body */
+.student-report-modal-body {
+  padding: 0 32px 24px 32px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.student-report-modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.student-report-modal-body::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
+  border-radius: 9999px;
+}
+
+/* Detail Rows */
+.student-detail-field-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 11px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.student-field-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #4b5563;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.student-field-value {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #092618;
+  text-align: right;
+}
+
+/* Description Block */
+.student-description-section {
+  padding: 12px 0 14px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.student-description-title {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #4b5563;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 6px;
+}
+
+.student-description-paragraph {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #092618;
+  line-height: 1.45;
+  margin: 0 0 10px 0;
+}
+
+/* Attachment Pill */
+.student-attachment-pill-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #a4c5b3;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.student-attachment-pill-card:hover {
+  background-color: #93b9a3;
+}
+
+.student-attachment-icon-square {
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  background-color: #0c2b1d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.student-attachment-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.student-attachment-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #092618;
+  line-height: 1.2;
+}
+
+.student-attachment-size {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #374151;
+  line-height: 1.2;
+}
+
+/* Date Submitted Row */
+.student-date-submitted-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.student-date-submitted-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.student-date-submitted-value {
+  font-family: monospace, 'Courier New', Courier, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #092618;
+  letter-spacing: 0.02em;
+}
+
+/* Status History Block */
+.student-status-history-section {
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.student-status-history-heading {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #374151;
+  margin: 0 0 4px 0;
+}
+
+.student-history-entry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.4;
+}
+
+.student-history-status-name {
+  font-weight: 700;
+  color: #092618;
+}
+
+.student-history-dot-sep {
+  color: #6b7280;
+}
+
+.student-history-timestamp {
+  color: #4b5563;
+}
+
+.student-history-remarks-line {
+  font-size: 12.5px;
+  color: #092618;
+  font-weight: 500;
+  margin: -2px 0 2px 0;
+}
+
+/* Footer Close Button */
+.student-modal-action-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 20px;
+  margin-top: 10px;
+}
+
+.student-btn-modal-close {
+  background-color: #0b2e1e;
+  color: #ffffff;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 32px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.08s ease;
+  box-shadow: 0 2px 6px rgba(11, 46, 30, 0.15);
+}
+
+.student-btn-modal-close:hover {
+  background-color: #14462e;
+  transform: translateY(-1px);
+}
+
+.student-btn-modal-close:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 600px) {
+  .student-report-modal-card {
+    width: 95%;
+    max-width: 95%;
+    max-height: 90vh;
+    max-height: 90dvh;
+  }
+
+  .student-workflow-stepper-wrap {
+    padding: 14px 10px 10px 10px;
+  }
+
+  .student-stepper-label {
+    font-size: 11px;
+  }
+
+  .student-stepper-circle {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .student-report-modal-body {
+    padding: 0 16px 18px 16px;
+  }
+
+  .student-report-modal-header {
+    padding: 16px 18px;
+  }
+
+  .student-report-id-title {
+    font-size: 22px;
+  }
+
+  .student-status-header-pill {
+    padding: 4px 14px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .student-workflow-stepper-wrap {
+    padding: 12px 6px 8px 6px;
+  }
+
+  .student-stepper-label {
+    font-size: 9.5px;
+  }
+
+  .student-stepper-circle {
+    width: 24px;
+    height: 24px;
+    font-size: 10.5px;
+  }
+
+  .student-field-label {
+    font-size: 11px;
+  }
+
+  .student-field-value {
+    font-size: 12.5px;
+  }
+}
+
+/* ====================================================
+   REPORT ATTACHMENT IMAGES & ENLARGED LIGHTBOX
+   ==================================================== */
+
+.student-attachment-wrapper {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.student-attachment-pill-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #a4c5b3;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  width: fit-content;
+}
+
+.student-attachment-view-hint {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0c2b1d;
+  background: rgba(255, 255, 255, 0.45);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.student-photo-preview-card {
+  margin-top: 4px;
+  border: 1px solid rgba(12, 43, 29, 0.15);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.student-preview-img-container {
+  position: relative;
+  cursor: pointer;
+  max-height: 180px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f172a;
+}
+
+.student-preview-real-img {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.2s ease;
+}
+
+.student-preview-img-container:hover .student-preview-real-img {
+  transform: scale(1.02);
+}
+
+.student-preview-hover-tag {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(12, 43, 29, 0.85);
+  backdrop-filter: blur(4px);
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  pointer-events: none;
+}
+
+.student-preview-clean-placeholder,
+.tp-clean-placeholder {
+  padding: 22px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 600;
+  background-color: #f9fafb;
+}
+
+.student-no-photo-placeholder,
+.tp-no-photo-placeholder {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  border: 1px dashed #cbd5e1;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 6px;
+  user-select: none;
+}
+
+.attachment-security-notice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tp-attachment-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.tp-attachment-toggle-label {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0a3420;
+  background: rgba(255, 255, 255, 0.35);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.tp-preview-image-container {
+  position: relative;
+  cursor: pointer;
+  max-height: 200px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f172a;
+}
+
+.tp-preview-real-img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.2s ease;
+}
+
+.tp-preview-image-container:hover .tp-preview-real-img {
+  transform: scale(1.02);
+}
+
+.tp-preview-hover-tag {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(10, 52, 32, 0.88);
+  backdrop-filter: blur(4px);
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  pointer-events: none;
+}
+
+/* Enlarged Lightbox Modal (Appears over modal) */
+.report-image-enlarge-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100050;
+  background: rgba(7, 24, 16, 0.88);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.report-image-enlarge-container {
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  max-width: 820px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  animation: scaleUp 0.15s ease-out;
+}
+
+.report-image-enlarge-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  background: #0c2b1d;
+  color: #ffffff;
+}
+
+.report-image-enlarge-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.report-image-enlarge-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.3px;
+}
+
+.report-image-enlarge-badge {
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.18);
+  padding: 3px 8px;
+  border-radius: 4px;
+  color: #e2e8f0;
+}
+
+.report-image-enlarge-close-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: #ffffff;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.report-image-enlarge-close-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.report-image-enlarge-body {
+  padding: 0;
+  background: #0a0f1d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  max-height: calc(90vh - 60px);
+}
+
+.report-image-enlarge-img {
+  max-width: 100%;
+  max-height: calc(90vh - 60px);
+  object-fit: contain;
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.96); opacity: 0.8; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+

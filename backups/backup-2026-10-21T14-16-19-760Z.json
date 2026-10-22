@@ -1,0 +1,1100 @@
+{
+  "students": [
+    {
+      "id": "9002d8e6-bc03-4070-8aae-299147dead9a",
+      "student_id": "24-0041-147",
+      "name": "Angel Lae Martinez",
+      "first_name": "Angel Lae",
+      "middle_name": "Sison",
+      "last_name": "Martinez",
+      "year_block": "3rd year, BLK 2",
+      "email": "martinezangellaewup@gmail.com",
+      "date_registered": "2026-09-28",
+      "email_last_updated": null,
+      "password_hash": "$2b$10$3jtmXCroCjuLMiOprPlwTOl39CX530VUnwQcq8eRJwjh8OBScsD1m",
+      "must_change_password": false,
+      "status": "active",
+      "created_at": "2026-09-28T08:30:00+00:00",
+      "updated_at": "2026-10-21T13:04:29.785+00:00"
+    },
+    {
+      "id": "51664213-275b-4e67-9024-d92d7e0a8022",
+      "student_id": "24-2026-340",
+      "name": "Jennelyn Vergara",
+      "first_name": "Jennelyn",
+      "middle_name": "Garcia",
+      "last_name": "Vergara",
+      "year_block": "3rd year, BLK 2",
+      "email": "jennelynvergara@gmail.com",
+      "date_registered": "2026-09-28",
+      "email_last_updated": null,
+      "password_hash": "$2b$10$dwk4LUP5pNecM28av9OzluPDo1tLWQ5Ec8nqfUtQNoe6Soy481JDG",
+      "must_change_password": false,
+      "status": "active",
+      "created_at": "2026-09-10T08:15:00+00:00",
+      "updated_at": "2026-10-21T13:04:30.245+00:00"
+    },
+    {
+      "id": "c16771bd-67f2-4bb2-9191-0e2dcb69a511",
+      "student_id": "24-1003-101",
+      "name": "Jeane Kelly Mina",
+      "first_name": "Jeane Kelly",
+      "middle_name": "Ramos",
+      "last_name": "Mina",
+      "year_block": "3rd year, BLK 2",
+      "email": "jeanekellymina@gmail.com",
+      "date_registered": "2026-09-25",
+      "email_last_updated": null,
+      "password_hash": "$2b$10$zQiyBq5KJ8DVKj0cPa1u1OMm5vcN5tecxOCZP2Wp.glFnSRyJQI6y",
+      "must_change_password": false,
+      "status": "active",
+      "created_at": "2026-09-07T16:00:00+00:00",
+      "updated_at": "2026-10-21T13:04:30.652+00:00"
+    },
+    {
+      "id": "d907e0ff-fe9c-4d19-aac5-f826e311b5ef",
+      "student_id": "24-2745-132",
+      "name": "Jazmin Bayudan",
+      "first_name": "Jazmin",
+      "middle_name": "Dela Cruz",
+      "last_name": "Bayudan",
+      "year_block": "3rd year, BLK 2",
+      "email": "jazminbayudan@gmail.com",
+      "date_registered": "2026-09-25",
+      "email_last_updated": null,
+      "password_hash": "$2b$10$5k.GmLVaKJCuorFX6FyE2u0nLYOwIh1z8bPYRqrqygPxGVUGK1X/S",
+      "must_change_password": false,
+      "status": "active",
+      "created_at": "2026-09-07T11:00:00+00:00",
+      "updated_at": "2026-10-21T13:04:31.065+00:00"
+    },
+    {
+      "id": "43516fd4-6370-409e-96c0-5acc8d56d9c6",
+      "student_id": "24-4011-088",
+      "name": "Phia Cayetano",
+      "first_name": "Phia",
+      "middle_name": null,
+      "last_name": "Cayetano",
+      "year_block": "4th year, BLK 1",
+      "email": "phia.cayetano@gmail.com",
+      "date_registered": "2026-09-01",
+      "email_last_updated": null,
+      "password_hash": "$2b$10$s1JB44kfJjhAkK6uXbkjouEuA1wLHdDhY6zNoJlslgVtdtCJ5Y.ZO",
+      "must_change_password": false,
+      "status": "deactivated",
+      "created_at": "2026-10-17T16:39:41.54605+00:00",
+      "updated_at": "2026-10-21T13:04:31.499+00:00"
+    },
+    {
+      "id": "82f230ea-abdb-4bc2-8fea-e87eb897299c",
+      "student_id": "24-0031-267",
+      "name": "Juan Dela Cruz",
+      "first_name": "Juan",
+      "middle_name": "Navarro",
+      "last_name": "Dela Cruz",
+      "year_block": "2nd year, BLK 2",
+      "email": "jualdelacruz@gmail.com",
+      "date_registered": "2026-09-26",
+      "email_last_updated": null,
+      "password_hash": "$2b$10$IenlBKMQDRw2SW3E7joBl.35hhgMFv7R2aPnai5urvXCYGeg1vk72",
+      "must_change_password": false,
+      "status": "active",
+      "created_at": "2026-09-08T14:00:00+00:00",
+      "updated_at": "2026-10-21T13:04:31.917+00:00"
+    },
+    {
+      "id": "21877a55-8600-4a5d-88ce-4e0746c23898",
+      "student_id": "24-8521-063",
+      "name": "Maria Reyes",
+      "first_name": "Maria",
+      "middle_name": "Clara",
+      "last_name": "Reyes",
+      "year_block": "1st year, BLK 1",
+      "email": "mariareyes@gmail.com",
+      "date_registered": "2026-09-26",
+      "email_last_updated": null,
+      "password_hash": "$2b$10$d73HqLRYZcjXE9VNSwcPs.ccXeLE1QpQiZ42Hc2VtbhvhuDYt9FO2",
+      "must_change_password": false,
+      "status": "active",
+      "created_at": "2026-09-08T10:00:00+00:00",
+      "updated_at": "2026-10-21T13:04:32.323+00:00"
+    },
+    {
+      "id": "d0a857f1-87a1-49a4-b0c7-5c3d61e78ecd",
+      "student_id": "24-0132-062",
+      "name": "Emmanuel Gaspar",
+      "first_name": "Emmanuel",
+      "middle_name": "Bautista",
+      "last_name": "Gaspar",
+      "year_block": "3rd year, BLK 1",
+      "email": "emmang@gmail.com",
+      "date_registered": "2026-09-06",
+      "email_last_updated": null,
+      "password_hash": "$2b$10$pmHzuhBdctM87.wM32DEYOFY8/LcVw8tx55iPnj/FDIAIC7rRUtUK",
+      "must_change_password": false,
+      "status": "active",
+      "created_at": "2026-09-06T10:00:00+00:00",
+      "updated_at": "2026-10-21T13:04:32.721+00:00"
+    },
+    {
+      "id": "c52fa8d2-b505-4249-b012-060e313fe18e",
+      "student_id": "24-2026-106",
+      "name": "Bianca Allyzon Antonio",
+      "first_name": "Bianca Allyzon",
+      "middle_name": "Reyes",
+      "last_name": "Antonio",
+      "year_block": "3rd year, BLK 1",
+      "email": "bianca@gmail.com",
+      "date_registered": "2026-09-05",
+      "email_last_updated": null,
+      "password_hash": "$2b$10$0hMsF0OJNKPg/7R7ngn9rOrhiW35W4b4KtMeVTSRAkhjv1QtcPIG6",
+      "must_change_password": false,
+      "status": "active",
+      "created_at": "2026-09-05T10:00:00+00:00",
+      "updated_at": "2026-10-21T13:04:33.088+00:00"
+    },
+    {
+      "id": "e101ced6-cc94-4d17-83e7-c519782f7dba",
+      "student_id": "24-2026-107",
+      "name": "Chryztel Geene Salvador",
+      "first_name": "Chryztel Geene",
+      "middle_name": "Flores",
+      "last_name": "Salvador",
+      "year_block": "3rd year, BLK 1",
+      "email": "geene@gmail.com",
+      "date_registered": "2026-09-04",
+      "email_last_updated": null,
+      "password_hash": "$2b$10$l.Og4paLTzm7I4myIrE/U.THeWkh8Ad2pVmoAEmp.LegT6ud4C.EW",
+      "must_change_password": false,
+      "status": "active",
+      "created_at": "2026-09-04T10:00:00+00:00",
+      "updated_at": "2026-10-21T13:04:34.118+00:00"
+    },
+    {
+      "id": "bbb5f955-b361-4929-8055-031d61dd4f58",
+      "student_id": "24-2026-108",
+      "name": "John Lester Tan",
+      "first_name": "John Lester",
+      "middle_name": "Mercado",
+      "last_name": "Tan",
+      "year_block": "3rd year, BLK 1",
+      "email": "lester@gmail.com",
+      "date_registered": "2026-09-03",
+      "email_last_updated": null,
+      "password_hash": "$2b$10$N65vGdvDt4OUrV/veJeWH.8WWKIEDSszGNOidRlTjfHoN8ke7PF.2",
+      "must_change_password": false,
+      "status": "active",
+      "created_at": "2026-09-03T10:00:00+00:00",
+      "updated_at": "2026-10-21T13:04:34.586+00:00"
+    },
+    {
+      "id": "309bd498-9f2f-4753-a6ad-e27642a377b7",
+      "student_id": "24-2026-109",
+      "name": "Justine Kate Abello",
+      "first_name": "Justine Kate",
+      "middle_name": "Castro",
+      "last_name": "Abello",
+      "year_block": "3rd year, BLK 2",
+      "email": "kate@gmail.com",
+      "date_registered": "2026-09-02",
+      "email_last_updated": null,
+      "password_hash": "$2b$10$eeZMBZoB4yRKIYqoqiJwguBAllzNYSZVsqRRIvalnAMMstgJry6IS",
+      "must_change_password": false,
+      "status": "active",
+      "created_at": "2026-09-02T10:00:00+00:00",
+      "updated_at": "2026-10-21T13:04:35.02+00:00"
+    },
+    {
+      "id": "d168ef6a-b9c3-4f47-8860-5a1a0c28f76f",
+      "student_id": "24-0872-090",
+      "name": "Maria Ortiz",
+      "first_name": "Maria",
+      "middle_name": "Santos",
+      "last_name": "Ortiz",
+      "year_block": "3rd year, BLK 1",
+      "email": "maria.ortiz@gmail.com",
+      "date_registered": "2026-09-10",
+      "email_last_updated": null,
+      "password_hash": "$2b$10$mu6I2bAKBXdrBN0cTpmCJuMJikgDEYZQ5pYz2SFnvcXj2U4mmCchi",
+      "must_change_password": false,
+      "status": "active",
+      "created_at": "2026-10-17T21:04:27.194+00:00",
+      "updated_at": "2026-10-21T13:04:35.382+00:00"
+    },
+    {
+      "id": "81ccc938-0114-4894-8034-50b71a7aca74",
+      "student_id": "22-0941-301",
+      "name": "Alyssa Ramos",
+      "first_name": "Alyssa",
+      "middle_name": "Mae",
+      "last_name": "Ramos",
+      "year_block": "1st year, BLK 1",
+      "email": "alyssa.ramos@gmail.com",
+      "date_registered": "2026-09-01",
+      "email_last_updated": null,
+      "password_hash": "$2b$10$7LOfdD6H.Qh6vAjcwbLW3u9ByzGNLngBXB./4Tc5efAn1o7JaFvwy",
+      "must_change_password": false,
+      "status": "deactivated",
+      "created_at": "2026-09-01T10:00:00+00:00",
+      "updated_at": "2026-10-21T13:04:35.733+00:00"
+    },
+    {
+      "id": "a9974b97-4eb0-4876-8a62-cdc86023bbd4",
+      "student_id": "24-7345-853",
+      "name": "Reyn Arahan",
+      "first_name": "Reyn",
+      "middle_name": null,
+      "last_name": "Arahan",
+      "year_block": "3rd year, BLK 1",
+      "email": "reynarahan@gmail.com",
+      "date_registered": "2026-09-27",
+      "email_last_updated": null,
+      "password_hash": "$2b$10$WuFUSx/w.oWOj3JqdYiVletMuiMvS52KaGQev0WsVZHWxwxhoA7YS",
+      "must_change_password": false,
+      "status": "active",
+      "created_at": "2026-09-09T09:00:00+00:00",
+      "updated_at": "2026-10-21T13:04:36.171+00:00"
+    }
+  ],
+  "reports": [
+    {
+      "id": "ffb1d69a-1c25-4141-bf2a-128f38b73180",
+      "report_id": "LR-19",
+      "student_id": "43516fd4-6370-409e-96c0-5acc8d56d9c6",
+      "room": "Computer Center 2, Room 205",
+      "equipment": "Monitor",
+      "unit_number": "PC-#18",
+      "description": "Display output intermittently blank or flickering under load.",
+      "photo_url": null,
+      "status": "On Hold",
+      "remarks": "Awaiting replacement parts from supplier.",
+      "created_at": "2026-10-12T07:15:00+00:00",
+      "updated_at": "2026-10-19T20:23:09.433663+00:00"
+    },
+    {
+      "id": "6bcccb3c-7942-4040-a1a4-56a920fe0331",
+      "report_id": "LR-21",
+      "student_id": "82f230ea-abdb-4bc2-8fea-e87eb897299c",
+      "room": "Computer Center 6, Room 206",
+      "equipment": "Network/Internet",
+      "unit_number": "PC-#03",
+      "description": "High packet loss encountered during lab networking practical exercise.",
+      "photo_url": null,
+      "status": "Resolved",
+      "remarks": "Re-crimped RJ-45 connector and tested continuous ping at 0% drop rate.",
+      "created_at": "2026-10-14T06:45:00+00:00",
+      "updated_at": "2026-10-14T07:15:00+00:00"
+    },
+    {
+      "id": "f500023f-b377-4313-8e12-8995712a60d5",
+      "report_id": "LR-22",
+      "student_id": "a9974b97-4eb0-4876-8a62-cdc86023bbd4",
+      "room": "Computer Center 3, Room 203",
+      "equipment": "Network/Internet",
+      "unit_number": "PC-#23",
+      "description": "Damaged RJ-45 jack causing packet loss and intermittent drops.",
+      "photo_url": null,
+      "status": "Under Repair",
+      "remarks": "Port keystone needs replacement. Parts requisition submitted.",
+      "created_at": "2026-10-15T05:30:00+00:00",
+      "updated_at": "2026-10-17T19:16:31.539+00:00"
+    },
+    {
+      "id": "bf4bfa59-9fb6-4810-b6af-42ada03a0ab2",
+      "report_id": "LR-23",
+      "student_id": "51664213-275b-4e67-9024-d92d7e0a8022",
+      "room": "Computer Center 4, Room 204",
+      "equipment": "Network/Internet",
+      "unit_number": "PC-#12",
+      "description": "No ethernet connection detected; LAN port indicator is unlit.",
+      "photo_url": null,
+      "status": "Submitted",
+      "remarks": null,
+      "created_at": "2026-10-16T01:30:00+00:00",
+      "updated_at": "2026-10-20T13:30:24.096+00:00"
+    },
+    {
+      "id": "3d6ba9ed-1146-4ef8-896d-053d29b6c28c",
+      "report_id": "LR-24",
+      "student_id": "d168ef6a-b9c3-4f47-8860-5a1a0c28f76f",
+      "room": "Computer Center 3, Room 203",
+      "equipment": "Monitor",
+      "unit_number": "PC-#14",
+      "description": "Screen display flickers intermittently when running graphics applications.",
+      "photo_url": null,
+      "status": "Submitted",
+      "remarks": null,
+      "created_at": "2026-10-17T02:40:00+00:00",
+      "updated_at": "2026-10-21T13:05:58.308+00:00"
+    },
+    {
+      "id": "c26bfb00-8c9f-449c-b028-3a6aa545f8f5",
+      "report_id": "LR-05",
+      "student_id": "9002d8e6-bc03-4070-8aae-299147dead9a",
+      "room": "Computer Center 4, Room 204",
+      "equipment": "Network/Internet",
+      "unit_number": "PC-#35",
+      "description": "Intermittent connection drops during lab networking exam.",
+      "photo_url": null,
+      "status": "Resolved",
+      "remarks": "RJ-45 connector re-crimped and patch cable tested.",
+      "created_at": "2026-10-02T06:40:00+00:00",
+      "updated_at": "2026-10-21T13:05:53.991+00:00"
+    },
+    {
+      "id": "9bd54049-4649-42ee-8175-b12ffc6e3d59",
+      "report_id": "LR-15",
+      "student_id": "9002d8e6-bc03-4070-8aae-299147dead9a",
+      "room": "Computer Center 6, Room 206",
+      "equipment": "Network/Internet",
+      "unit_number": "PC-#19",
+      "description": "Static IP conflict detected on local subnet.",
+      "photo_url": null,
+      "status": "Resolved",
+      "remarks": "Configured DHCP reservation and flushed DNS cache.",
+      "created_at": "2026-10-07T03:45:00+00:00",
+      "updated_at": "2026-10-21T13:05:57.131+00:00"
+    },
+    {
+      "id": "a8c9be1d-79a7-485c-a4a2-0d7c7ea06db0",
+      "report_id": "LR-16",
+      "student_id": "9002d8e6-bc03-4070-8aae-299147dead9a",
+      "room": "Computer Center 7, Room 207",
+      "equipment": "Monitor",
+      "unit_number": "PC-#31",
+      "description": "Monitor brightness flickering when setting above 70%.",
+      "photo_url": null,
+      "status": "Resolved",
+      "remarks": "Power brick replaced with original manufacturer 19V supply.",
+      "created_at": "2026-10-08T05:10:00+00:00",
+      "updated_at": "2026-10-21T13:05:57.384+00:00"
+    },
+    {
+      "id": "21d93fda-33bf-4ffb-8753-90b9738d15fe",
+      "report_id": "LR-01",
+      "student_id": "9002d8e6-bc03-4070-8aae-299147dead9a",
+      "room": "Computer Center 10, Room 210",
+      "equipment": "Monitor",
+      "unit_number": "PC-#02",
+      "description": "Display output black screen while PC running.",
+      "photo_url": null,
+      "status": "Resolved",
+      "remarks": "DisplayPort cable connected properly to discrete GPU.",
+      "created_at": "2026-10-01T08:45:00+00:00",
+      "updated_at": "2026-10-21T13:05:52.859+00:00"
+    },
+    {
+      "id": "84b02d8d-bdae-447a-8e41-969c4f6c8e95",
+      "report_id": "LR-02",
+      "student_id": "9002d8e6-bc03-4070-8aae-299147dead9a",
+      "room": "Computer Center 7, Room 207",
+      "equipment": "Keyboard",
+      "unit_number": "PC-#29",
+      "description": "Enter key stuck down after beverage spill residue.",
+      "photo_url": null,
+      "status": "Resolved",
+      "remarks": "Key switch assembly cleaned and dried thoroughly.",
+      "created_at": "2026-10-01T06:15:00+00:00",
+      "updated_at": "2026-10-21T13:05:53.151+00:00"
+    },
+    {
+      "id": "17c3cf50-2a1a-47b4-a58c-1ea74941f031",
+      "report_id": "LR-03",
+      "student_id": "9002d8e6-bc03-4070-8aae-299147dead9a",
+      "room": "Computer Center 6, Room 206",
+      "equipment": "System Unit/CPU",
+      "unit_number": "PC-#07",
+      "description": "Memory beep code on workstation start.",
+      "photo_url": null,
+      "status": "Resolved",
+      "remarks": "DDR4 RAM contact pins cleaned and reseated in primary slot.",
+      "created_at": "2026-10-01T03:00:00+00:00",
+      "updated_at": "2026-10-21T13:05:53.408+00:00"
+    },
+    {
+      "id": "cf627f2d-7690-4890-9b34-5465375cbfcb",
+      "report_id": "LR-04",
+      "student_id": "9002d8e6-bc03-4070-8aae-299147dead9a",
+      "room": "Computer Center 3, Room 203",
+      "equipment": "Power (AVR/UPS)",
+      "unit_number": "PC-#18",
+      "description": "AVR power switch loose and turning off with vibration.",
+      "photo_url": null,
+      "status": "Resolved",
+      "remarks": "Replaced AVR with tested 500W unit.",
+      "created_at": "2026-10-01T01:15:00+00:00",
+      "updated_at": "2026-10-21T13:05:53.733+00:00"
+    },
+    {
+      "id": "1070a947-6906-4d0b-a6a2-0c7f136a398d",
+      "report_id": "LR-17",
+      "student_id": "9002d8e6-bc03-4070-8aae-299147dead9a",
+      "room": "Computer Center 2, Room 202",
+      "equipment": "Software/OS",
+      "unit_number": "PC-#08",
+      "description": "Corrupt Node.js global binaries throwing ENOENT error.",
+      "photo_url": null,
+      "status": "Resolved",
+      "remarks": "Node LTS re-installed and npm cache cleared.",
+      "created_at": "2026-10-09T02:15:00+00:00",
+      "updated_at": "2026-10-21T13:05:57.718+00:00"
+    },
+    {
+      "id": "2a772fb8-e648-4df9-92ae-01d266d6b76a",
+      "report_id": "LR-06",
+      "student_id": "9002d8e6-bc03-4070-8aae-299147dead9a",
+      "room": "Computer Center 1, Room 201",
+      "equipment": "Software/OS",
+      "unit_number": "PC-#22",
+      "description": "C++ Compiler path missing in environment variables.",
+      "photo_url": null,
+      "status": "Resolved",
+      "remarks": "Environment paths corrected and tested with GCC build.",
+      "created_at": "2026-10-02T04:20:00+00:00",
+      "updated_at": "2026-10-21T13:05:54.259+00:00"
+    },
+    {
+      "id": "af3e22d9-8f18-421a-b82f-1e4fe283b9be",
+      "report_id": "LR-07",
+      "student_id": "9002d8e6-bc03-4070-8aae-299147dead9a",
+      "room": "Computer Center 2, Room 202",
+      "equipment": "Mouse",
+      "unit_number": "PC-#04",
+      "description": "Optical mouse sensor jumps across screen erratically.",
+      "photo_url": null,
+      "status": "Resolved",
+      "remarks": "Lens cleaned and desk surface pad provided.",
+      "created_at": "2026-10-02T02:00:00+00:00",
+      "updated_at": "2026-10-21T13:05:54.583+00:00"
+    },
+    {
+      "id": "0b877f0f-e337-4709-9758-319e7da2bafa",
+      "report_id": "LR-08",
+      "student_id": "9002d8e6-bc03-4070-8aae-299147dead9a",
+      "room": "Computer Center 5, Room 204",
+      "equipment": "Monitor",
+      "unit_number": "PC-#13",
+      "description": "HDMI signal drop when adjusting monitor angle.",
+      "photo_url": null,
+      "status": "Resolved",
+      "remarks": "Defective HDMI cable replaced with high-speed gold connector cable.",
+      "created_at": "2026-10-03T06:10:00+00:00",
+      "updated_at": "2026-10-21T13:05:54.899+00:00"
+    },
+    {
+      "id": "f03e36d8-b60a-48f7-b864-05ab029fddfd",
+      "report_id": "LR-09",
+      "student_id": "9002d8e6-bc03-4070-8aae-299147dead9a",
+      "room": "Computer Center 5, Room 204",
+      "equipment": "Keyboard",
+      "unit_number": "PC-#13",
+      "description": "Spacebar key sticking and unresponsive.",
+      "photo_url": null,
+      "status": "Resolved",
+      "remarks": "Replaced with spare mechanical membrane keyboard from stock.",
+      "created_at": "2026-10-03T01:30:00+00:00",
+      "updated_at": "2026-10-21T13:05:55.223+00:00"
+    },
+    {
+      "id": "2ac46da3-965a-4590-9d89-d275d012b35f",
+      "report_id": "LR-10",
+      "student_id": "9002d8e6-bc03-4070-8aae-299147dead9a",
+      "room": "Computer Center 8, Room 209",
+      "equipment": "System Unit/CPU",
+      "unit_number": "PC-#13",
+      "description": "Power supply unit fan making rattling noise.",
+      "photo_url": null,
+      "status": "Resolved",
+      "remarks": "Fan assembly cleaned and lubricated. Thermal check completed normal.",
+      "created_at": "2026-10-04T08:15:00+00:00",
+      "updated_at": "2026-10-21T13:05:55.541+00:00"
+    },
+    {
+      "id": "e516afc4-7130-464d-8367-85322b485180",
+      "report_id": "LR-11",
+      "student_id": "9002d8e6-bc03-4070-8aae-299147dead9a",
+      "room": "Computer Center 5, Room 204",
+      "equipment": "Network/Internet",
+      "unit_number": "PC-#10",
+      "description": "PC not connecting to internet gateway; LAN port link LED off.",
+      "photo_url": null,
+      "status": "Under Repair",
+      "remarks": "Technician currently re-terminating patch panel drop cable.",
+      "created_at": "2026-10-04T05:00:00+00:00",
+      "updated_at": "2026-10-21T13:05:55.791+00:00"
+    },
+    {
+      "id": "239c5683-74e0-4cf1-b16b-507bad342b83",
+      "report_id": "LR-20",
+      "student_id": "21877a55-8600-4a5d-88ce-4e0746c23898",
+      "room": "Computer Center 5, Room 205",
+      "equipment": "Network/Internet",
+      "unit_number": "PC-#13",
+      "description": "Slow gateway response and intermittent DNS lookup timeouts.",
+      "photo_url": null,
+      "status": "Resolved",
+      "remarks": "Replaced patch cable with Cat6 shielded cable. Full gigabit link restored.",
+      "created_at": "2026-10-12T07:15:00+00:00",
+      "updated_at": "2026-10-12T08:00:00+00:00"
+    },
+    {
+      "id": "5a012e00-b230-44e0-8c8a-d488f834061d",
+      "report_id": "LR-12",
+      "student_id": "9002d8e6-bc03-4070-8aae-299147dead9a",
+      "room": "Computer Center 5, Room 204",
+      "equipment": "Monitor",
+      "unit_number": "PC-#14",
+      "description": "Monitor display flickering intermittently and showing vertical green artifacts during laboratory session.",
+      "photo_url": null,
+      "status": "Reviewed",
+      "remarks": "Assigned for hardware diagnostic by technical personnel.",
+      "created_at": "2026-10-02T02:00:00+00:00",
+      "updated_at": "2026-10-21T13:05:56.119+00:00"
+    },
+    {
+      "id": "f1177e44-e45a-4253-83f2-93aea8d50238",
+      "report_id": "LR-13",
+      "student_id": "9002d8e6-bc03-4070-8aae-299147dead9a",
+      "room": "Computer Center 9, Room 209",
+      "equipment": "Mouse",
+      "unit_number": "PC-#25",
+      "description": "Left mouse button double-clicks on single tap.",
+      "photo_url": null,
+      "status": "Resolved",
+      "remarks": "Mouse replaced with new optical mouse from storage.",
+      "created_at": "2026-10-04T07:00:00+00:00",
+      "updated_at": "2026-10-21T13:05:56.462+00:00"
+    },
+    {
+      "id": "4bb3c437-9466-4d6a-a5bf-6d5bace7998b",
+      "report_id": "LR-14",
+      "student_id": "9002d8e6-bc03-4070-8aae-299147dead9a",
+      "room": "Computer Center 8, Room 208",
+      "equipment": "System Unit/CPU",
+      "unit_number": "PC-#38",
+      "description": "CMOS date and time resets on every power cycle.",
+      "photo_url": null,
+      "status": "Resolved",
+      "remarks": "Installed fresh CR2032 lithium battery and saved BIOS configuration.",
+      "created_at": "2026-10-05T01:30:00+00:00",
+      "updated_at": "2026-10-21T13:05:56.793+00:00"
+    },
+    {
+      "id": "1246836c-d549-45b0-911b-7b6cb0e4a17d",
+      "report_id": "LR-18",
+      "student_id": "9002d8e6-bc03-4070-8aae-299147dead9a",
+      "room": "Computer Center 10, Room 210",
+      "equipment": "Keyboard",
+      "unit_number": "PC-#40",
+      "description": "Backspace key spring unseated.",
+      "photo_url": null,
+      "status": "Resolved",
+      "remarks": "Stabilizer wire reseated and keycap tested.",
+      "created_at": "2026-10-12T07:15:00+00:00",
+      "updated_at": "2026-10-21T13:05:57.984+00:00"
+    }
+  ],
+  "studentReports": [
+    {
+      "id": "ffda20fb-de03-410f-8fc8-749bb79df8f7",
+      "report_id": "LR-09",
+      "student_id": "24-0041-147",
+      "student_name": "Angel Lae Martinez",
+      "year_block": "BSIT 3-2",
+      "unit_number": "PC-#13",
+      "equipment": "Keyboard",
+      "computer_center": "Computer Center 5",
+      "room": "Room 204",
+      "date_submitted": "2026-10-12T01:05:00+00:00",
+      "date_time": "Oct 12, 2026, 9:05 AM",
+      "status": "Resolved",
+      "description": "Spacebar key sticking and unresponsive.",
+      "remarks": "Replaced with spare mechanical membrane keyboard from stock.",
+      "history": [
+        {
+          "time": "Oct 12, 9:05 AM",
+          "action": "Submitted"
+        },
+        {
+          "time": "Oct 12, 10:15 AM",
+          "action": "Resolved"
+        }
+      ],
+      "created_at": "2026-10-12T01:05:00+00:00",
+      "updated_at": "2026-10-17T20:59:43.559256+00:00"
+    },
+    {
+      "id": "06a9ba7a-8751-47c7-bf10-0acb98fb5055",
+      "report_id": "LR-12",
+      "student_id": "24-0041-147",
+      "student_name": "Angel Lae Martinez",
+      "year_block": "BSIT 3-2",
+      "unit_number": "PC-#14",
+      "equipment": "Monitor",
+      "computer_center": "Computer Center 5",
+      "room": "Room 204",
+      "date_submitted": "2026-10-17T07:45:00+00:00",
+      "date_time": "Oct 17, 2026, 3:45 PM",
+      "status": "Under Review",
+      "description": "Monitor display flickering intermittently and showing vertical green artifacts during laboratory session.",
+      "remarks": "Assigned for hardware diagnostic by technical personnel.",
+      "history": [
+        {
+          "by": "Angel Lae Martinez",
+          "time": "Oct 17, 3:45 PM",
+          "action": "Submitted"
+        }
+      ],
+      "created_at": "2026-10-17T07:45:00+00:00",
+      "updated_at": "2026-10-17T20:59:43.559256+00:00"
+    },
+    {
+      "id": "8a96556b-f22e-436f-8370-d31c30ef3826",
+      "report_id": "LR-11",
+      "student_id": "24-0041-147",
+      "student_name": "Angel Lae Martinez",
+      "year_block": "BSIT 3-2",
+      "unit_number": "PC-#10",
+      "equipment": "Network/Internet",
+      "computer_center": "Computer Center 5",
+      "room": "Room 204",
+      "date_submitted": "2026-10-17T07:45:00+00:00",
+      "date_time": "Oct 17, 2026, 3:45 PM",
+      "status": "Under Repair",
+      "description": "PC not connecting to internet gateway; LAN port link LED off.",
+      "remarks": "Technician currently re-terminating patch panel drop cable.",
+      "history": [
+        {
+          "time": "Oct 17, 3:45 PM",
+          "action": "Submitted"
+        },
+        {
+          "time": "Oct 17, 4:05 PM",
+          "action": "Under repair"
+        }
+      ],
+      "created_at": "2026-10-17T07:45:00+00:00",
+      "updated_at": "2026-10-17T20:59:43.559256+00:00"
+    },
+    {
+      "id": "67e47008-4ccb-434c-8425-c0127bf9416e",
+      "report_id": "LR-10",
+      "student_id": "24-0041-147",
+      "student_name": "Angel Lae Martinez",
+      "year_block": "BSIT 3-2",
+      "unit_number": "PC-#13",
+      "equipment": "System Unit/CPU",
+      "computer_center": "Computer Center 8",
+      "room": "Room 209",
+      "date_submitted": "2026-10-15T00:45:00+00:00",
+      "date_time": "Oct 15, 2026, 8:45 AM",
+      "status": "Resolved",
+      "description": "Power supply unit fan making rattling noise.",
+      "remarks": "Fan assembly cleaned and lubricated. Thermal check completed normal.",
+      "history": [
+        {
+          "time": "Oct 15, 8:45 AM",
+          "action": "Submitted"
+        },
+        {
+          "time": "Oct 15, 11:20 AM",
+          "action": "Resolved"
+        }
+      ],
+      "created_at": "2026-10-15T00:45:00+00:00",
+      "updated_at": "2026-10-17T20:59:43.559256+00:00"
+    },
+    {
+      "id": "cad59d58-1e8c-4242-ae24-7b742a91a16c",
+      "report_id": "LR-08",
+      "student_id": "24-0041-147",
+      "student_name": "Angel Lae Martinez",
+      "year_block": "BSIT 3-2",
+      "unit_number": "PC-#13",
+      "equipment": "Monitor",
+      "computer_center": "Computer Center 5",
+      "room": "Room 204",
+      "date_submitted": "2026-10-07T07:30:00+00:00",
+      "date_time": "Oct 07, 2026, 3:30 PM",
+      "status": "Resolved",
+      "description": "HDMI signal drop when adjusting monitor angle.",
+      "remarks": "Defective HDMI cable replaced with high-speed gold connector cable.",
+      "history": [
+        {
+          "time": "Oct 07, 3:30 PM",
+          "action": "Submitted"
+        },
+        {
+          "time": "Oct 07, 4:45 PM",
+          "action": "Resolved"
+        }
+      ],
+      "created_at": "2026-10-07T07:30:00+00:00",
+      "updated_at": "2026-10-17T20:59:43.559256+00:00"
+    },
+    {
+      "id": "34dec5d2-00be-4021-b8ae-7f599a9059c1",
+      "report_id": "LR-07",
+      "student_id": "24-0041-147",
+      "student_name": "Angel Lae Martinez",
+      "year_block": "BSIT 3-2",
+      "unit_number": "PC-#04",
+      "equipment": "Mouse",
+      "computer_center": "Computer Center 2",
+      "room": "Room 202",
+      "date_submitted": "2026-10-06T03:15:00+00:00",
+      "date_time": "Oct 06, 2026, 11:15 AM",
+      "status": "Resolved",
+      "description": "Optical mouse sensor jumps across screen erratically.",
+      "remarks": "Lens cleaned and desk surface pad provided.",
+      "history": [
+        {
+          "time": "Oct 06, 11:15 AM",
+          "action": "Submitted"
+        },
+        {
+          "time": "Oct 06, 1:00 PM",
+          "action": "Resolved"
+        }
+      ],
+      "created_at": "2026-10-06T03:15:00+00:00",
+      "updated_at": "2026-10-17T20:59:43.559256+00:00"
+    },
+    {
+      "id": "ec395d88-93de-48bf-b56b-823da47d4e84",
+      "report_id": "LR-06",
+      "student_id": "24-0041-147",
+      "student_name": "Angel Lae Martinez",
+      "year_block": "BSIT 3-2",
+      "unit_number": "PC-#22",
+      "equipment": "Software/OS",
+      "computer_center": "Computer Center 1",
+      "room": "Room 201",
+      "date_submitted": "2026-10-05T06:20:00+00:00",
+      "date_time": "Oct 05, 2026, 2:20 PM",
+      "status": "Resolved",
+      "description": "C++ Compiler path missing in environment variables.",
+      "remarks": "Environment paths corrected and tested with GCC build.",
+      "history": [
+        {
+          "time": "Oct 05, 2:20 PM",
+          "action": "Submitted"
+        },
+        {
+          "time": "Oct 05, 3:45 PM",
+          "action": "Resolved"
+        }
+      ],
+      "created_at": "2026-10-05T06:20:00+00:00",
+      "updated_at": "2026-10-17T20:59:43.559256+00:00"
+    },
+    {
+      "id": "f57209f8-c8e1-491d-a3a5-69b11b6cf6c1",
+      "report_id": "LR-05",
+      "student_id": "24-0041-147",
+      "student_name": "Angel Lae Martinez",
+      "year_block": "BSIT 3-2",
+      "unit_number": "PC-#35",
+      "equipment": "Network/Internet",
+      "computer_center": "Computer Center 4",
+      "room": "Room 204",
+      "date_submitted": "2026-10-05T01:40:00+00:00",
+      "date_time": "Oct 05, 2026, 9:40 AM",
+      "status": "Resolved",
+      "description": "Intermittent connection drops during lab networking exam.",
+      "remarks": "RJ-45 connector re-crimped and patch cable tested.",
+      "history": [
+        {
+          "time": "Oct 05, 9:40 AM",
+          "action": "Submitted"
+        },
+        {
+          "time": "Oct 05, 10:30 AM",
+          "action": "Resolved"
+        }
+      ],
+      "created_at": "2026-10-05T01:40:00+00:00",
+      "updated_at": "2026-10-17T20:59:43.559256+00:00"
+    },
+    {
+      "id": "37d5cea0-c8b3-4e56-a3ad-4690962ecfa2",
+      "report_id": "LR-04",
+      "student_id": "24-0041-147",
+      "student_name": "Angel Lae Martinez",
+      "year_block": "BSIT 3-2",
+      "unit_number": "PC-#18",
+      "equipment": "Power (AVR/UPS)",
+      "computer_center": "Computer Center 3",
+      "room": "Room 203",
+      "date_submitted": "2026-10-04T08:10:00+00:00",
+      "date_time": "Oct 04, 2026, 4:10 PM",
+      "status": "Resolved",
+      "description": "AVR power switch loose and turning off with vibration.",
+      "remarks": "Replaced AVR with tested 500W unit.",
+      "history": [
+        {
+          "time": "Oct 04, 4:10 PM",
+          "action": "Submitted"
+        },
+        {
+          "time": "Oct 04, 5:15 PM",
+          "action": "Resolved"
+        }
+      ],
+      "created_at": "2026-10-04T08:10:00+00:00",
+      "updated_at": "2026-10-17T20:59:43.559256+00:00"
+    },
+    {
+      "id": "aa1130d4-3465-4247-a3f6-40e6ff2e408f",
+      "report_id": "LR-03",
+      "student_id": "24-0041-147",
+      "student_name": "Angel Lae Martinez",
+      "year_block": "BSIT 3-2",
+      "unit_number": "PC-#07",
+      "equipment": "System Unit/CPU",
+      "computer_center": "Computer Center 6",
+      "room": "Room 206",
+      "date_submitted": "2026-10-04T02:05:00+00:00",
+      "date_time": "Oct 04, 2026, 10:05 AM",
+      "status": "Resolved",
+      "description": "Memory beep code on workstation start.",
+      "remarks": "DDR4 RAM contact pins cleaned and reseated in primary slot.",
+      "history": [
+        {
+          "time": "Oct 04, 10:05 AM",
+          "action": "Submitted"
+        },
+        {
+          "time": "Oct 04, 11:40 AM",
+          "action": "Resolved"
+        }
+      ],
+      "created_at": "2026-10-04T02:05:00+00:00",
+      "updated_at": "2026-10-17T20:59:43.559256+00:00"
+    },
+    {
+      "id": "754dbe3b-3c3d-4b1f-a673-8310f3302fd3",
+      "report_id": "LR-02",
+      "student_id": "24-0041-147",
+      "student_name": "Angel Lae Martinez",
+      "year_block": "BSIT 3-2",
+      "unit_number": "PC-#29",
+      "equipment": "Keyboard",
+      "computer_center": "Computer Center 7",
+      "room": "Room 207",
+      "date_submitted": "2026-10-03T05:30:00+00:00",
+      "date_time": "Oct 03, 2026, 1:30 PM",
+      "status": "Resolved",
+      "description": "Enter key stuck down after beverage spill residue.",
+      "remarks": "Key switch assembly cleaned and dried thoroughly.",
+      "history": [
+        {
+          "time": "Oct 03, 1:30 PM",
+          "action": "Submitted"
+        },
+        {
+          "time": "Oct 03, 3:00 PM",
+          "action": "Resolved"
+        }
+      ],
+      "created_at": "2026-10-03T05:30:00+00:00",
+      "updated_at": "2026-10-17T20:59:43.559256+00:00"
+    },
+    {
+      "id": "45be2620-4c89-4a67-8900-906b38bff332",
+      "report_id": "LR-01",
+      "student_id": "24-0041-147",
+      "student_name": "Angel Lae Martinez",
+      "year_block": "BSIT 3-2",
+      "unit_number": "PC-#02",
+      "equipment": "Monitor",
+      "computer_center": "Computer Center 10",
+      "room": "Room 210",
+      "date_submitted": "2026-10-02T00:15:00+00:00",
+      "date_time": "Oct 02, 2026, 8:15 AM",
+      "status": "Resolved",
+      "description": "Display output black screen while PC running.",
+      "remarks": "DisplayPort cable connected properly to discrete GPU.",
+      "history": [
+        {
+          "time": "Oct 02, 8:15 AM",
+          "action": "Submitted"
+        },
+        {
+          "time": "Oct 02, 9:20 AM",
+          "action": "Resolved"
+        }
+      ],
+      "created_at": "2026-10-02T00:15:00+00:00",
+      "updated_at": "2026-10-17T20:59:43.559256+00:00"
+    },
+    {
+      "id": "72bff19e-3e05-43f9-a22e-e95d98980c5f",
+      "report_id": "LR-13",
+      "student_id": "24-0041-147",
+      "student_name": "Angel Lae Martinez",
+      "year_block": "BSIT 3-2",
+      "unit_number": "PC-#25",
+      "equipment": "Mouse",
+      "computer_center": "Computer Center 9",
+      "room": "Room 209",
+      "date_submitted": "2026-10-16T02:30:00+00:00",
+      "date_time": "Oct 16, 2026, 10:30 AM",
+      "status": "Resolved",
+      "description": "Left mouse button double-clicks on single tap.",
+      "remarks": "Mouse replaced with new optical mouse from storage.",
+      "history": [
+        {
+          "time": "Oct 16, 10:30 AM",
+          "action": "Submitted"
+        },
+        {
+          "time": "Oct 16, 11:15 AM",
+          "action": "Resolved"
+        }
+      ],
+      "created_at": "2026-10-16T02:30:00+00:00",
+      "updated_at": "2026-10-17T20:59:43.559256+00:00"
+    },
+    {
+      "id": "85530bdc-f1b1-4a36-b264-c0868d427088",
+      "report_id": "LR-14",
+      "student_id": "24-0041-147",
+      "student_name": "Angel Lae Martinez",
+      "year_block": "BSIT 3-2",
+      "unit_number": "PC-#38",
+      "equipment": "System Unit/CPU",
+      "computer_center": "Computer Center 8",
+      "room": "Room 208",
+      "date_submitted": "2026-10-14T05:15:00+00:00",
+      "date_time": "Oct 14, 2026, 1:15 PM",
+      "status": "Resolved",
+      "description": "CMOS date and time resets on every power cycle.",
+      "remarks": "Installed fresh CR2032 lithium battery and saved BIOS configuration.",
+      "history": [
+        {
+          "time": "Oct 14, 1:15 PM",
+          "action": "Submitted"
+        },
+        {
+          "time": "Oct 14, 2:30 PM",
+          "action": "Resolved"
+        }
+      ],
+      "created_at": "2026-10-14T05:15:00+00:00",
+      "updated_at": "2026-10-17T20:59:43.559256+00:00"
+    },
+    {
+      "id": "f48b1fe9-ff6b-4aa9-b88d-89e6bbfce37e",
+      "report_id": "LR-15",
+      "student_id": "24-0041-147",
+      "student_name": "Angel Lae Martinez",
+      "year_block": "BSIT 3-2",
+      "unit_number": "PC-#19",
+      "equipment": "Network/Internet",
+      "computer_center": "Computer Center 6",
+      "room": "Room 206",
+      "date_submitted": "2026-10-13T03:00:00+00:00",
+      "date_time": "Oct 13, 2026, 11:00 AM",
+      "status": "Resolved",
+      "description": "Static IP conflict detected on local subnet.",
+      "remarks": "Configured DHCP reservation and flushed DNS cache.",
+      "history": [
+        {
+          "time": "Oct 13, 11:00 AM",
+          "action": "Submitted"
+        },
+        {
+          "time": "Oct 13, 11:50 AM",
+          "action": "Resolved"
+        }
+      ],
+      "created_at": "2026-10-13T03:00:00+00:00",
+      "updated_at": "2026-10-17T20:59:43.559256+00:00"
+    },
+    {
+      "id": "cb3e4136-88e9-4bfd-b409-75dbb8fcd2e8",
+      "report_id": "LR-16",
+      "student_id": "24-0041-147",
+      "student_name": "Angel Lae Martinez",
+      "year_block": "BSIT 3-2",
+      "unit_number": "PC-#31",
+      "equipment": "Monitor",
+      "computer_center": "Computer Center 7",
+      "room": "Room 207",
+      "date_submitted": "2026-10-11T08:00:00+00:00",
+      "date_time": "Oct 11, 2026, 4:00 PM",
+      "status": "Resolved",
+      "description": "Monitor brightness flickering when setting above 70%.",
+      "remarks": "Power brick replaced with original manufacturer 19V supply.",
+      "history": [
+        {
+          "time": "Oct 11, 4:00 PM",
+          "action": "Submitted"
+        },
+        {
+          "time": "Oct 11, 5:10 PM",
+          "action": "Resolved"
+        }
+      ],
+      "created_at": "2026-10-11T08:00:00+00:00",
+      "updated_at": "2026-10-17T20:59:43.559256+00:00"
+    },
+    {
+      "id": "bf20900c-8e56-480c-a3b1-833e35e10305",
+      "report_id": "LR-17",
+      "student_id": "24-0041-147",
+      "student_name": "Angel Lae Martinez",
+      "year_block": "BSIT 3-2",
+      "unit_number": "PC-#08",
+      "equipment": "Software/OS",
+      "computer_center": "Computer Center 2",
+      "room": "Room 202",
+      "date_submitted": "2026-10-09T06:50:00+00:00",
+      "date_time": "Oct 09, 2026, 2:50 PM",
+      "status": "Resolved",
+      "description": "Corrupt Node.js global binaries throwing ENOENT error.",
+      "remarks": "Node LTS re-installed and npm cache cleared.",
+      "history": [
+        {
+          "time": "Oct 09, 2:50 PM",
+          "action": "Submitted"
+        },
+        {
+          "time": "Oct 09, 4:00 PM",
+          "action": "Resolved"
+        }
+      ],
+      "created_at": "2026-10-09T06:50:00+00:00",
+      "updated_at": "2026-10-17T20:59:43.559256+00:00"
+    },
+    {
+      "id": "82a8ae0f-ce0c-46d7-b4a0-b9daf90c38ea",
+      "report_id": "LR-18",
+      "student_id": "24-0041-147",
+      "student_name": "Angel Lae Martinez",
+      "year_block": "BSIT 3-2",
+      "unit_number": "PC-#40",
+      "equipment": "Keyboard",
+      "computer_center": "Computer Center 10",
+      "room": "Room 210",
+      "date_submitted": "2026-10-08T01:15:00+00:00",
+      "date_time": "Oct 08, 2026, 9:15 AM",
+      "status": "Resolved",
+      "description": "Backspace key spring unseated.",
+      "remarks": "Stabilizer wire reseated and keycap tested.",
+      "history": [
+        {
+          "time": "Oct 08, 9:15 AM",
+          "action": "Submitted"
+        },
+        {
+          "time": "Oct 08, 10:20 AM",
+          "action": "Resolved"
+        }
+      ],
+      "created_at": "2026-10-08T01:15:00+00:00",
+      "updated_at": "2026-10-17T20:59:43.559256+00:00"
+    }
+  ]
+}

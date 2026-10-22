@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Icon Preview</title>
+  <style>
+    body {
+      background-color: #B5D1BF;
+      display: flex;
+      gap: 30px;
+      padding: 40px;
+      align-items: center;
+      font-family: sans-serif;
+    }
+    .btn-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .bell-btn {
+      width: 38px;
+      height: 38px;
+      background: #FFFFFF;
+      border: 1px solid #C0C8C3;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .gear-btn {
+      width: 38px;
+      height: 38px;
+      background: #062512;
+      border: none;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    }
+    .preview-large {
+      transform: scale(3);
+      margin: 40px;
+    }
+  </style>
+</head>
+<body>
+  <div class="btn-container">
+    <span>Bell Button (1x)</span>
+    <button class="bell-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <!-- Bell Dome -->
+        <path d="M12 2.5C10.7 2.5 9.6 3.4 9.2 4.7C8.6 6.8 7.9 10.3 7 14H17C16.1 10.3 15.4 6.8 14.8 4.7C14.4 3.4 13.3 2.5 12 2.5Z" fill="#204C35"/>
+        <!-- Horizontal Rim Bar (separated by ~2px gap) -->
+        <rect x="5" y="16" width="14" height="2" rx="1" fill="#204C35"/>
+        <!-- Clapper -->
+        <path d="M10.2 18.5C10.2 19.8 11 20.8 12 20.8C13 20.8 13.8 19.8 13.8 18.5H10.2Z" fill="#204C35"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="btn-container">
+    <span>Gear Button (1x)</span>
+    <button class="gear-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="#FFFFFF">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+      </svg>
+    </button>
+  </div>
+</body>
+</html>

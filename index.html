@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fixie - Laboratory Readiness & Maintenance Monitoring</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400..800;1,400..800&family=Playfair+Display:ital,wght@0,600..900;1,600..900&family=Barlow+Semi+Condensed:wght@700;800&display=swap" rel="stylesheet">
+    <style>
+      html, body, #root {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      html, body, #root, h1, h2, h3, h4, h5, h6, p, span, div, label,
+      a, button, li, ul, ol, table, th, td, section, article, main, header, footer, aside, nav {
+        caret-color: transparent;
+      }
+      input, textarea, select, [contenteditable="true"], [contenteditable="true"] * {
+        caret-color: auto;
+      }
+    </style>
+    <script>
+      window.addEventListener('error', function(e) {
+        console.error('GLOBAL FIXIE ERROR:', e.error || e.message);
+        var root = document.getElementById('root');
+        if (root && (!root.children || root.children.length === 0)) {
+          var errDiv = document.createElement('div');
+          errDiv.style.cssText = 'position:fixed;top:20px;left:20px;right:20px;padding:24px;background:#fff1f2;border:2px solid #e11d48;border-radius:10px;font-family:sans-serif;z-index:999999;box-shadow:0 10px 30px rgba(0,0,0,0.15);';
+          errDiv.innerHTML = '<h3 style="color:#9f1239;margin:0 0 8px 0">Application Startup Notice</h3>' +
+            '<p style="color:#374151;margin:0 0 12px 0;font-size:14px">Fixie detected an issue loading a module:</p>' +
+            '<pre style="background:#ffffff;padding:12px;border:1px solid #fecdd3;border-radius:6px;overflow:auto;font-size:12.5px;color:#881337">' + (e.error ? (e.error.stack || e.error.message) : e.message) + '</pre>' +
+            '<button onclick="location.reload(true)" style="margin-top:12px;padding:8px 16px;background:#07281A;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">Reload Page</button>';
+          document.body.appendChild(errDiv);
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
