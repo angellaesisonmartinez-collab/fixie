@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Lock } from 'lucide-react';
 import { formatYearBlock, formatStudentEmail } from '../lib/studentFormatUtils';
+import { subscribeToStudentUpdates } from '../lib/realtimeSyncService';
 import './StudentProfileModal.css';
 
 import TechnicalAccountModal from './TechnicalAccountModal';
@@ -25,6 +26,56 @@ export default function StudentProfileModal({
   isTechnical = false,
   techData = null,
 }) {
+  const [liveData, setLiveData] = useState(studentData);
+
+  useEffect(() => {
+    setLiveData(studentData);
+  }, [studentData]);
+
+  // Real-time synchronization when modal is open so updates reflect instantly with zero glitch
+  useEffect(() => {
+    if (!isOpen) return;
+    const unsub = subscribeToStudentUpdates((payload) => {
+      if (!payload) return;
+      const targetId = payload.student_id || payload.id;
+      const myId = studentData?.student_id || studentData?.studentId;
+      if (!targetId || targetId === myId) {
+        const raw = payload.student || payload.new || payload;
+        setLiveData((prev) => ({
+          ...prev,
+          ...raw,
+          year_block: raw.year_block || prev?.year_block || prev?.yearBlock,
+          yearBlock: raw.year_block || prev?.yearBlock || prev?.year_block,
+          email: raw.email || prev?.email,
+          email_last_updated: raw.email_last_updated || prev?.email_last_updated || prev?.emailLastUpdated,
+          emailLastUpdated: raw.email_last_updated || prev?.emailLastUpdated || prev?.email_last_updated,
+        }));
+      }
+    });
+
+    const handleWindowProfileUpdate = (e) => {
+      const detail = e.detail;
+      const myId = studentData?.student_id || studentData?.studentId;
+      if (detail && (!detail.student_id || detail.student_id === myId)) {
+        setLiveData((prev) => ({
+          ...prev,
+          year_block: detail.year_block || prev?.year_block || prev?.yearBlock,
+          yearBlock: detail.year_block || prev?.yearBlock || prev?.year_block,
+          email: detail.email || prev?.email,
+          email_last_updated: detail.email_last_updated || prev?.email_last_updated || prev?.emailLastUpdated,
+          emailLastUpdated: detail.email_last_updated || prev?.emailLastUpdated || prev?.email_last_updated,
+        }));
+      }
+    };
+
+    window.addEventListener('fixie_student_profile_updated', handleWindowProfileUpdate);
+
+    return () => {
+      unsub();
+      window.removeEventListener('fixie_student_profile_updated', handleWindowProfileUpdate);
+    };
+  }, [isOpen, studentData?.student_id, studentData?.studentId]);
+
   // Keyboard Escape listener
   useEffect(() => {
     if (!isOpen) return;
@@ -50,17 +101,48 @@ export default function StudentProfileModal({
 
   if (!isOpen) return null;
 
-  const firstName = studentData?.firstName ?? (studentData?.fullName ? studentData.fullName.split(' ')[0] : 'Angel Lae');
-  const middleName = studentData?.middleName ?? '';
-  const lastName = studentData?.lastName ?? (studentData?.fullName ? studentData.fullName.split(' ').slice(1).join(' ') : 'Martinez');
-  const yearBlock = formatYearBlock(studentData?.yearBlock) || studentData?.yearBlock || '3rd year, BLK 2';
-  const studentId = studentData?.studentId || studentData?.student_id || '24-0041-147';
-  const email = formatStudentEmail(studentData?.email) || 'martinezangellaewup@gmail.com';
+  const active = liveData || studentData;
+  const rawFullName = active?.fullName || active?.full_name || active?.name || '';
+  const firstName =
+    active?.firstName ||
+    active?.first_name ||
+    (rawFullName ? rawFullName.trim().split(/\s+/)[0] : '') ||
+    'Angel Lae';
+
+  const middleName =
+    active?.middleName ??
+    active?.middle_name ??
+    (rawFullName && rawFullName.trim().split(/\s+/).length > 2
+      ? rawFullName.trim().split(/\s+/).slice(1, -1).join(' ')
+      : '');
+
+  const lastName =
+    active?.lastName ||
+    active?.last_name ||
+    (rawFullName && rawFullName.trim().split(/\s+/).length > 1
+      ? rawFullName.trim().split(/\s+/).slice(-1)[0]
+      : '') ||
+    'Martinez';
+
+  const rawYb = active?.yearBlock || active?.year_block;
+  const yearBlock = rawYb ? formatYearBlock(rawYb) : '3rd year, BLK 2';
+  const studentId = active?.studentId || active?.student_id || '24-0041-147';
+  const email = active?.email ? formatStudentEmail(active.email) : 'martinezangellaewup@gmail.com';
 
   // Email last updated timestamp (Image 2)
-  const lastUpdated = isUpdatedPreview
+  const rawLastUpdated = isUpdatedPreview
     ? 'Oct 9, 2026'
-    : studentData?.emailLastUpdated || null;
+    : (active?.emailLastUpdated || active?.email_last_updated || null);
+
+  const lastUpdated = rawLastUpdated
+    ? (String(rawLastUpdated).includes('T') || !isNaN(Date.parse(rawLastUpdated))
+        ? new Date(rawLastUpdated).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          })
+        : rawLastUpdated)
+    : null;
 
   return (
     <div

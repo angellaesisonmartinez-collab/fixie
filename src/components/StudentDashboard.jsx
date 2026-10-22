@@ -17,7 +17,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { supabase, safeRealtimeChannel, safeRemoveChannel } from '../lib/supabase';
-import { registerVisibilityAndOnlineSync } from '../lib/realtimeSyncService';
+import { registerVisibilityAndOnlineSync, subscribeToStudentUpdates } from '../lib/realtimeSyncService';
 import fixieLogo from '../assets/fixie-logo.svg';
 import angelAvatar from '../assets/avatars/angel.png';
 import { getStudentAvatar } from '../lib/studentAvatarUtils';
@@ -224,6 +224,61 @@ export default function StudentDashboard({
       isMounted = false;
     };
   }, [userProfile?.student_id, userProfile?.email]);
+
+  // Live real-time student profile synchronization via centralized realtimeSyncService
+  useEffect(() => {
+    const unsub = subscribeToStudentUpdates((payload) => {
+      if (!payload) return;
+      const targetId = payload.student_id || payload.id;
+      const curId = activeStudent?.student_id || activeStudent?.id;
+      if (!targetId || targetId === curId) {
+        const raw = payload.student || payload.new || payload;
+        setActiveStudent((prev) => {
+          if (!prev) return prev;
+          const updated = {
+            ...prev,
+            ...raw,
+            name: raw.name || prev.name,
+            full_name: raw.name || `${raw.first_name || prev.first_name || ''} ${raw.last_name || prev.last_name || ''}`.trim(),
+            year_block: raw.year_block ? formatYearBlock(raw.year_block) : prev.year_block,
+            email: raw.email || prev.email,
+            email_last_updated: raw.email_last_updated || prev.email_last_updated,
+          };
+          try {
+            sessionStorage.setItem('fixie_authenticated_student', JSON.stringify(updated));
+          } catch {}
+          return updated;
+        });
+      }
+    });
+
+    const handleWindowProfileUpdate = (e) => {
+      const detail = e.detail;
+      const curId = activeStudent?.student_id || activeStudent?.id;
+      if (detail && (!detail.student_id || detail.student_id === curId)) {
+        setActiveStudent((prev) => {
+          if (!prev) return prev;
+          const updated = {
+            ...prev,
+            year_block: detail.year_block ? formatYearBlock(detail.year_block) : prev.year_block,
+            email: detail.email || prev.email,
+            email_last_updated: detail.email_last_updated || prev.email_last_updated,
+          };
+          try {
+            sessionStorage.setItem('fixie_authenticated_student', JSON.stringify(updated));
+          } catch {}
+          return updated;
+        });
+      }
+    };
+
+    window.addEventListener('fixie_student_profile_updated', handleWindowProfileUpdate);
+
+    return () => {
+      unsub();
+      window.removeEventListener('fixie_student_profile_updated', handleWindowProfileUpdate);
+    };
+  }, [activeStudent?.student_id, activeStudent?.id]);
 
   // Memoized student profile metadata to prevent downstream re-renders and re-fetches
   const studentProfile = useMemo(() => {

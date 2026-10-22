@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { subscribeToStudentUpdates } from '../lib/realtimeSyncService';
+import { formatYearBlock, formatStudentEmail } from '../lib/studentFormatUtils';
 import StudentProfileModal from './StudentProfileModal';
 import TechnicalAccountModal from './TechnicalAccountModal';
 import ChangePasswordModal from './ChangePasswordModal';
@@ -223,19 +225,46 @@ export default function SettingsPrivacyPage({ currentUser, userProfile }) {
   useEffect(() => {
     const handleProfileUpdate = (e) => {
       const { student_id, year_block, email, email_last_updated } = e.detail || {};
-      if (student_id === studentData.studentId || !student_id) {
+      const myId = studentData.studentId || studentData.student_id;
+      if (!student_id || student_id === myId) {
         setStudentData((prev) => ({
           ...prev,
-          yearBlock: year_block || prev.yearBlock,
-          email: email || prev.email,
+          yearBlock: year_block ? formatYearBlock(year_block) : prev.yearBlock,
+          email: email ? formatStudentEmail(email) : prev.email,
           emailLastUpdated: email_last_updated !== undefined ? email_last_updated : prev.emailLastUpdated,
         }));
       }
     };
 
+    const unsubStudent = subscribeToStudentUpdates((payload) => {
+      if (!payload) return;
+      const targetId = payload.student_id || payload.id;
+      const myId = studentData.studentId || studentData.student_id;
+      if (!targetId || targetId === myId) {
+        const raw = payload.student || payload.new || payload;
+        setStudentData((prev) => ({
+          ...prev,
+          yearBlock: raw.year_block ? formatYearBlock(raw.year_block) : prev.yearBlock,
+          email: raw.email ? formatStudentEmail(raw.email) : prev.email,
+          emailLastUpdated: raw.email_last_updated
+            ? (String(raw.email_last_updated).includes('T') || !isNaN(Date.parse(raw.email_last_updated))
+                ? new Date(raw.email_last_updated).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })
+                : raw.email_last_updated)
+            : prev.emailLastUpdated,
+        }));
+      }
+    });
+
     window.addEventListener('fixie_student_profile_updated', handleProfileUpdate);
-    return () => window.removeEventListener('fixie_student_profile_updated', handleProfileUpdate);
-  }, [studentData.studentId]);
+    return () => {
+      window.removeEventListener('fixie_student_profile_updated', handleProfileUpdate);
+      unsubStudent();
+    };
+  }, [studentData.studentId, studentData.student_id]);
 
   // Listen for real-time password update broadcasts
   useEffect(() => {

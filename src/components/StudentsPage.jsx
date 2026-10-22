@@ -539,14 +539,17 @@ export default function StudentsPage() {
         setStudentsList((prev) =>
           prev.map((s) => {
             if (s.id === targetId || s.student_id === targetId) {
+              const raw = payload.student || payload.new || payload;
               const updatedStatus = payload.status || (payload.new && payload.new.status) || s.status;
               const normStatus = updatedStatus === 'active' ? 'active' : 'deactivated';
+              const fullName = formatStudentName(raw) || raw.name || s.name;
               return {
                 ...s,
-                ...payload,
+                ...raw,
+                name: fullName,
                 status: normStatus,
-                email: formatStudentEmail(payload.email || s.email),
-                year_block: payload.year_block ? formatYearBlock(payload.year_block) : s.year_block,
+                email: formatStudentEmail(raw.email || s.email),
+                year_block: raw.year_block ? formatYearBlock(raw.year_block) : s.year_block,
               };
             }
             return s;
@@ -568,6 +571,25 @@ export default function StudentsPage() {
       unsubVisibility();
     };
   }, []);
+
+  // Synchronize viewingStudent in realtime if updated in the background
+  useEffect(() => {
+    if (!viewingStudent) return;
+    const match = studentsList.find(
+      (s) =>
+        (s.student_id && s.student_id === viewingStudent.student_id) ||
+        (s.id && s.id === viewingStudent.id)
+    );
+    if (
+      match &&
+      (match.status !== viewingStudent.status ||
+        match.email !== viewingStudent.email ||
+        match.year_block !== viewingStudent.year_block ||
+        match.name !== viewingStudent.name)
+    ) {
+      setViewingStudent((prev) => (prev ? { ...prev, ...match } : null));
+    }
+  }, [studentsList, viewingStudent]);
 
   // Hash listener to auto-open Register Student Modal (#register-student or #register)
   useEffect(() => {

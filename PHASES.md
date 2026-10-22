@@ -186,3 +186,19 @@ Same on both Student and Technical sides, chronological, Asia/Manila (PHT) timez
   - Enhanced `generateInitialsAvatar()` to produce an SVG with a circular background styled in Fixie's dark forest green palette with bold white initials (`FF`).
   - Integrated across [StudentsPage.jsx](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/components/StudentsPage.jsx), [StudentAccountSetup.jsx](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/components/StudentAccountSetup.jsx), and [StudentDashboard.jsx](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/components/StudentDashboard.jsx).
 
+### [x] Phase 13: Zero-Glitch Real-time Auto-Updates Across Modals, Reports & Student Profiles
+- **Report Details Modal Real-time Reliability**:
+  - Fixed lexical block-scoping bug in [ReportDetailsModal.jsx](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/components/ReportDetailsModal.jsx) where `normSt` was scoped inside `if (newSt)` block, preventing `ReferenceError: normSt is not defined` from crashing the realtime listener during updates.
+  - Ensured `effectiveStatus !== 'Under Repair'` safely preserves the technician's input without remarks overwrites.
+- **Reports Page Modal Synchronization Deduplication**:
+  - In [ReportsPage.jsx](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/components/ReportsPage.jsx), constrained `activeReportModal` synchronization to trigger only when status, remarks, or display status actually change, eliminating modal re-render flickering and layout jitter during real-time broadcasts.
+- **Student Profile Modal Real-time Auto-Update & Snake/CamelCase Compatibility**:
+  - In [StudentProfileModal.jsx](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/components/StudentProfileModal.jsx), added native subscription to `subscribeToStudentUpdates` and `fixie_student_profile_updated` so profile views automatically reflect changes in real time.
+  - Supported both snake_case (`first_name`, `last_name`, `name`, `year_block`, `student_id`) and camelCase (`firstName`, `lastName`, `yearBlock`, `studentId`), preventing non-Angel student profiles from incorrectly falling back to "Angel Lae Martinez".
+  - Sanitized and formatted `email_last_updated` timestamps (e.g. `Oct 22, 2026`) instead of rendering raw ISO strings.
+- **Settings & Privacy and Student Dashboard Real-time Subscription**:
+  - In [SettingsPrivacyPage.jsx](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/components/SettingsPrivacyPage.jsx) and [StudentDashboard.jsx](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/components/StudentDashboard.jsx), added listeners for `subscribeToStudentUpdates` via Supabase Realtime CDC, ensuring cross-tab and cross-device edits update active student session state smoothly with zero glitches and no manual refresh required.
+- **Student List View Modal Live Sync**:
+  - In [StudentsPage.jsx](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/components/StudentsPage.jsx), synchronized `viewingStudent` with incoming realtime updates so viewed profile cards update live without closing or flickering.
+
+

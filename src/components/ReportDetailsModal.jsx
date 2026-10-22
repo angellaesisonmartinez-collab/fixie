@@ -803,16 +803,18 @@ export default function ReportDetailsModal({
       if (matches) {
         // Immediate local state update for zero lag
         const newSt = updateData.newStatus || updateData.status;
+        let normSt = null;
         if (newSt) {
-          const normSt = normalizeStatusLabel(newSt);
+          normSt = normalizeStatusLabel(newSt);
           setCurrentStatus(normSt);
           if (normSt === 'On Hold') {
             setHasBeenOnHold(true);
           }
         }
+        const effectiveStatus = normSt || currentStatusRef.current;
         const newRem = updateData.remarks !== undefined ? updateData.remarks : updateData.newRemarks;
         if (newRem !== undefined) {
-          if (normSt !== 'Under Repair' && currentStatusRef.current !== 'Under Repair') {
+          if (effectiveStatus !== 'Under Repair') {
             setRemarks(newRem || '');
             setEditedRemarks(newRem || '');
           }

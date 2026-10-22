@@ -764,7 +764,7 @@ function TechnicalPersonnelReportsPage({
   const [activeReportModal, setActiveReportModal] = useState(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
-  // Synchronize activeReportModal if reportsList updates in realtime
+  // Synchronize activeReportModal if reportsList updates in realtime (prevent unnecessary re-renders)
   useEffect(() => {
     if (!activeReportModal) return;
     const match = reportsList.find(
@@ -772,10 +772,16 @@ function TechnicalPersonnelReportsPage({
         (r.report_id && r.report_id === activeReportModal.report_id) ||
         (r.id && r.id === activeReportModal.id)
     );
-    if (match) {
+    if (
+      match &&
+      (match.status !== activeReportModal.status ||
+        match.remarks !== activeReportModal.remarks ||
+        match.displayStatus !== activeReportModal.displayStatus ||
+        match.display_status !== activeReportModal.display_status)
+    ) {
       setActiveReportModal((prev) => (prev ? { ...prev, ...match } : null));
     }
-  }, [reportsList]);
+  }, [reportsList, activeReportModal]);
 
   // Fetch live reports from Supabase
   const fetchLiveReports = async (showSpinner = false) => {
