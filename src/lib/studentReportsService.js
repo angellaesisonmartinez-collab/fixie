@@ -415,7 +415,22 @@ export async function fetchStudentReportsAndStats(student) {
         );
       }
 
-      // Query 3: `saved_guides` for this student
+      // Query 3: Candidate custom student table (e.g. phia-reports, jennelyn-reports, angel-reports)
+      if (resolvedName) {
+        const firstName = resolvedName.trim().split(/\s+/)[0].toLowerCase();
+        queryPromises.push(
+          supabase
+            .from(`${firstName}-reports`)
+            .select('*')
+            .then(({ data, error }) => {
+              if (!error && Array.isArray(data)) return { type: 'custom', data };
+              return { type: 'custom', data: [] };
+            })
+            .catch(() => ({ type: 'custom', data: [] }))
+        );
+      }
+
+      // Query 4: `saved_guides` for this student
       if (resolvedUuid && isUuid(resolvedUuid)) {
         queryPromises.push(
           supabase
@@ -805,6 +820,29 @@ export function useStudentReports(studentProfile, { enabled = true } = {}) {
         );
       }
 
+      const rawStudentName = studentProfile?.name || studentProfile?.full_name || '';
+      if (rawStudentName) {
+        const customTable = `${rawStudentName.trim().split(/\s+/)[0].toLowerCase()}-reports`;
+        ch = ch.on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: customTable,
+          },
+          (p) => {
+            handleSyncReportPayload({
+              ...p.new,
+              ...p.old,
+              eventType: p.eventType,
+              new: p.new,
+              old: p.old,
+            });
+            loadData(true);
+          }
+        );
+      }
+
       if (validUuid) {
         ch = ch.on(
           'postgres_changes',
@@ -819,6 +857,31 @@ export function useStudentReports(studentProfile, { enabled = true } = {}) {
           }
         );
       }
+
+      ch = ch.on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'report_status_history',
+        },
+        (p) => {
+          const item = p.new || p.old;
+          if (item?.report_id) {
+            handleSyncReportPayload({
+              canonicalUuid: item.report_id,
+              reportId: item.report_id,
+              report_id: item.report_id,
+              status: item.status,
+              newStatus: item.status,
+              remarks: item.remarks,
+              newRemarks: item.remarks,
+              updated_at: item.created_at,
+            });
+          }
+          loadData(true);
+        }
+      );
 
       channel = ch.subscribe();
     } catch (chanErr) {

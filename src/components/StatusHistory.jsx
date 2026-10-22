@@ -30,14 +30,14 @@ export default function StatusHistory({ history = [], title = 'Status History', 
         {history.map((item, index) => (
           <div key={index} className="status-history-entry-block">
             <div className="status-history-item-line">
-              <strong className="history-action-text">{item.action}</strong>
+              <strong className="history-action-text">{item.action || item.status}</strong>
               <span className="history-bullet-dot"> — </span>
-              <span className="history-timestamp-text">{item.time}</span>
+              <span className="history-timestamp-text">{item.time || item.timeFormatted}</span>
             </div>
-            {item.remarksText && (
+            {(item.remarksText || item.remarks) && (
               <div className="history-remarks-subline" style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', marginTop: '4px' }}>
                 <MessageSquare size={13} style={{ flexShrink: 0, marginTop: '2px', opacity: 0.7 }} />
-                <span>Remarks: {item.remarksText}</span>
+                <span>Remarks: {item.remarksText || item.remarks}</span>
               </div>
             )}
           </div>

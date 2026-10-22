@@ -653,6 +653,33 @@
   font-weight: 500;
 }
 
+.student-guide-rich-content {
+  font-size: 15px;
+  line-height: 1.65;
+  color: #0F172A;
+}
+
+.student-guide-rich-content p {
+  margin: 0 0 12px 0;
+}
+
+.student-guide-rich-content b,
+.student-guide-rich-content strong {
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.student-guide-rich-content ul,
+.student-guide-rich-content ol {
+  padding-left: 22px;
+  margin: 8px 0 14px 0;
+}
+
+.student-guide-rich-content li {
+  margin-bottom: 6px;
+  line-height: 1.6;
+}
+
 /* Modal Footer */
 .guide-modal-footer {
   border-top: 1px solid #E5E7EB;

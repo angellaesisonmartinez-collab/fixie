@@ -14,18 +14,45 @@ export const LAB_HOURS_ERROR_MESSAGE =
   'Reports can only be submitted during laboratory hours (7:00 AM to 9:00 PM).';
 
 /**
- * Parses any date input into a valid Date object.
+ * Parses any date input into a valid Date object anchored properly to UTC / Manila time.
  */
 function toDate(input) {
   if (!input) return null;
   if (input instanceof Date) return isNaN(input.getTime()) ? null : input;
   if (typeof input === 'string') {
     let s = input.replace(/•/g, ' ').replace(/\s+/g, ' ').trim();
-    // Check if format is 'MMM DD, h:mm A' without year (e.g. 'Oct 18, 12:01 AM')
-    const noYearMatch = s.match(/^([A-Za-z]{3}\s+\d{1,2}),?\s*(\d{1,2}:\d{2}\s*(?:AM|PM)?)$/i);
-    if (noYearMatch) {
-      s = `${noYearMatch[1]}, 2026 ${noYearMatch[2]}`;
+
+    // If ISO with timezone (Z or +08:00 or -05:00 etc)
+    if (/^\d{4}-\d{2}-\d{2}T/i.test(s)) {
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) return d;
     }
+
+    // Check if format is 'MMM DD, YYYY, h:mm A' or 'MMM DD, YYYY h:mm A' or 'MMM DD, h:mm A'
+    const fullMatch = s.match(/^([A-Za-z]{3})\s+(\d{1,2}),?\s*(\d{4})?,?\s*(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$/i);
+    if (fullMatch) {
+      const [_, mStr, dStr, yStr, hrStr, minStr, ampm] = fullMatch;
+      const year = yStr || '2026';
+      const months = {
+        jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+        jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
+      };
+      const m = months[mStr.toLowerCase()];
+      if (m) {
+        const day = dStr.padStart(2, '0');
+        let hour = parseInt(hrStr, 10);
+        if (ampm) {
+          if (ampm.toUpperCase() === 'PM' && hour < 12) hour += 12;
+          if (ampm.toUpperCase() === 'AM' && hour === 12) hour = 0;
+        }
+        const hourStr = String(hour).padStart(2, '0');
+        // Anchor strictly to Asia/Manila (+08:00) to avoid browser timezone offset skew
+        const manilaIso = `${year}-${m}-${day}T${hourStr}:${minStr}:00+08:00`;
+        const d = new Date(manilaIso);
+        if (!isNaN(d.getTime())) return d;
+      }
+    }
+
     const d = new Date(s);
     if (!isNaN(d.getTime())) return d;
   }
@@ -88,10 +115,17 @@ export function checkLaboratoryHours(dateInput = new Date()) {
 
 /**
  * Format status history timestamp in Asia/Manila: "Oct 22, 2026, 7:23 PM"
- * Displays the exact recorded database update date and time in Philippine time.
+ * Shared single source of truth formatter for status history on Student and Technical sides.
  */
 export function formatManilaHistoryTime(timeInput, fallbackTime = '') {
   if (!timeInput) return fallbackTime;
+  if (typeof timeInput === 'string') {
+    const s = timeInput.trim();
+    // If already in 'Oct 23, 2026, 2:35 PM' standard format, return directly
+    const alreadyFormatted = s.match(/^[A-Za-z]{3}\s+\d{1,2},\s+\d{4},\s+\d{1,2}:\d{2}\s+(?:AM|PM)$/i);
+    if (alreadyFormatted) return s;
+  }
+
   const rawD = toDate(timeInput);
   if (!rawD) return fallbackTime || String(timeInput);
 
@@ -153,9 +187,8 @@ export async function getServerTime() {
  * Format date in Asia/Manila: "Oct 17, 2026"
  */
 export function formatManilaDate(dateInput) {
-  const rawD = toDate(dateInput);
-  if (!rawD) return '';
-  const d = sanitizeLabHoursDate(rawD) || rawD;
+  const d = toDate(dateInput);
+  if (!d) return '';
   return new Intl.DateTimeFormat('en-US', {
     timeZone: MANILA_TIMEZONE,
     month: 'short',
@@ -168,9 +201,8 @@ export function formatManilaDate(dateInput) {
  * Format time in Asia/Manila: "3:45 PM"
  */
 export function formatManilaTime(dateInput) {
-  const rawD = toDate(dateInput);
-  if (!rawD) return '';
-  const d = sanitizeLabHoursDate(rawD) || rawD;
+  const d = toDate(dateInput);
+  if (!d) return '';
   return new Intl.DateTimeFormat('en-US', {
     timeZone: MANILA_TIMEZONE,
     hour: 'numeric',
@@ -183,9 +215,8 @@ export function formatManilaTime(dateInput) {
  * Format date and time in Asia/Manila: "Oct 17, 2026  •  3:45 PM"
  */
 export function formatManilaDateTime(dateInput) {
-  const rawD = toDate(dateInput);
-  if (!rawD) return '';
-  const d = sanitizeLabHoursDate(rawD) || rawD;
+  const d = toDate(dateInput);
+  if (!d) return '';
   const dateStr = formatManilaDate(d);
   const timeStr = formatManilaTime(d);
   return `${dateStr}  •  ${timeStr}`;
@@ -217,39 +248,7 @@ export function formatManilaLiveClock(dateInput = new Date()) {
  */
 export function sanitizeLabHoursDate(dateInput) {
   const d = toDate(dateInput);
-  if (!d) return null;
-
-  const parts = getManilaTimeParts(d);
-  // If outside 7:00 AM (hour 7) to 9:00 PM (hour 21, min 00)
-  if (
-    parts.hour < LAB_START_HOUR ||
-    parts.hour > LAB_END_HOUR ||
-    (parts.hour === LAB_END_HOUR && parts.minute > LAB_END_MINUTE)
-  ) {
-    // 1. If shifted forward by 8 hours (e.g. 23:56 or 00:01), shift back by 8 hours
-    const shiftedBack = new Date(d.getTime() - 8 * 3600 * 1000);
-    const sbParts = getManilaTimeParts(shiftedBack);
-    if (sbParts.totalMinutes >= LAB_START_HOUR * 60 && sbParts.totalMinutes <= LAB_END_HOUR * 60) {
-      return shiftedBack;
-    }
-
-    // 2. If shifted backwards by 8 hours (e.g. 4:59 AM), shift forward by 8 hours
-    const shiftedForward = new Date(d.getTime() + 8 * 3600 * 1000);
-    const sfParts = getManilaTimeParts(shiftedForward);
-    if (sfParts.totalMinutes >= LAB_START_HOUR * 60 && sfParts.totalMinutes <= LAB_END_HOUR * 60) {
-      return shiftedForward;
-    }
-
-    // 3. Fallback clamp: clamp to nearest valid laboratory hour on same date (07:00 to 21:00)
-    const clamped = new Date(d);
-    if (parts.hour < LAB_START_HOUR) {
-      clamped.setHours(LAB_START_HOUR, 0, 0, 0);
-    } else {
-      clamped.setHours(LAB_END_HOUR, 0, 0, 0);
-    }
-    return clamped;
-  }
-  return d;
+  return d || null;
 }
 
 /**

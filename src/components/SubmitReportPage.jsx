@@ -472,13 +472,46 @@ export default function SubmitReportPage({
         reportInsertPayload.student_id = studentDbUuid;
       }
 
+      let insertedReportUuid = null;
       try {
-        const { error: insertErr } = await supabase.from('reports').insert([reportInsertPayload]);
+        const { data: repData, error: insertErr } = await supabase
+          .from('reports')
+          .insert([reportInsertPayload])
+          .select('id, report_id')
+          .maybeSingle();
+
         if (insertErr) {
           console.warn(`Supabase reports note: ${insertErr.message}`);
+        } else if (repData?.id) {
+          insertedReportUuid = repData.id;
         }
       } catch (err) {
         console.warn('Supabase reports insert catch:', err);
+      }
+
+      if (!insertedReportUuid) {
+        try {
+          const { data: fetchRow } = await supabase
+            .from('reports')
+            .select('id')
+            .eq('report_id', generatedId)
+            .maybeSingle();
+          if (fetchRow?.id) insertedReportUuid = fetchRow.id;
+        } catch {}
+      }
+
+      // Record initial "Submitted" entry in public.report_status_history
+      if (insertedReportUuid) {
+        try {
+          await supabase.from('report_status_history').insert({
+            report_id: insertedReportUuid,
+            status: 'Submitted',
+            remarks: null,
+            created_at: nowIso,
+          });
+        } catch (rshErr) {
+          console.warn('Could not insert initial Submitted status history:', rshErr);
+        }
       }
 
       try {
@@ -496,6 +529,14 @@ export default function SubmitReportPage({
             status: 'Submitted',
             date_submitted: nowIso,
             date_time: `${submittedDate}, ${submittedTime}`,
+            history: [
+              {
+                action: 'Submitted',
+                status: 'Submitted',
+                time: nowIso,
+                remarksText: null,
+              },
+            ],
           },
         ]);
         if (sInsertErr) {

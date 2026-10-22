@@ -19,8 +19,14 @@ import {
   broadcastGuideChange,
 } from '../lib/realtimeSyncService';
 import StudentGuidesPage from './StudentGuidesPage';
-import fixieMascotSuccess from '../assets/fixie-mascot-success.png';
-import { formatGuideDateDisplay, getGuideSortTime } from '../lib/guideDateUtils';
+import {
+  formatGuideDateDisplay,
+  getGuideSortTime,
+  htmlToPlainText,
+  getGuideSnippet,
+  cleanHtmlForStorage,
+  getSanitizedGuideHtml,
+} from '../lib/guideDateUtils';
 import { getVisiblePages, getDisplayedCount } from '../lib/paginationUtils';
 import './GuidesPage.css';
 
@@ -317,64 +323,17 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
   // Helper for rendering formatted content in Image 1 Details Modal
   const renderGuideDetailsContent = (guide) => {
     if (!guide) return null;
-    if (guide.content && /<[a-z][\s\S]*>/i.test(guide.content)) {
-      return (
-        <div
-          className="guide-details-rich-content"
-          dangerouslySetInnerHTML={{ __html: guide.content }}
-        />
-      );
-    }
-    if (guide.leadText && guide.bulletPoints && guide.bulletPoints.length > 0) {
-      return (
-        <div className="guide-details-formatted-block">
-          <p className="guide-details-lead">{guide.leadText}</p>
-          <ul className="guide-details-bullet-list">
-            {guide.bulletPoints.map((bp, i) => (
-              <li key={i} className="guide-details-bullet-item">{bp}</li>
-            ))}
-          </ul>
-        </div>
-      );
-    }
-    const raw = guide.content || guide.preview || '';
-    const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-    if (lines.length === 0) return null;
-    const firstLine = lines[0];
-    const restLines = lines.slice(1);
-    const isList = restLines.some((l) => /^[0-9]+[.)]\s*|^[-*•]\s*/.test(l));
-    if (isList) {
-      return (
-        <div className="guide-details-formatted-block">
-          <p className="guide-details-lead">{firstLine}</p>
-          <ul className="guide-details-bullet-list">
-            {restLines.map((line, idx) => {
-              const clean = line.replace(/^[0-9]+[.)]\s*|^[-*•]\s*/, '').trim();
-              return (
-                <li key={idx} className="guide-details-bullet-item">{clean}</li>
-              );
-            })}
-          </ul>
-        </div>
-      );
-    }
     return (
-      <div className="guide-details-formatted-block">
-        {lines.map((p, idx) => (
-          <p key={idx} className={idx === 0 ? "guide-details-lead" : "guide-details-paragraph"}>
-            {p}
-          </p>
-        ))}
-      </div>
+      <div
+        className="guide-details-rich-content"
+        dangerouslySetInnerHTML={{ __html: getSanitizedGuideHtml(guide) }}
+      />
     );
   };
 
-  // Get description snippet preview
+  // Get description snippet preview using shared helper
   const getGuidePreview = (guide) => {
-    if (guide.preview) return guide.preview;
-    if (!guide.content) return '';
-    const firstLine = guide.content.split('\n')[0].replace(/^#+\s*/, '').replace(/^[0-9]+\.\s*/, '').trim();
-    return firstLine;
+    return getGuideSnippet(guide);
   };
 
   // Open View Modal (Technical Personnel: Details Modal Image 1)
@@ -399,7 +358,8 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
     }
 
     const rawHtml = addEditorRef.current ? addEditorRef.current.innerHTML : newContent;
-    const strippedText = (rawHtml || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+    const cleanedHtml = cleanHtmlForStorage(rawHtml);
+    const strippedText = htmlToPlainText(cleanedHtml);
     if (!strippedText) {
       setAddError('Please enter guide details.');
       return;
@@ -416,7 +376,7 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
           {
             category: categoryToSave,
             title: newTitle.trim(),
-            content: rawHtml.trim(),
+            content: cleanedHtml.trim(),
             created_at: nowIso,
             updated_at: nowIso,
           },
@@ -430,7 +390,7 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
         id: 'guide-' + Date.now(),
         category: categoryToSave,
         title: newTitle.trim(),
-        content: rawHtml.trim(),
+        content: cleanedHtml.trim(),
         created_at: nowIso,
         updated_at: nowIso,
       };
@@ -465,7 +425,7 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
         id: mockId,
         category: categoryToSave,
         title: newTitle.trim(),
-        content: rawHtml.trim(),
+        content: cleanedHtml.trim(),
         created_at: nowIso,
         updated_at: nowIso,
       };
@@ -504,7 +464,8 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
     }
 
     const rawHtml = editEditorRef.current ? editEditorRef.current.innerHTML : editContent;
-    const strippedText = (rawHtml || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+    const cleanedHtml = cleanHtmlForStorage(rawHtml);
+    const strippedText = htmlToPlainText(cleanedHtml);
     if (!strippedText) {
       setEditError('Please enter guide content.');
       return;
@@ -520,7 +481,7 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
         .update({
           category: categoryToSave,
           title: editTitle.trim(),
-          content: rawHtml.trim(),
+          content: cleanedHtml.trim(),
           updated_at: nowIso,
         })
         .eq('id', viewingGuide.id);
@@ -531,7 +492,7 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
         ...viewingGuide,
         category: categoryToSave,
         title: editTitle.trim(),
-        content: rawHtml.trim(),
+        content: cleanedHtml.trim(),
         updated_at: nowIso,
       };
 
@@ -564,7 +525,7 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
         ...viewingGuide,
         category: categoryToSave,
         title: editTitle.trim(),
-        content: rawHtml.trim(),
+        content: cleanedHtml.trim(),
         updated_at: nowIso,
       };
       setGuidesList((prev) =>

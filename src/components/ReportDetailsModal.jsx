@@ -126,14 +126,16 @@ export function normalizeStatusLabel(st) {
   if (s.includes('resolve')) return 'Resolved';
   if (s === 'on hold' || s === 'on_hold' || s.includes('hold')) return 'On Hold';
   if (s.includes('repair')) return 'Under Repair';
-  if (s.includes('review')) return 'Reviewed';
+  if (s.includes('review')) return 'Under Review';
   if (s.includes('submit')) return 'Submitted';
   return st || 'Submitted';
 }
 
 /**
- * Builds unified, deduplicated status history list combining database audit rows and student history.
- * Strictly guarantees that each status appears only once in the history list.
+ * Builds unified status history list combining database audit rows and student history.
+ * Displays history in true chronological order (oldest to newest):
+ * Submitted -> Under Review -> Under Repair -> Resolved (with On Hold in between if applicable).
+ * Strictly reflects actual database events without duplicate or mock entries.
  */
 export function buildUnifiedHistoryEntries({
   historyRows = [],
@@ -142,145 +144,102 @@ export function buildUnifiedHistoryEntries({
   currentStatus = 'Submitted',
   currentRemarks = null,
 }) {
-  const entries = [];
-  const seenKeys = new Set();
   const timestamps = {};
+  const entries = [];
+  const rawList = [];
 
-  // 1. Process records from report_status_history (sorted newest first)
-  const sortedRsh = [...(historyRows || [])].sort(
-    (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
-  );
-
-  for (const row of sortedRsh) {
-    const label = normalizeStatusLabel(row.status);
-    if (label === 'Submitted') continue;
-
-    const rowRemarks = row.remarks || (label === currentStatus ? currentRemarks : null);
-
-    if (!seenKeys.has(label)) {
-      seenKeys.add(label);
-      const formatted = formatManilaHistoryTime(row.created_at);
-      entries.push({
-        status: label,
-        remarks: rowRemarks,
-        timeFormatted: formatted,
-        createdAt: row.created_at,
-      });
-
-      if (label === 'Resolved' && !timestamps.resolved) timestamps.resolved = formatted;
-      if (label === 'On Hold' && !timestamps.onHold) timestamps.onHold = formatted;
-      if ((label === 'Under Repair' || label === 'Under repair') && !timestamps.underRepair) timestamps.underRepair = formatted;
-      if (label === 'Reviewed' && !timestamps.reviewed) timestamps.reviewed = formatted;
-    }
-  }
-
-  // 2. Process records from studentHistoryArray if any statuses are missing
-  const sortedStudentHist = [...(studentHistoryArray || [])].reverse();
-  for (const h of sortedStudentHist) {
-    const rawAction = h.action || h.status;
-    const label = normalizeStatusLabel(rawAction);
-    if (label === 'Submitted') continue;
-
-    const hRemarks = h.remarksText || h.remarks || (label === currentStatus ? currentRemarks : null);
-
-    if (!seenKeys.has(label)) {
-      seenKeys.add(label);
-      const formatted = formatManilaHistoryTime(h.time || h.created_at);
-      entries.push({
-        status: label,
-        remarks: hRemarks,
-        timeFormatted: formatted,
-        createdAt: h.time || h.created_at,
-      });
-
-      if (label === 'Resolved' && !timestamps.resolved) timestamps.resolved = formatted;
-      if (label === 'On Hold' && !timestamps.onHold) timestamps.onHold = formatted;
-      if ((label === 'Under Repair' || label === 'Under repair') && !timestamps.underRepair) timestamps.underRepair = formatted;
-      if (label === 'Reviewed' && !timestamps.reviewed) timestamps.reviewed = formatted;
-    }
-  }
-
-  // Ensure submitted timestamp exists
-  if (!timestamps.submitted) {
-    timestamps.submitted = formatManilaHistoryTime(
-      currentReport.created_at || currentReport.raw_created_at || currentReport.date_submitted
-    );
-  }
-
-  // Fallback generation for current workflow state if missing from audit logs
-  const currentPhase = getPhaseIndex(currentStatus);
-  const updatedAtFormatted = formatManilaHistoryTime(currentReport.updated_at || new Date());
-
-  if (currentStatus === 'Resolved' && !entries.some((e) => e.status === 'Resolved')) {
-    const resTime = timestamps.resolved || updatedAtFormatted;
-    timestamps.resolved = resTime;
-    entries.unshift({
-      status: 'Resolved',
-      remarks: currentRemarks || currentReport.remarks || null,
-      timeFormatted: resTime,
-      createdAt: currentReport.updated_at,
+  // 1. Process records from report_status_history
+  for (const row of historyRows || []) {
+    if (!row || !row.status) continue;
+    rawList.push({
+      status: normalizeStatusLabel(row.status),
+      remarks: row.remarks || null,
+      created_at: row.created_at,
     });
   }
 
-  if (currentStatus === 'On Hold' || currentReport.has_been_on_hold || currentReport.on_hold_at) {
-    if (!entries.some((e) => e.status === 'On Hold')) {
-      const holdTime = timestamps.onHold || updatedAtFormatted;
-      timestamps.onHold = holdTime;
-      entries.unshift({
-        status: 'On Hold',
-        remarks: currentRemarks || currentReport.remarks || null,
-        timeFormatted: holdTime,
-        createdAt: currentReport.updated_at,
+  // 2. Process records from studentHistoryArray if report_status_history was empty
+  if (rawList.length === 0) {
+    for (const h of studentHistoryArray || []) {
+      if (!h) continue;
+      const rawAction = h.action || h.status;
+      if (!rawAction) continue;
+      rawList.push({
+        status: normalizeStatusLabel(rawAction),
+        remarks: h.remarksText || h.remarks || null,
+        created_at: h.time || h.created_at,
       });
     }
   }
 
-  if (currentPhase >= 3) {
-    if (!entries.some((e) => e.status === 'Under Repair' || e.status === 'Under repair')) {
-      const repairTime = timestamps.underRepair || (currentStatus === 'Under Repair' ? updatedAtFormatted : '');
-      if (repairTime) {
-        entries.push({
-          status: 'Under Repair',
-          remarks: currentStatus === 'Under Repair' ? (currentRemarks || currentReport.remarks || null) : null,
-          timeFormatted: repairTime,
-          createdAt: null,
-        });
-      }
-    }
+  // 3. Ensure authentic "Submitted" entry exists as the baseline
+  const hasSubmitted = rawList.some((e) => e.status === 'Submitted');
+  if (!hasSubmitted) {
+    const subDate =
+      currentReport.created_at ||
+      currentReport.raw_created_at ||
+      currentReport.date_submitted ||
+      new Date().toISOString();
+    rawList.unshift({
+      status: 'Submitted',
+      remarks: null,
+      created_at: subDate,
+    });
   }
 
-  if (currentPhase >= 2) {
-    if (!entries.some((e) => e.status === 'Reviewed')) {
-      const reviewedTime = timestamps.reviewed || (currentStatus === 'Reviewed' ? updatedAtFormatted : '');
-      if (reviewedTime) {
-        entries.push({
-          status: 'Reviewed',
-          remarks: currentStatus === 'Reviewed' ? (currentRemarks || currentReport.remarks || null) : null,
-          timeFormatted: reviewedTime,
-          createdAt: null,
-        });
-      }
-    }
-  }
-
-  // Standard workflow sort: Resolved -> On Hold -> Under Repair -> Reviewed
-  const statusPriority = {
-    Resolved: 4,
-    'On Hold': 3.5,
-    'Under Repair': 3,
-    'Under repair': 3,
-    Reviewed: 2,
-    Submitted: 1,
-  };
-
-  entries.sort((a, b) => {
-    const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-    const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-    if (timeA && timeB && timeA !== timeB) {
-      return timeB - timeA;
-    }
-    return (statusPriority[b.status] || 0) - (statusPriority[a.status] || 0);
+  // Sort strictly in chronological order (oldest to newest)
+  rawList.sort((a, b) => {
+    const timeA = new Date(a.created_at || 0).getTime();
+    const timeB = new Date(b.created_at || 0).getTime();
+    return timeA - timeB;
   });
+
+  // Deduplicate consecutive identical statuses (e.g. rapid repeat clicks within seconds)
+  for (const item of rawList) {
+    const prev = entries[entries.length - 1];
+    if (prev && prev.status === item.status) {
+      if (!prev.remarks && item.remarks) {
+        prev.remarks = item.remarks;
+      }
+      continue;
+    }
+
+    const formattedTime = formatManilaHistoryTime(item.created_at);
+    const itemRemarks = item.remarks || (item.status === currentStatus ? currentRemarks : null);
+
+    entries.push({
+      status: item.status,
+      remarks: itemRemarks,
+      timeFormatted: formattedTime,
+      createdAt: item.created_at,
+    });
+
+    if (item.status === 'Submitted') timestamps.submitted = formattedTime;
+    if (item.status === 'Under Review') timestamps.reviewed = formattedTime;
+    if (item.status === 'Under Repair') timestamps.underRepair = formattedTime;
+    if (item.status === 'On Hold') timestamps.onHold = formattedTime;
+    if (item.status === 'Resolved') timestamps.resolved = formattedTime;
+  }
+
+  // Ensure current status matches the latest history entry
+  const normCurrent = normalizeStatusLabel(currentStatus);
+  if (normCurrent && entries.length > 0) {
+    const lastEntry = entries[entries.length - 1];
+    if (lastEntry.status !== normCurrent) {
+      const upTime = currentReport.updated_at || new Date().toISOString();
+      const formattedUpTime = formatManilaHistoryTime(upTime);
+      entries.push({
+        status: normCurrent,
+        remarks: currentRemarks || currentReport.remarks || null,
+        timeFormatted: formattedUpTime,
+        createdAt: upTime,
+      });
+      if (normCurrent === 'Under Review') timestamps.reviewed = formattedUpTime;
+      if (normCurrent === 'Under Repair') timestamps.underRepair = formattedUpTime;
+      if (normCurrent === 'On Hold') timestamps.onHold = formattedUpTime;
+      if (normCurrent === 'Resolved') timestamps.resolved = formattedUpTime;
+    }
+  }
 
   return { entries, timestamps };
 }
@@ -302,10 +261,15 @@ async function syncReportToSupabase(targetId, updatePayload, report = null) {
   }
 
   const studentName = report?.student_name || report?.reportedByName || report?.students?.name;
-  if (studentName && studentName.toLowerCase().includes('angel') && reportCode) {
-    promises.push(
-      supabase.from('angel-reports').update(updatePayload).eq('report_id', reportCode).catch(() => {})
-    );
+  if (studentName && reportCode) {
+    const firstName = studentName.trim().split(/\s+/)[0].toLowerCase();
+    const cleanFull = studentName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const targetTables = new Set([`${firstName}-reports`, `${cleanFull}-reports`]);
+    targetTables.forEach((tbl) => {
+      promises.push(
+        supabase.from(tbl).update(updatePayload).eq('report_id', reportCode).catch(() => {})
+      );
+    });
   }
 
   const results = await Promise.allSettled(promises);
@@ -335,19 +299,22 @@ async function recordStatusHistory(rep, status, remarks = null, nowIso = new Dat
   }
 
   try {
-    // Avoid duplicate history entries in report_status_history
-    const { data: existingRows } = await supabase
+    // Check the latest history entry for this report
+    const { data: latestRows } = await supabase
       .from('report_status_history')
       .select('id, status, remarks, created_at')
       .eq('report_id', canonicalUuid)
-      .eq('status', status);
+      .order('created_at', { ascending: false })
+      .limit(1);
 
-    if (existingRows && existingRows.length > 0) {
-      if (remarks !== undefined && remarks !== null && existingRows[0].remarks !== remarks) {
+    const latest = latestRows?.[0];
+    if (latest && latest.status === status) {
+      // Same status as current latest: update remarks if provided
+      if (remarks !== undefined && remarks !== null && latest.remarks !== remarks) {
         await supabase
           .from('report_status_history')
-          .update({ remarks, created_at: nowIso })
-          .eq('id', existingRows[0].id);
+          .update({ remarks })
+          .eq('id', latest.id);
       }
     } else {
       const insertPayload = {
@@ -380,18 +347,23 @@ async function recordStatusHistory(rep, status, remarks = null, nowIso = new Dat
 
       if (sRep) {
         const currentHist = Array.isArray(sRep.history) ? sRep.history : [];
-        const filteredHist = currentHist.filter(
-          (h) => (h.action || h.status)?.toLowerCase().trim() !== status?.toLowerCase().trim()
-        );
-        const updatedHist = [
-          ...filteredHist,
-          {
+        const lastStep = currentHist[currentHist.length - 1];
+        let updatedHist = [...currentHist];
+        if (lastStep && (lastStep.action === status || lastStep.status === status)) {
+          if (remarks) {
+            updatedHist[updatedHist.length - 1] = {
+              ...lastStep,
+              remarksText: remarks,
+            };
+          }
+        } else {
+          updatedHist.push({
             action: status,
             status,
             time: nowIso,
             remarksText: remarks || undefined,
-          },
-        ];
+          });
+        }
         await supabase
           .from('reports_of_student')
           .update({
@@ -439,17 +411,18 @@ function getInitialReportStatus(report) {
   ) {
     return 'Under Repair';
   }
-  if (report.status === 'Reviewed' || report.display_status === 'REVIEWED') return 'Reviewed';
-
   if (
-    report.display_status === 'UNDER REVIEW' ||
+    report.status === 'Reviewed' ||
     report.status === 'Under Review' ||
-    report.status === 'Submitted'
+    report.display_status === 'REVIEWED'
   ) {
+    return 'Under Review';
+  }
+  if (report.status === 'Submitted') {
     return 'Submitted';
   }
 
-  return report.status || 'Submitted';
+  return normalizeStatusLabel(report.status) || 'Submitted';
 }
 
 /**
@@ -460,6 +433,7 @@ function getPhaseIndex(status) {
     case 'Submitted':
       return 1;
     case 'Reviewed':
+    case 'Under Review':
       return 2;
     case 'Under Repair':
     case 'On Hold':
@@ -546,7 +520,9 @@ export default function ReportDetailsModal({
       initStatus === 'On Hold' ||
       Boolean(report?.has_been_on_hold) ||
       Boolean(report?.on_hold_at) ||
-      (isLR24 && (initStatus === 'On Hold' || initStatus === 'Resolved'))
+      Boolean(report?.timestamps?.onHold) ||
+      (isLR24 && (initStatus === 'On Hold' || initStatus === 'Resolved')) ||
+      (Array.isArray(report?.history) && report.history.some((h) => ((h.action || h.status) || '').toLowerCase().includes('hold')))
     );
   });
 
@@ -610,11 +586,12 @@ export default function ReportDetailsModal({
           .from('report_status_history')
           .select('id, status, remarks, created_at')
           .eq('report_id', canonicalUuid)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: true });
         if (rshData) historyRows = rshData;
       }
 
-      const activeStatus = liveReport?.status || liveRos?.status || report?.status || currentStatus;
+      const rawActive = liveReport?.status || liveRos?.status || report?.status || currentStatus;
+      const activeStatus = normalizeStatusLabel(rawActive);
       const activeRemarks =
         liveReport?.remarks !== undefined
           ? liveReport.remarks
@@ -647,7 +624,9 @@ export default function ReportDetailsModal({
         liveReport?.has_been_on_hold ||
         liveReport?.on_hold_at ||
         liveRos?.has_been_on_hold ||
-        activeStatus === 'On Hold'
+        activeStatus === 'On Hold' ||
+        historyRows.some((h) => ((h.status || '')).toLowerCase().includes('hold')) ||
+        (Array.isArray(liveRos?.history) && liveRos.history.some((h) => ((h.action || h.status) || '').toLowerCase().includes('hold')))
       ) {
         setHasBeenOnHold(true);
       }
@@ -656,7 +635,7 @@ export default function ReportDetailsModal({
     } finally {
       setHistoryLoading(false);
     }
-  }, [report, currentStatus]);
+  }, [report]);
 
   // Synchronize on mount and subscribe to realtime report updates
   useEffect(() => {
@@ -677,8 +656,9 @@ export default function ReportDetailsModal({
         // Immediate local state update for zero lag
         const newSt = updateData.newStatus || updateData.status;
         if (newSt) {
-          setCurrentStatus(newSt);
-          if (newSt === 'On Hold' || newSt === 'on_hold') {
+          const normSt = normalizeStatusLabel(newSt);
+          setCurrentStatus(normSt);
+          if (normSt === 'On Hold') {
             setHasBeenOnHold(true);
           }
         }
@@ -717,7 +697,18 @@ export default function ReportDetailsModal({
           )
           .on(
             'postgres_changes',
-            { event: 'INSERT', schema: 'public', table: 'report_status_history' },
+            { event: '*', schema: 'public', table: 'reports_of_student' },
+            (payload) => {
+              handleReportUpdateLive({
+                ...payload.new,
+                ...payload.old,
+                eventType: payload.eventType,
+              });
+            }
+          )
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'report_status_history' },
             () => {
               loadFreshReportAndHistory();
             }
@@ -881,7 +872,7 @@ export default function ReportDetailsModal({
         reviewed: nowFormatted,
       };
 
-      setCurrentStatus(nextStatus);
+      setCurrentStatus('Under Review');
       setTimestamps(updatedTimestamps);
 
       try {
@@ -902,8 +893,8 @@ export default function ReportDetailsModal({
 
       broadcastReportStatusUpdate({
         reportId: targetId,
-        newStatus: nextStatus,
-        status: nextStatus,
+        newStatus: 'Under Review',
+        status: 'Under Review',
         timestamps: updatedTimestamps,
         updatedAt: nowIso,
       });
@@ -911,9 +902,9 @@ export default function ReportDetailsModal({
       loadFreshReportAndHistory();
 
       if (onUpdateStatus) {
-        onUpdateStatus(targetId, nextStatus, updatedTimestamps);
+        onUpdateStatus(targetId, 'Under Review', updatedTimestamps);
       }
-    } else if (currentStatus === 'Reviewed') {
+    } else if (currentStatus === 'Reviewed' || currentStatus === 'Under Review') {
       setIsSubmitting(true);
       const nextStatus = 'Under Repair';
       const nowIso = new Date().toISOString();
@@ -1393,60 +1384,33 @@ export default function ReportDetailsModal({
               <span className="student-date-submitted-value">{subDateDisplay}</span>
             </div>
 
-            {/* Row 7: Status History (Only for Reviewed, Under repair, and Resolved states) */}
-            {(studentStatusInfo.phase >= 2 || (statusHistory && statusHistory.length > 0)) && (
-              <div className="student-status-history-section">
-                <h4 className="student-status-history-heading">Status History</h4>
+            {/* Row 7: Status History */}
+            <div className="student-status-history-section">
+              <h4 className="student-status-history-heading">Status History</h4>
 
-                {statusHistory && statusHistory.length > 0 ? (
-                  statusHistory.map((item, idx) => (
-                    <React.Fragment key={`${item.status}-${idx}`}>
-                      <div className="student-history-entry">
-                        <span className="student-history-status-name">{item.status}</span>
-                        <span className="student-history-dot-sep"> — </span>
-                        <span className="student-history-timestamp">{item.timeFormatted}</span>
-                      </div>
-                      {item.remarks && (
-                        <div className="student-history-remarks-line">
-                          Remarks: {item.remarks}
-                        </div>
-                      )}
-                    </React.Fragment>
-                  ))
-                ) : (
-                  <>
-                    {studentStatusInfo.phase === 4 && (
-                      <>
-                        <div className="student-history-entry">
-                          <span className="student-history-status-name">Resolved</span>
-                          <span className="student-history-dot-sep"> — </span>
-                          <span className="student-history-timestamp">{resolvedTime}</span>
-                        </div>
-                        <div className="student-history-remarks-line">
-                          Remarks: {remarksText}
-                        </div>
-                      </>
-                    )}
-
-                    {studentStatusInfo.phase >= 3 && (
-                      <div className="student-history-entry">
-                        <span className="student-history-status-name">Under repair</span>
-                        <span className="student-history-dot-sep"> — </span>
-                        <span className="student-history-timestamp">{repairTime}</span>
+              {statusHistory && statusHistory.length > 0 ? (
+                statusHistory.map((item, idx) => (
+                  <React.Fragment key={`${item.status}-${idx}`}>
+                    <div className="student-history-entry">
+                      <span className="student-history-status-name">{item.status}</span>
+                      <span className="student-history-dot-sep"> — </span>
+                      <span className="student-history-timestamp">{item.timeFormatted}</span>
+                    </div>
+                    {item.remarks && (
+                      <div className="student-history-remarks-line">
+                        Remarks: {item.remarks}
                       </div>
                     )}
-
-                    {studentStatusInfo.phase >= 2 && (
-                      <div className="student-history-entry">
-                        <span className="student-history-status-name">Reviewed</span>
-                        <span className="student-history-dot-sep"> — </span>
-                        <span className="student-history-timestamp">{reviewedTime}</span>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
+                  </React.Fragment>
+                ))
+              ) : (
+                <div className="student-history-entry">
+                  <span className="student-history-status-name">Submitted</span>
+                  <span className="student-history-dot-sep"> — </span>
+                  <span className="student-history-timestamp">{subDateDisplay}</span>
+                </div>
+              )}
+            </div>
 
             {/* Footer Close Button */}
             <div className="student-modal-action-footer">
@@ -1715,59 +1679,28 @@ export default function ReportDetailsModal({
 
           {/* Status History Timestamps List */}
           <div className="report-status-timestamps-block">
-            {/* Resolved Timestamp (Images 2 & 4) */}
-            {currentStatus === 'Resolved' && (
+            {statusHistory && statusHistory.length > 0 ? (
+              statusHistory.map((item, idx) => (
+                <div key={`${item.status}-${idx}`} className="tp-history-entry-wrap">
+                  <div className={`timestamp-row ${item.status === 'On Hold' ? 'row-on-hold' : ''}`}>
+                    <span className="timestamp-label">
+                      {item.status === 'Submitted' ? 'Date Submitted' : item.status}
+                    </span>
+                    <span className="timestamp-value">{item.timeFormatted}</span>
+                  </div>
+                  {item.remarks && (
+                    <div className="tp-history-remarks-subline" style={{ fontSize: '12.5px', color: '#4B5563', marginTop: '2px', paddingLeft: '2px' }}>
+                      Remarks: <span style={{ fontWeight: 500, color: '#111827' }}>{item.remarks}</span>
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
               <div className="timestamp-row">
-                <span className="timestamp-label">Resolved</span>
-                <span className="timestamp-sep" style={{ display: 'none' }}> — </span>
-                <span className="timestamp-value">
-                  {timestamps.resolved || formatCurrentTimestamp()}
-                </span>
+                <span className="timestamp-label">Date Submitted</span>
+                <span className="timestamp-value">{timestamps.submitted || formatCurrentTimestamp()}</span>
               </div>
             )}
-
-            {/* On Hold Timestamp: Bold orange text (#C2410C) */}
-            {/* Only displayed if report was placed on hold (Image 1 & Image 2) */}
-            {hasBeenOnHold && (currentStatus === 'On Hold' || currentStatus === 'Resolved') && (
-              <div className="timestamp-row row-on-hold">
-                <span className="timestamp-label">On Hold</span>
-                <span className="timestamp-sep" style={{ display: 'none' }}> — </span>
-                <span className="timestamp-value">
-                  {timestamps.onHold || formatCurrentTimestamp()}
-                </span>
-              </div>
-            )}
-
-            {/* Under Repair Timestamp */}
-            {(currentStatus === 'Under Repair' || currentStatus === 'On Hold' || currentStatus === 'Resolved') && (
-              <div className="timestamp-row">
-                <span className="timestamp-label">Under Repair</span>
-                <span className="timestamp-sep" style={{ display: 'none' }}> — </span>
-                <span className="timestamp-value">
-                  {timestamps.underRepair || formatCurrentTimestamp()}
-                </span>
-              </div>
-            )}
-
-            {/* Reviewed Timestamp */}
-            {(currentStatus === 'Reviewed' || currentStatus === 'Under Repair' || currentStatus === 'On Hold' || currentStatus === 'Resolved') && (
-              <div className="timestamp-row">
-                <span className="timestamp-label">Reviewed</span>
-                <span className="timestamp-sep" style={{ display: 'none' }}> — </span>
-                <span className="timestamp-value">
-                  {timestamps.reviewed || formatCurrentTimestamp()}
-                </span>
-              </div>
-            )}
-
-            {/* Date Submitted Timestamp (Always present across all views) */}
-            <div className="timestamp-row">
-              <span className="timestamp-label">Date Submitted</span>
-              <span className="timestamp-sep" style={{ display: 'none' }}> — </span>
-              <span className="timestamp-value">
-                {timestamps.submitted || formatCurrentTimestamp()}
-              </span>
-            </div>
           </div>
         </div>
 
@@ -1799,7 +1732,7 @@ export default function ReportDetailsModal({
             )}
 
             {/* Stage 2: Start Repair */}
-            {currentStatus === 'Reviewed' && (
+            {(currentStatus === 'Reviewed' || currentStatus === 'Under Review') && (
               <button
                 type="button"
                 className="btn-modal-action-white"

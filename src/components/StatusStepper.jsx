@@ -31,8 +31,8 @@ export default function StatusStepper({
 
   const steps = [
     { index: 1, label: 'Submitted' },
-    { index: 2, label: 'Reviewed' },
-    { index: 3, label: 'Under repair' },
+    { index: 2, label: 'Under Review' },
+    { index: 3, label: 'Under Repair' },
     { index: 4, label: 'Resolved' },
   ];
 

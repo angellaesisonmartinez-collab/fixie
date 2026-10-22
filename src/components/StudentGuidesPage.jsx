@@ -15,7 +15,12 @@ import {
   subscribeToGuideUpdates,
   registerVisibilityAndOnlineSync,
 } from '../lib/realtimeSyncService';
-import { formatGuideDateDisplay, getGuideSortTime } from '../lib/guideDateUtils';
+import {
+  formatGuideDateDisplay,
+  getGuideSortTime,
+  getGuideSnippet,
+  getSanitizedGuideHtml,
+} from '../lib/guideDateUtils';
 import { getVisiblePages, getDisplayedCount } from '../lib/paginationUtils';
 import Banner from './Banner';
 import { defaultGuides } from '../lib/defaultGuides';
@@ -328,11 +333,11 @@ export default function StudentGuidesPage({ studentProfile, currentUser }) {
       return 'NEW';
     }
 
-    // If the guide has been updated after the student's last view:
+    // If the guide has been updated after the student's last view (by more than a minute):
     const isUpdatedAfterView =
       updateTime > 0 &&
       createTime > 0 &&
-      (updateTime - createTime > 5000) &&
+      (updateTime - createTime > 60000) &&
       lastViewed < updateTime;
 
     if (isUpdatedAfterView) {
@@ -379,28 +384,9 @@ export default function StudentGuidesPage({ studentProfile, currentUser }) {
     return formatGuideDateDisplay(guide);
   };
 
-  // Get clean single-line description snippet preview
+  // Get clean single-line description snippet preview using shared helper
   const getGuidePreview = (guide) => {
-    if (guide.preview) return guide.preview;
-    if (guide.leadText) return guide.leadText;
-    if (!guide.content) return '';
-
-    // Strip HTML tags
-    let text = guide.content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-
-    // Cut off before numbered lists or step markers like "1. ", "1) ", "Step 1"
-    const listIndex = text.search(/(?:^|\s)(?:1[.)]\s+|Step\s+1[:.-]?\s+)/i);
-    if (listIndex > 0) {
-      text = text.substring(0, listIndex).trim();
-    }
-
-    // Remove trailing colons, dashes or trailing spaces
-    text = text.replace(/[:\-–—\s]+$/, '');
-    if (!text) {
-      text = guide.content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-    }
-
-    return text.length > 120 ? text.substring(0, 120) + '...' : text;
+    return getGuideSnippet(guide);
   };
 
   // Toggle Bookmark (persisted to saved_guides table & localStorage)
@@ -1009,36 +995,12 @@ export default function StudentGuidesPage({ studentProfile, currentUser }) {
             </div>
 
             {/* White Modal Body */}
+            {/* White Modal Body with sanitized formatted HTML */}
             <div className="guide-modal-body">
-              {selectedGuideModal.content ? (
-                /<[a-z][\s\S]*>/i.test(selectedGuideModal.content) ? (
-                  <div
-                    className="student-guide-rich-content"
-                    dangerouslySetInnerHTML={{ __html: selectedGuideModal.content }}
-                  />
-                ) : (
-                  <div className="student-guide-rich-content">
-                    <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>
-                      {selectedGuideModal.content}
-                    </p>
-                  </div>
-                )
-              ) : (
-                <>
-                  {/* Bold Lead Text */}
-                  <p className="guide-modal-lead">{selectedGuideModal.leadText}</p>
-
-                  {/* Bulleted List */}
-                  <ul className="guide-modal-bullet-list">
-                    {selectedGuideModal.bulletPoints &&
-                      selectedGuideModal.bulletPoints.map((bullet, idx) => (
-                        <li key={idx} className="guide-modal-bullet-item">
-                          {bullet}
-                        </li>
-                      ))}
-                  </ul>
-                </>
-              )}
+              <div
+                className="student-guide-rich-content"
+                dangerouslySetInnerHTML={{ __html: getSanitizedGuideHtml(selectedGuideModal) }}
+              />
             </div>
 
             {/* Modal Footer with Dark Forest Close Button */}

@@ -191,10 +191,46 @@ export function getGlobalRealtimeChannel() {
             remarks: item.remarks,
           });
         })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'phia-reports' }, (e) => {
+          const item = e.new || e.old || {};
+          notifyReportListeners({
+            ...item,
+            eventType: e.eventType,
+            new: e.new,
+            old: e.old,
+            table: 'phia-reports',
+            id: item.id || item.report_id,
+            report_id: item.report_id || item.id,
+            status: item.status,
+            remarks: item.remarks,
+          });
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'jennelyn-reports' }, (e) => {
+          const item = e.new || e.old || {};
+          notifyReportListeners({
+            ...item,
+            eventType: e.eventType,
+            new: e.new,
+            old: e.old,
+            table: 'jennelyn-reports',
+            id: item.id || item.report_id,
+            report_id: item.report_id || item.id,
+            status: item.status,
+            remarks: item.remarks,
+          });
+        })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'report_status_history' }, (e) => {
-          if (e?.new) {
+          const item = e?.new || e?.old;
+          if (item) {
             notifyReportListeners({
-              ...e.new,
+              ...item,
+              canonicalUuid: item.report_id,
+              reportId: item.report_id,
+              report_id: item.report_id,
+              status: item.status,
+              newStatus: item.status,
+              remarks: item.remarks,
+              newRemarks: item.remarks,
               eventType: e.eventType,
               new: e.new,
               isStatusHistoryChange: true,
