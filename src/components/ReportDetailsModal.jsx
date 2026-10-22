@@ -54,9 +54,14 @@ export function getReportUuid(rep) {
   return null;
 }
 
+// Module-level caches for instantaneous modal rendering and zero network round-trip overhead
+export const reportHistoryCache = new Map();
+export const canonicalUuidCache = new Map();
+
 /**
  * Resolves the canonical reports.id UUID and human report_id (e.g. 'LR-24')
  * ensuring that queries and inserts to report_status_history always use the true reports.id foreign key.
+ * Resolves instantly without network when candidate UUID or cached mapping is available.
  */
 export async function getCanonicalReportInfo(rep) {
   if (!rep) return { canonicalUuid: null, reportCode: null };
@@ -68,7 +73,24 @@ export async function getCanonicalReportInfo(rep) {
     ? rep.report_id
     : (!isUuid(rep.id) ? rep.id : null);
 
-  // 1. Try human report_id code first against reports table
+  // Fast check 1: Candidate UUID on the report object itself
+  const candidates = [rep.canonical_uuid, rep.canonicalUuid, rep.id, rep.report_uuid, rep.uuid].filter(isUuid);
+  if (candidates.length > 0) {
+    const canonicalUuid = candidates[0];
+    if (humanCode) canonicalUuidCache.set(humanCode, canonicalUuid);
+    canonicalUuidCache.set(canonicalUuid, canonicalUuid);
+    return { canonicalUuid, reportCode: humanCode };
+  }
+
+  // Fast check 2: Check in-memory cache
+  if (humanCode && canonicalUuidCache.has(humanCode)) {
+    return { canonicalUuid: canonicalUuidCache.get(humanCode), reportCode: humanCode };
+  }
+  if (rep.id && canonicalUuidCache.has(rep.id)) {
+    return { canonicalUuid: canonicalUuidCache.get(rep.id), reportCode: humanCode };
+  }
+
+  // 3. Fallback: Query reports table by human code (once, then cache)
   if (humanCode) {
     try {
       const { data } = await supabase
@@ -77,48 +99,29 @@ export async function getCanonicalReportInfo(rep) {
         .eq('report_id', humanCode)
         .maybeSingle();
       if (data?.id) {
-        return { canonicalUuid: data.id, reportCode: data.report_id };
+        canonicalUuidCache.set(humanCode, data.id);
+        canonicalUuidCache.set(data.id, data.id);
+        return { canonicalUuid: data.id, reportCode: data.report_id || humanCode };
       }
     } catch {}
   }
 
-  // 2. Check candidate UUIDs against reports table directly
-  const candidates = [rep.id, rep.report_uuid, rep.uuid, rep.canonical_uuid, rep.canonicalUuid].filter(isUuid);
-  for (const uid of candidates) {
-    try {
-      const { data: repRow } = await supabase
-        .from('reports')
-        .select('id, report_id')
-        .eq('id', uid)
-        .maybeSingle();
-      if (repRow?.id) {
-        return { canonicalUuid: repRow.id, reportCode: repRow.report_id };
-      }
-    } catch {}
-  }
-
-  // 3. Check candidate UUIDs against reports_of_student to find report_id, then resolve reports.id
-  for (const uid of candidates) {
+  // 4. Fallback: Check reports_of_student to find report_id, then resolve reports.id
+  if (humanCode) {
     try {
       const { data: rosRow } = await supabase
         .from('reports_of_student')
         .select('id, report_id')
-        .eq('id', uid)
+        .eq('report_id', humanCode)
         .maybeSingle();
-      if (rosRow?.report_id) {
-        const { data: matchedRep } = await supabase
-          .from('reports')
-          .select('id, report_id')
-          .eq('report_id', rosRow.report_id)
-          .maybeSingle();
-        if (matchedRep?.id) {
-          return { canonicalUuid: matchedRep.id, reportCode: matchedRep.report_id };
-        }
+      if (rosRow?.id && isUuid(rosRow.id)) {
+        canonicalUuidCache.set(humanCode, rosRow.id);
+        return { canonicalUuid: rosRow.id, reportCode: humanCode };
       }
     } catch {}
   }
 
-  return { canonicalUuid: candidates[0] || null, reportCode: humanCode };
+  return { canonicalUuid: null, reportCode: humanCode };
 }
 
 export function normalizeStatusLabel(st) {
@@ -378,6 +381,27 @@ async function recordStatusHistory(rep, status, remarks = null, nowIso = new Dat
       console.warn('Note updating reports_of_student history:', histErr);
     }
   }
+
+  // Also update reportHistoryCache for instant cache hits
+  try {
+    const existingCached = reportHistoryCache.get(canonicalUuid) || reportHistoryCache.get(reportCode) || [];
+    const formattedTime = formatManilaHistoryTime(nowIso);
+    const updatedCached = [...existingCached];
+    const lastCached = updatedCached[updatedCached.length - 1];
+    if (lastCached && lastCached.status === normalizeStatusLabel(status)) {
+      if (remarks) lastCached.remarks = remarks;
+    } else {
+      updatedCached.push({
+        status: normalizeStatusLabel(status),
+        remarks: remarks || null,
+        timeFormatted: formattedTime,
+        createdAt: nowIso,
+      });
+    }
+    if (canonicalUuid) reportHistoryCache.set(canonicalUuid, updatedCached);
+    if (reportCode) reportHistoryCache.set(reportCode, updatedCached);
+    if (rep?.id) reportHistoryCache.set(rep.id, updatedCached);
+  } catch {}
 }
 
 function formatHistoryTime(timeInput, fallbackTime) {
@@ -500,6 +524,104 @@ function getInitialTimestamps(report) {
   };
 }
 
+/**
+ * Returns instant status history from cache, report.history, or baseline synthesis.
+ * Ensures status history is visible with ZERO blank loading delay on first render.
+ */
+export function getInitialStatusHistory(report) {
+  if (!report) return [];
+  const targetId = report.report_id || report.id;
+  const isUuid = (val) =>
+    typeof val === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+  if (targetId && reportHistoryCache.has(targetId)) {
+    return reportHistoryCache.get(targetId);
+  }
+  const curUuid = getReportUuid(report);
+  if (curUuid && reportHistoryCache.has(curUuid)) {
+    return reportHistoryCache.get(curUuid);
+  }
+
+  // If report has history array (e.g. from student report or reports_of_student)
+  if (Array.isArray(report.history) && report.history.length > 0) {
+    const unified = buildUnifiedHistoryEntries({
+      studentHistoryArray: report.history,
+      currentReport: report,
+      currentStatus: report.status,
+      currentRemarks: report.remarks,
+    });
+    if (unified.entries && unified.entries.length > 0) {
+      if (targetId) reportHistoryCache.set(targetId, unified.entries);
+      if (curUuid) reportHistoryCache.set(curUuid, unified.entries);
+      return unified.entries;
+    }
+  }
+
+  // Synthesize immediate baseline history matching report's current status and timestamps
+  const timestamps = getInitialTimestamps(report);
+  const status = normalizeStatusLabel(report.status || 'Submitted');
+  const entries = [];
+
+  const subTime = timestamps.submitted || formatManilaHistoryTime(report.created_at || new Date());
+  entries.push({
+    status: 'Submitted',
+    remarks: null,
+    timeFormatted: subTime,
+    createdAt: report.created_at || new Date().toISOString(),
+  });
+
+  const revTime = timestamps.reviewed;
+  if (revTime && status !== 'Submitted') {
+    entries.push({
+      status: 'Reviewed',
+      remarks: null,
+      timeFormatted: revTime,
+      createdAt: report.updated_at || report.created_at || new Date().toISOString(),
+    });
+  }
+
+  const repTime = timestamps.underRepair;
+  if (repTime && (status === 'Under Repair' || status === 'On Hold' || status === 'Resolved')) {
+    entries.push({
+      status: 'Under Repair',
+      remarks: null,
+      timeFormatted: repTime,
+      createdAt: report.updated_at || report.created_at || new Date().toISOString(),
+    });
+  }
+
+  const holdTime = timestamps.onHold;
+  const wasOnHold = status === 'On Hold' || report.has_been_on_hold || report.on_hold_at || Boolean(holdTime);
+  if (holdTime && wasOnHold && (status === 'On Hold' || status === 'Resolved')) {
+    entries.push({
+      status: 'On Hold',
+      remarks: report.remarks || null,
+      timeFormatted: holdTime,
+      createdAt: report.on_hold_at || report.updated_at || new Date().toISOString(),
+    });
+  }
+
+  const resTime = timestamps.resolved;
+  if (resTime && status === 'Resolved') {
+    entries.push({
+      status: 'Resolved',
+      remarks: report.remarks || null,
+      timeFormatted: resTime,
+      createdAt: report.updated_at || new Date().toISOString(),
+    });
+  }
+
+  if (targetId && entries.length > 0) {
+    reportHistoryCache.set(targetId, entries);
+  }
+  if (curUuid && entries.length > 0) {
+    reportHistoryCache.set(curUuid, entries);
+  }
+
+  return entries;
+}
+
 export default function ReportDetailsModal({
   report,
   onClose,
@@ -548,7 +670,7 @@ export default function ReportDetailsModal({
   const [imageError, setImageError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timestamps, setTimestamps] = useState(() => getInitialTimestamps(report));
-  const [statusHistory, setStatusHistory] = useState([]);
+  const [statusHistory, setStatusHistory] = useState(() => getInitialStatusHistory(report));
   const [historyLoading, setHistoryLoading] = useState(false);
 
   // Resolution prompt dialog states (when resolving from On Hold)
@@ -562,50 +684,46 @@ export default function ReportDetailsModal({
     reportRef.current = report;
   }, [report]);
 
+  const currentStatusRef = useRef(currentStatus);
+  useEffect(() => {
+    currentStatusRef.current = currentStatus;
+  }, [currentStatus]);
+
   const isFetchingRef = useRef(false);
 
-  // Load fresh report details and audit history from Supabase
+  // Load fresh report details and audit history from Supabase with parallel queries
   const loadFreshReportAndHistory = useCallback(async (isInitial = false) => {
     const curReport = reportRef.current;
     if (!curReport) return;
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
-    if (isInitial) {
-      setHistoryLoading(true);
-    }
     try {
       const { canonicalUuid, reportCode } = await getCanonicalReportInfo(curReport);
 
-      let liveReport = null;
-      if (canonicalUuid) {
-        const { data } = await supabase.from('reports').select('*').eq('id', canonicalUuid).maybeSingle();
-        if (data) liveReport = data;
-      }
-      if (!liveReport && reportCode) {
-        const { data } = await supabase.from('reports').select('*').eq('report_id', reportCode).maybeSingle();
-        if (data) liveReport = data;
-      }
+      // Fast parallel queries via Promise.all
+      const historyPromise = canonicalUuid
+        ? supabase
+            .from('report_status_history')
+            .select('id, status, remarks, created_at')
+            .eq('report_id', canonicalUuid)
+            .order('created_at', { ascending: true })
+        : Promise.resolve({ data: [] });
 
-      let liveRos = null;
-      if (reportCode) {
-        const { data } = await supabase.from('reports_of_student').select('*').eq('report_id', reportCode).maybeSingle();
-        if (data) liveRos = data;
-      } else if (canonicalUuid) {
-        const { data } = await supabase.from('reports_of_student').select('*').eq('id', canonicalUuid).maybeSingle();
-        if (data) liveRos = data;
-      }
+      const liveReportPromise = canonicalUuid
+        ? supabase.from('reports').select('*').eq('id', canonicalUuid).maybeSingle()
+        : (reportCode ? supabase.from('reports').select('*').eq('report_id', reportCode).maybeSingle() : Promise.resolve({ data: null }));
 
-      let historyRows = [];
-      if (canonicalUuid) {
-        const { data: rshData } = await supabase
-          .from('report_status_history')
-          .select('id, status, remarks, created_at')
-          .eq('report_id', canonicalUuid)
-          .order('created_at', { ascending: true });
-        if (rshData) historyRows = rshData;
-      }
+      const liveRosPromise = reportCode
+        ? supabase.from('reports_of_student').select('*').eq('report_id', reportCode).maybeSingle()
+        : (canonicalUuid ? supabase.from('reports_of_student').select('*').eq('id', canonicalUuid).maybeSingle() : Promise.resolve({ data: null }));
 
-      const rawActive = liveReport?.status || liveRos?.status || curReport?.status || currentStatus;
+      const [rshRes, repRes, rosRes] = await Promise.all([historyPromise, liveReportPromise, liveRosPromise]);
+
+      const historyRows = rshRes.data || [];
+      const liveReport = repRes.data || null;
+      const liveRos = rosRes.data || null;
+
+      const rawActive = liveReport?.status || liveRos?.status || curReport?.status || currentStatusRef.current;
       const activeStatus = normalizeStatusLabel(rawActive);
       const activeRemarks =
         liveReport?.remarks !== undefined
@@ -623,12 +741,16 @@ export default function ReportDetailsModal({
       });
 
       setStatusHistory(unified.entries);
+      if (curReport.id) reportHistoryCache.set(curReport.id, unified.entries);
+      if (curReport.report_id) reportHistoryCache.set(curReport.report_id, unified.entries);
+      if (canonicalUuid) reportHistoryCache.set(canonicalUuid, unified.entries);
+
       setTimestamps((prev) => ({
         ...prev,
         ...unified.timestamps,
       }));
 
-      if (activeStatus && activeStatus !== currentStatus) {
+      if (activeStatus && activeStatus !== currentStatusRef.current) {
         setCurrentStatus(activeStatus);
       }
       if (activeRemarks !== undefined && activeRemarks !== null) {
@@ -648,12 +770,9 @@ export default function ReportDetailsModal({
     } catch (err) {
       console.warn('Error loading fresh report and status history:', err);
     } finally {
-      if (isInitial) {
-        setHistoryLoading(false);
-      }
       isFetchingRef.current = false;
     }
-  }, [currentStatus]);
+  }, []);
 
   // Synchronize on mount and subscribe to realtime report updates (anchored to report ID)
   const reportKeyId = report?.report_id || report?.id;
@@ -749,6 +868,7 @@ export default function ReportDetailsModal({
       setEnlargedImage(null);
       setImageError(false);
       setTimestamps(getInitialTimestamps(report));
+      setStatusHistory(getInitialStatusHistory(report));
       loadFreshReportAndHistory();
     }
   }, [report, loadFreshReportAndHistory]);
@@ -1366,24 +1486,29 @@ export default function ReportDetailsModal({
               <span className="student-date-submitted-value">{subDateDisplay}</span>
             </div>
 
+            {/* Remarks on top of status for Student View */}
+            {(remarks || report.remarks || resolvedHistoryItem?.remarksText) && (
+              <div className="student-remarks-top-block" style={{ padding: '6px 0 10px 0' }}>
+                <span className="student-field-label" style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#092618', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                  REMARKS
+                </span>
+                <span className="student-field-value" style={{ fontSize: '13px', fontWeight: 600, color: '#0A3420' }}>
+                  {remarks || report.remarks || resolvedHistoryItem?.remarksText}
+                </span>
+              </div>
+            )}
+
             {/* Row 7: Status History */}
             <div className="student-status-history-section">
               <h4 className="student-status-history-heading">Status History</h4>
 
               {statusHistory && statusHistory.length > 0 ? (
                 statusHistory.map((item, idx) => (
-                  <React.Fragment key={`${item.status}-${idx}`}>
-                    <div className="student-history-entry">
-                      <span className="student-history-status-name">{item.status}</span>
-                      <span className="student-history-dot-sep"> — </span>
-                      <span className="student-history-timestamp">{item.timeFormatted}</span>
-                    </div>
-                    {item.remarks && (
-                      <div className="student-history-remarks-line">
-                        Remarks: {item.remarks}
-                      </div>
-                    )}
-                  </React.Fragment>
+                  <div key={`${item.status}-${idx}`} className="student-history-entry">
+                    <span className="student-history-status-name">{item.status}</span>
+                    <span className="student-history-dot-sep"> — </span>
+                    <span className="student-history-timestamp">{item.timeFormatted}</span>
+                  </div>
                 ))
               ) : (
                 <div className="student-history-entry">
@@ -1659,6 +1784,13 @@ export default function ReportDetailsModal({
             </div>
           )}
 
+          {/* Fallback remarks on top of status for any report with remarks */}
+          {currentStatus !== 'Under Repair' && currentStatus !== 'On Hold' && currentStatus !== 'Resolved' && (remarks || report.remarks) && (
+            <div className="report-resolved-remarks-line">
+              Remarks: {remarks || report.remarks}
+            </div>
+          )}
+
           {/* Status History Timestamps List */}
           <div className="report-status-timestamps-block">
             {statusHistory && statusHistory.length > 0 ? (
@@ -1670,11 +1802,6 @@ export default function ReportDetailsModal({
                     </span>
                     <span className="timestamp-value">{item.timeFormatted}</span>
                   </div>
-                  {item.remarks && (
-                    <div className="tp-history-remarks-subline" style={{ fontSize: '12.5px', color: '#4B5563', marginTop: '2px', paddingLeft: '2px' }}>
-                      Remarks: <span style={{ fontWeight: 500, color: '#111827' }}>{item.remarks}</span>
-                    </div>
-                  )}
                 </div>
               ))
             ) : (

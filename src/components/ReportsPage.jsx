@@ -15,7 +15,7 @@ import {
 import { supabase, safeRealtimeChannel, safeRemoveChannel } from '../lib/supabase';
 import { getVisiblePages, getDisplayedCount } from '../lib/paginationUtils';
 import Banner from './Banner';
-import ReportDetailsModal from './ReportDetailsModal';
+import ReportDetailsModal, { reportHistoryCache, canonicalUuidCache, buildUnifiedHistoryEntries } from './ReportDetailsModal';
 import StudentSubmittedReportsPage from './StudentSubmittedReportsPage';
 import { formatStudentName, formatYearBlock } from '../lib/studentFormatUtils';
 import { parseReportDateTime } from '../lib/reportDateUtils';
@@ -781,11 +781,30 @@ function TechnicalPersonnelReportsPage({
   const fetchLiveReports = async (showSpinner = false) => {
     if (showSpinner) setIsRefreshing(true);
     try {
-      const { data, error } = await supabase
-        .from('reports')
-        .select('*, students(*)')
-        .order('created_at', { ascending: false })
-        .order('report_id', { ascending: false });
+      const [reportsRes, historyRes] = await Promise.all([
+        supabase
+          .from('reports')
+          .select('*, students(*)')
+          .order('created_at', { ascending: false })
+          .order('report_id', { ascending: false }),
+        supabase
+          .from('report_status_history')
+          .select('id, report_id, status, remarks, created_at')
+          .order('created_at', { ascending: true }),
+      ]);
+
+      const { data, error } = reportsRes;
+      const historyRows = historyRes.data || [];
+
+      // Pre-group history rows by report_id (UUID)
+      const historyByReportId = new Map();
+      for (const row of historyRows) {
+        if (!row?.report_id) continue;
+        if (!historyByReportId.has(row.report_id)) {
+          historyByReportId.set(row.report_id, []);
+        }
+        historyByReportId.get(row.report_id).push(row);
+      }
 
       if (error) {
         console.warn('Could not fetch from Supabase reports, using current seed:', error.message);
@@ -793,6 +812,10 @@ function TechnicalPersonnelReportsPage({
         const mapped = data.map((r) => {
           const reportId = r.report_id || `LR-${r.id.slice(0, 4)}`;
           const st = resolveAuthenticReportStudent(reportId, r.students);
+
+          // Populate canonicalUuidCache for instant lookup
+          canonicalUuidCache.set(r.id, r.id);
+          if (r.report_id) canonicalUuidCache.set(r.report_id, r.id);
 
           // Student name and year block formatting consistently
           const studentName = formatStudentName(st) || 'Student Reporter';
@@ -830,8 +853,23 @@ function TechnicalPersonnelReportsPage({
             statusClass = 'status-on-hold';
           }
 
+          // Pre-populate reportHistoryCache for instant modal opening with 0ms delay
+          const reportSpecificHistory = historyByReportId.get(r.id) || [];
+          const unified = buildUnifiedHistoryEntries({
+            historyRows: reportSpecificHistory,
+            currentReport: r,
+            currentStatus: r.status,
+            currentRemarks: r.remarks,
+          });
+          if (unified.entries && unified.entries.length > 0) {
+            reportHistoryCache.set(r.id, unified.entries);
+            if (r.report_id) reportHistoryCache.set(r.report_id, unified.entries);
+          }
+
           return {
             id: r.id,
+            canonical_uuid: r.id,
+            canonicalUuid: r.id,
             report_id: r.report_id || `LR-${r.id.slice(0, 4)}`,
             unit_number: r.unit_number || 'PC-#01',
             unitNumber: r.unit_number || 'PC-#01',

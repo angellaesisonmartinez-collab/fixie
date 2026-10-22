@@ -27,6 +27,7 @@ import StudentAccountSetup from './StudentAccountSetup';
 import AdminDashboard from './AdminDashboard';
 import StudentDashboard from './StudentDashboard';
 import { supabase } from '../lib/supabase';
+import { formatStudentEmail } from '../lib/studentFormatUtils';
 import { fetchStudentReportsAndStats } from '../lib/studentReportsService';
 import { fetchAdminDashboardData, clearAdminDashboardCache } from '../lib/adminDashboardService';
 
@@ -153,20 +154,58 @@ export default function LoginPage() {
       } else {
         // Fast-path student lookup: match by student_id, email, full name, or email prefix
         try {
-          let orQuery = `student_id.eq.${trimmedIdentifier},email.eq.${trimmedIdentifier},name.ilike.${trimmedIdentifier}`;
-          if (!trimmedIdentifier.includes('@') && !/^\d{2}-\d{4}-\d{3}$/.test(trimmedIdentifier)) {
-            orQuery += `,email.ilike.${trimmedIdentifier}@%`;
+          if (/^\d{2}-\d{4}-\d{3}$/.test(trimmedIdentifier)) {
+            // Exact match uniquely by student_id
+            const stPromise = supabase
+              .from('students')
+              .select('*')
+              .eq('student_id', trimmedIdentifier)
+              .maybeSingle();
+            const stTimeout = new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('TIMEOUT')), 2500)
+            );
+            const { data: stData } = await Promise.race([stPromise, stTimeout]);
+            studentRecord = stData;
+          } else if (trimmedIdentifier.includes('@')) {
+            // Email lookup - could match clean email or plus-subaddressed email in database
+            const [userPart, domainPart] = trimmedIdentifier.split('@');
+            const stPromise = supabase
+              .from('students')
+              .select('*')
+              .or(`email.eq.${trimmedIdentifier},email.ilike.${userPart}+%@${domainPart}`)
+              .limit(10);
+            const stTimeout = new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('TIMEOUT')), 2500)
+            );
+            const { data: candidates } = await Promise.race([stPromise, stTimeout]);
+            if (candidates && candidates.length > 0) {
+              if (candidates.length === 1) {
+                studentRecord = candidates[0];
+              } else {
+                // Multiple accounts share this email: find the one whose password matches
+                const matched = candidates.find((c) => {
+                  try {
+                    return c.password_hash && bcrypt.compareSync(password, c.password_hash);
+                  } catch {
+                    return false;
+                  }
+                });
+                studentRecord = matched || candidates[0];
+              }
+            }
+          } else {
+            // Match by name or student_id
+            const stPromise = supabase
+              .from('students')
+              .select('*')
+              .or(`student_id.eq.${trimmedIdentifier},name.ilike.${trimmedIdentifier},email.ilike.${trimmedIdentifier}@%`)
+              .maybeSingle();
+            const stTimeout = new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('TIMEOUT')), 2500)
+            );
+            const { data: stData } = await Promise.race([stPromise, stTimeout]);
+            studentRecord = stData;
           }
-          const stPromise = supabase
-            .from('students')
-            .select('*')
-            .or(orQuery)
-            .maybeSingle();
-          const stTimeout = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('TIMEOUT')), 2500)
-          );
-          const { data: stData } = await Promise.race([stPromise, stTimeout]);
-          studentRecord = stData;
         } catch (stErr) {
           console.warn('Student quick-lookup note:', stErr?.message || stErr);
         }
@@ -248,7 +287,7 @@ export default function LoginPage() {
           id: studentRecord.id,
           username: studentRecord.student_id,
           student_id: studentRecord.student_id,
-          email: studentRecord.email,
+          email: formatStudentEmail(studentRecord.email),
           full_name: studentRecord.name || `${studentRecord.first_name || ''} ${studentRecord.last_name || ''}`.trim(),
           name: studentRecord.name || `${studentRecord.first_name || ''} ${studentRecord.last_name || ''}`.trim(),
           first_name: studentRecord.first_name,

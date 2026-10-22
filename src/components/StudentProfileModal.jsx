@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Lock } from 'lucide-react';
-import { formatYearBlock } from '../lib/studentFormatUtils';
+import { formatYearBlock, formatStudentEmail } from '../lib/studentFormatUtils';
 import './StudentProfileModal.css';
 
 import TechnicalAccountModal from './TechnicalAccountModal';
@@ -55,7 +55,7 @@ export default function StudentProfileModal({
   const lastName = studentData?.lastName ?? (studentData?.fullName ? studentData.fullName.split(' ').slice(1).join(' ') : 'Martinez');
   const yearBlock = formatYearBlock(studentData?.yearBlock) || studentData?.yearBlock || '3rd year, BLK 2';
   const studentId = studentData?.studentId || studentData?.student_id || '24-0041-147';
-  const email = studentData?.email || 'martinezangellaewup@gmail.com';
+  const email = formatStudentEmail(studentData?.email) || 'martinezangellaewup@gmail.com';
 
   // Email last updated timestamp (Image 2)
   const lastUpdated = isUpdatedPreview

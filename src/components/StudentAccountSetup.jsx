@@ -12,8 +12,10 @@ import Header from './Header';
 import Footer from './Footer';
 import PasswordUpdatedCard from './PasswordUpdatedCard';
 import { supabase } from '../lib/supabase';
-import { formatStudentName, formatYearBlock } from '../lib/studentFormatUtils';
+import { formatStudentName, formatYearBlock, formatStudentEmail } from '../lib/studentFormatUtils';
 import bcrypt from 'bcryptjs';
+
+const isUuid = (val) => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
 
 export default function StudentAccountSetup({
   currentUser,
@@ -80,11 +82,15 @@ export default function StudentAccountSetup({
 
       try {
         let query = supabase.from('students').select('*');
-        if (studentIdToMatch && studentEmailToMatch) {
-          query = query.or(`student_id.eq.${studentIdToMatch},email.eq.${studentEmailToMatch},id.eq.${studentIdToMatch}`);
+        if (userProfile?.id && isUuid(userProfile.id)) {
+          query = query.eq('id', userProfile.id);
         } else if (studentIdToMatch) {
-          query = query.or(`student_id.eq.${studentIdToMatch},id.eq.${studentIdToMatch}`);
-        } else {
+          if (isUuid(studentIdToMatch)) {
+            query = query.eq('id', studentIdToMatch);
+          } else {
+            query = query.eq('student_id', studentIdToMatch);
+          }
+        } else if (studentEmailToMatch) {
           query = query.eq('email', studentEmailToMatch);
         }
         const { data: stData } = await query.maybeSingle();
@@ -96,7 +102,7 @@ export default function StudentAccountSetup({
             username: stData.student_id,
             full_name: stData.name,
             name: stData.name,
-            email: stData.email,
+            email: formatStudentEmail(stData.email),
             year_block: stData.year_block,
             role: 'student',
           }));
@@ -189,10 +195,14 @@ export default function StudentAccountSetup({
               updated_at: new Date().toISOString(),
             });
 
-          if (studentIdToMatch && studentEmailToMatch) {
-            query = query.or(`student_id.eq.${studentIdToMatch},email.eq.${studentEmailToMatch}`);
+          if (userProfile?.id && isUuid(userProfile.id)) {
+            query = query.eq('id', userProfile.id);
           } else if (studentIdToMatch) {
-            query = query.eq('student_id', studentIdToMatch);
+            if (isUuid(studentIdToMatch)) {
+              query = query.eq('id', studentIdToMatch);
+            } else {
+              query = query.eq('student_id', studentIdToMatch);
+            }
           } else {
             query = query.eq('email', studentEmailToMatch);
           }

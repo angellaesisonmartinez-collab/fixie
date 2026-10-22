@@ -27,7 +27,7 @@ import {
 } from '../lib/realtimeSyncService';
 import { sendStudentCredentialsEmail, generateDefaultStudentPassword } from '../lib/emailService';
 import { getVisiblePages, getDisplayedCount } from '../lib/paginationUtils';
-import { formatStudentName, formatYearBlock } from '../lib/studentFormatUtils';
+import { formatStudentName, formatYearBlock, formatStudentEmail } from '../lib/studentFormatUtils';
 import bcrypt from 'bcryptjs';
 import Banner from './Banner';
 import fixieMascotSuccess from '../assets/fixie-mascot-success.png';
@@ -460,8 +460,10 @@ export default function StudentsPage() {
           const fullName = formatStudentName(st) || st.name || `${st.first_name || ''} ${st.last_name || ''}`.trim();
           const yearBlock = formatYearBlock(st.year_block);
           const normStatus = st.status === 'active' ? 'active' : 'deactivated';
+          const cleanEmail = formatStudentEmail(st.email);
           return {
             ...st,
+            email: cleanEmail,
             name: fullName,
             year_block: yearBlock,
             date_registered: st.date_registered || (st.created_at ? st.created_at.split('T')[0] : '2026-09-01'),
@@ -512,6 +514,7 @@ export default function StudentsPage() {
         const normStatus = raw.status === 'active' ? 'active' : 'deactivated';
         const newSt = {
           ...raw,
+          email: formatStudentEmail(raw.email),
           name: fullName,
           year_block: yearBlock,
           date_registered: raw.date_registered || (raw.created_at ? raw.created_at.split('T')[0] : '2026-09-01'),
@@ -535,7 +538,7 @@ export default function StudentsPage() {
                 ...s,
                 ...payload,
                 status: normStatus,
-                email: payload.email || s.email,
+                email: formatStudentEmail(payload.email || s.email),
                 year_block: payload.year_block ? formatYearBlock(payload.year_block) : s.year_block,
               };
             }
@@ -711,14 +714,47 @@ export default function StudentsPage() {
     };
 
     try {
-      // 1. Insert student record into Supabase
-      const { data: insertedData, error: dbError } = await supabase
+      // 1. Insert student record into Supabase (with automatic duplicate-email fallback)
+      let insertedData = null;
+      let recordToInsert = { ...newStudent };
+
+      let { data: insData, error: dbError } = await supabase
         .from('students')
-        .insert([newStudent])
+        .insert([recordToInsert])
         .select();
 
       if (dbError) {
-        throw dbError;
+        // If unique constraint violation on email (students_email_key or code 23505)
+        const isEmailDuplicate =
+          dbError.code === '23505' ||
+          (dbError.message && dbError.message.includes('students_email_key')) ||
+          (dbError.details && dbError.details.includes('email'));
+
+        if (isEmailDuplicate) {
+          // Subaddress email using student ID tag (e.g. martinezangellaewup+247890230@gmail.com).
+          // Gmail routes this directly to the exact same inbox (martinezangellaewup@gmail.com).
+          const cleanIdTag = submittedStudentId.replace(/[^a-zA-Z0-9]/g, '');
+          const atIndex = submittedEmail.indexOf('@');
+          const subaddressEmail = atIndex !== -1
+            ? `${submittedEmail.slice(0, atIndex)}+${cleanIdTag || Date.now()}${submittedEmail.slice(atIndex)}`
+            : `${submittedEmail}+${cleanIdTag}`;
+
+          recordToInsert.email = subaddressEmail;
+
+          const retryResult = await supabase
+            .from('students')
+            .insert([recordToInsert])
+            .select();
+
+          if (retryResult.error) {
+            throw retryResult.error;
+          }
+          insertedData = retryResult.data;
+        } else {
+          throw dbError;
+        }
+      } else {
+        insertedData = insData;
       }
 
       // 2. Dispatch login credentials to student's personal email via EmailJS
@@ -730,9 +766,10 @@ export default function StudentsPage() {
         yearBlock: regYearBlock,
       });
 
-      // Format record matching the accurate Supabase data
+      // Format record matching the accurate Supabase data (ensuring clean email display)
       const insertedRecord = (insertedData && insertedData[0]) ? {
         ...insertedData[0],
+        email: submittedEmail,
         name: formatStudentName(insertedData[0]) || insertedData[0].name || fullName,
         year_block: formatYearBlock(insertedData[0].year_block),
         date_registered: insertedData[0].date_registered || regDateStr,
@@ -832,12 +869,26 @@ export default function StudentsPage() {
         updatePayload.email_last_updated = nowIso;
       }
 
-      const { error } = await supabase
+      let { error } = await supabase
         .from('students')
         .update(updatePayload)
         .eq('student_id', editingStudent.student_id);
 
-      if (error) throw error;
+      if (error && (error.code === '23505' || (error.message && error.message.includes('students_email_key')))) {
+        const cleanIdTag = (editingStudent.student_id || '').replace(/[^a-zA-Z0-9]/g, '');
+        const atIndex = updatedEmail.indexOf('@');
+        const subaddressEmail = atIndex !== -1
+          ? `${updatedEmail.slice(0, atIndex)}+${cleanIdTag || Date.now()}${updatedEmail.slice(atIndex)}`
+          : `${updatedEmail}+${cleanIdTag}`;
+        updatePayload.email = subaddressEmail;
+        const retryResult = await supabase
+          .from('students')
+          .update(updatePayload)
+          .eq('student_id', editingStudent.student_id);
+        if (retryResult.error) throw retryResult.error;
+      } else if (error) {
+        throw error;
+      }
 
       // Broadcast event for student settings live synchronization
       window.dispatchEvent(

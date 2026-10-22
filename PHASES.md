@@ -127,3 +127,28 @@ Same on both Student and Technical sides, chronological, Asia/Manila (PHT) timez
   - Added the 26th canonical guide (`70414418-7606-456b-8e71-4273f6c44576`, "How to track your report") into `src/lib/defaultGuides.js`.
   - Added module-level caching (`cachedTechnicalGuides`) in `GuidesPage.jsx` to prevent the 26th guide from popping in asynchronously and shifting the grid layout on tab switches.
   - Stabilized `studentUuidRef` in `StudentGuidesPage.jsx`, removing `studentUuid` from main realtime effect dependencies to eliminate duplicate fetching and badge recalculation flicker.
+
+### [x] Phase 8: Reports Modal Remarks Deduplication & Instant Status History Loading
+- **Remarks Deduplication & Layout**:
+  - Removed duplicate remarks line from inside the status history entries (`tp-history-remarks-subline` in Technical Personnel modal and `student-history-remarks-line` in Student modal).
+  - Enforced that remarks are strictly placed on top of the status list in both Technical Personnel and Student modal views.
+- **Zero-Latency Status History Loading**:
+  - Created `getInitialStatusHistory()` helper in [ReportDetailsModal.jsx](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/components/ReportDetailsModal.jsx) to immediately populate the complete status history from cache, `report.history`, or baseline synthesis upon modal mount (0ms latency, zero blank screen).
+  - Parallelized Supabase queries in `loadFreshReportAndHistory()` using `Promise.all` (querying `report_status_history`, `reports`, and `reports_of_student` simultaneously instead of 4 sequential round trips).
+  - Added module-level in-memory caching (`reportHistoryCache` and `canonicalUuidCache`) to instantly resolve status histories on subsequent modal opens.
+  - Enhanced [ReportsPage.jsx](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/components/ReportsPage.jsx) `fetchLiveReports()` to fetch all status history in parallel and pre-populate `reportHistoryCache`, so opening any report modal is instantaneous.
+
+### [x] Phase 9: Duplicate Email Registration & First-Time Account Setup
+- **Subaddressing Fallback for Unique Database Constraint**:
+  - The Supabase `students` table has a strict unique constraint `students_email_key` on the `email` column.
+  - When registering a student with an email that is already in use (e.g., `martinezangellaewup@gmail.com`), [StudentsPage.jsx](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/components/StudentsPage.jsx) automatically detects the duplicate key violation (`23505` / `students_email_key`) and seamlessly saves the record using RFC 5233 plus-addressing (e.g. `martinezangellaewup+247890230@gmail.com`).
+  - Gmail standard delivers all plus-addressed emails directly to the root mailbox (`martinezangellaewup@gmail.com`).
+- **Clean Email Display in UI**:
+  - Implemented `formatStudentEmail(email)` in [studentFormatUtils.js](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/lib/studentFormatUtils.js) which strips the plus-tag so that the UI everywhere (student lists, modals, profile views, and success dialogs) displays the clean, user-facing email address (`martinezangellaewup@gmail.com`).
+- **EmailJS Credentials Dispatch**:
+  - In [emailService.js](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/lib/emailService.js), sanitized the recipient email to ensure credentials generated for the new student are sent directly to `martinezangellaewup@gmail.com`.
+- **First-Time Account Setup Isolation**:
+  - In [StudentAccountSetup.jsx](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/components/StudentAccountSetup.jsx), updated the query logic to match specifically by `student_id` or UUID `id` (with UUID format validation to prevent PostgreSQL `22P02` cast errors), preventing updates from affecting other student accounts sharing the same email.
+- **Login Candidate Resolution**:
+  - In [LoginPage.jsx](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/components/LoginPage.jsx), students logging in with Student ID match their account directly. For email-based logins, candidate accounts sharing the email are resolved by matching the password against `password_hash` via bcrypt.
+

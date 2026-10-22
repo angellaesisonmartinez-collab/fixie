@@ -93,3 +93,16 @@ export function formatYearBlock(rawYearBlock) {
 function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
+
+/**
+ * Formats student email to strip out internal subaddress/plus-addressing tags
+ * (e.g. martinezangellaewup+247890230@gmail.com -> martinezangellaewup@gmail.com)
+ * so that the user and UI always see the clean, real email address.
+ *
+ * @param {string} email
+ * @returns {string}
+ */
+export function formatStudentEmail(email) {
+  if (!email || typeof email !== 'string') return '';
+  return email.trim().replace(/\+[^@]+@/, '@');
+}

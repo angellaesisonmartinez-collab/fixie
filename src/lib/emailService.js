@@ -169,7 +169,7 @@ export async function sendStudentCredentialsEmail({
   password,
   yearBlock = '',
 }) {
-  const trimmedEmail = (email || '').trim();
+  const trimmedEmail = (email || '').trim().replace(/\+[^@]+@/, '@');
   const trimmedStudentId = (studentId || '').trim();
   const trimmedName = (fullName || '').trim();
 
