@@ -130,8 +130,8 @@ export default function RecentReportsList({
 
                 {/* Column 6: Status Capsule */}
                 <td className="cell-status">
-                  <span className={`status-pill-capsule ${report.statusClass}`}>
-                    {report.displayStatus}
+                  <span className={`status-pill-capsule ${report.statusClass || report.status_class || 'status-under-review'}`}>
+                    {report.displayStatus || report.display_status || 'UNDER REVIEW'}
                   </span>
                 </td>
 

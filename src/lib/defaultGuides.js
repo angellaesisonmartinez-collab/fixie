@@ -1,5 +1,14 @@
-// Canonical high-fidelity fallback dataset for all 25 guides in Supabase
+// Canonical high-fidelity fallback dataset for all 26 guides in Supabase
 export const defaultGuides = [
+  {
+    id: '70414418-7606-456b-8e71-4273f6c44576',
+    category: 'How-to',
+    title: 'How to track your report',
+    content: '<ol><li>Go to <b>My Reports</b>.</li><li>Check the status: <i>Under Review, Under Repair, On-Hold</i>, and <i>Resolve.</i></li><li>The stat cards at the top update in real-time, so no refresh is needed.</li></ol>',
+    preview: 'Go to My Reports. Check the status: Under Review, Under Repair, On-Hold, and Resolve.',
+    created_at: '2026-10-22T16:09:17.893+00:00',
+    updated_at: '2026-10-22T16:09:17.893+00:00',
+  },
   {
     id: 'a3ccbcb6-1be5-4ef9-83e5-5fda12064241',
     category: 'Rules',

@@ -33,6 +33,8 @@ import './GuidesPage.css';
 import { defaultGuides } from '../lib/defaultGuides';
 export { defaultGuides };
 
+// Module-level in-memory cache to eliminate flicker on tab switches
+let cachedTechnicalGuides = null;
 
 export default function GuidesPage({ isStudent = false, studentProfile = null, currentUser = null }) {
   // If rendered on the student side, render StudentGuidesPage with student bookmarking
@@ -40,13 +42,16 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
     return <StudentGuidesPage studentProfile={studentProfile} currentUser={currentUser} />;
   }
 
-  const [guidesList, setGuidesList] = useState(() =>
-    [...defaultGuides].sort((a, b) => {
+  const [guidesList, setGuidesList] = useState(() => {
+    if (cachedTechnicalGuides && cachedTechnicalGuides.length > 0) {
+      return cachedTechnicalGuides;
+    }
+    return [...defaultGuides].sort((a, b) => {
       const diff = getGuideSortTime(b) - getGuideSortTime(a);
       if (diff !== 0) return diff;
       return (a.id || '').localeCompare(b.id || '');
-    })
-  );
+    });
+  });
   const [activeCategory, setActiveCategory] = useState('All'); // 'All' | 'Rules' | 'Reminder' | 'How-to'
   const [searchQuery, setSearchQuery] = useState('');
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
@@ -119,6 +124,7 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
           if (diff !== 0) return diff;
           return (a.id || '').localeCompare(b.id || '');
         });
+        cachedTechnicalGuides = sorted;
         setGuidesList(sorted);
       }
     } catch (err) {
@@ -167,37 +173,17 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
           prev.map((g) => (g.id === targetId ? { ...g, ...payload, ...(payload.new || {}) } : g))
         );
       }
-      fetchGuides();
     };
 
-    // 1. Supabase Realtime channel subscription
-    let channel = null;
-    try {
-      channel = safeRealtimeChannel('public:guides-management-sync')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'guides' }, (payload) => {
-          const data = payload.new || payload.old || {};
-          handleGuideLiveUpdate({
-            ...data,
-            eventType: payload.eventType,
-            new: payload.new,
-            old: payload.old,
-          });
-        })
-        .subscribe();
-    } catch (chanErr) {
-      console.warn('Guides realtime setup note:', chanErr);
-    }
-
-    // 2. Cross-component & broadcast listener
+    // 1. Centralized cross-component & broadcast listener via realtimeSyncService
     const unsubGuides = subscribeToGuideUpdates(handleGuideLiveUpdate);
 
-    // 3. Tab visibility and network reconnect refetching
+    // 2. Tab visibility and network reconnect refetching
     const unsubVisibility = registerVisibilityAndOnlineSync(() => {
       fetchGuides();
     });
 
     return () => {
-      safeRemoveChannel(channel);
       unsubGuides();
       unsubVisibility();
     };

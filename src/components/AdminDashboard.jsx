@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   LayoutGrid,
   FilePenLine,
@@ -18,7 +18,7 @@ import {
   Menu,
   LogOut
 } from 'lucide-react';
-import { supabase, safeRealtimeChannel, safeRemoveChannel } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import fixieLogo from '../assets/fixie-logo.svg';
 import angelAvatar from '../assets/avatars/angel.png';
 import jennelynAvatar from '../assets/avatars/jennelyn.png';
@@ -50,6 +50,7 @@ import {
   getCachedAdminDashboardData,
   clearAdminDashboardCache,
   formatAdminDashboardReport,
+  isReportOnHold,
 } from '../lib/adminDashboardService';
 import {
   subscribeToReportUpdates,
@@ -183,12 +184,34 @@ export default function AdminDashboard({ currentUser, userProfile, onSignOut, in
 
   // Live stat metrics & recent reports - initialized strictly from cache or null loading state
   const initialData = getCachedAdminDashboardData();
-  const [stats, setStats] = useState(initialData?.stats || null);
-  const [statsLoading, setStatsLoading] = useState(!initialData?.stats);
-  const [recentReports, setRecentReports] = useState(initialData?.recentReports || []);
-  const [recentReportsLoading, setRecentReportsLoading] = useState(!initialData?.recentReports);
+  const [allReports, setAllReports] = useState(initialData?.reports || null);
+  const [totalStudents, setTotalStudents] = useState(initialData?.totalStudents ?? initialData?.stats?.totalStudents ?? null);
+  const [totalGuides, setTotalGuides] = useState(initialData?.totalGuides ?? initialData?.stats?.totalGuides ?? null);
+  const [isLoading, setIsLoading] = useState(!initialData?.reports);
 
-  // Fetch live stats and 5 recent reports from Supabase (single source of truth)
+  // Compute stat card numbers strictly from ONE single source of truth (allReports)
+  const stats = useMemo(() => {
+    if (!allReports) return null;
+    const totalReports = allReports.length;
+    const onHoldReports = allReports.filter((r) => isReportOnHold(r)).length;
+    const resolvedThisMonth = allReports.filter((r) => r.status === 'Resolved' || (r.displayStatus || '').toUpperCase() === 'RESOLVED').length;
+
+    return {
+      totalStudents: totalStudents ?? 0,
+      totalReports,
+      totalGuides: totalGuides ?? 0,
+      onHoldReports,
+      resolvedThisMonth,
+    };
+  }, [allReports, totalStudents, totalGuides]);
+
+  // Derive 5 recent reports from the exact same reports state
+  const recentReports = useMemo(() => {
+    if (!allReports) return [];
+    return allReports.slice(0, 5);
+  }, [allReports]);
+
+  // Fetch live reports and stats from Supabase (single source of truth)
   useEffect(() => {
     let isMounted = true;
 
@@ -196,23 +219,22 @@ export default function AdminDashboard({ currentUser, userProfile, onSignOut, in
       try {
         const data = await fetchAdminDashboardData(forceRefresh);
         if (isMounted && data) {
-          setStats(data.stats);
-          setRecentReports(data.recentReports);
-          setStatsLoading(false);
-          setRecentReportsLoading(false);
+          setAllReports(data.reports);
+          setTotalStudents(data.totalStudents);
+          setTotalGuides(data.totalGuides);
+          setIsLoading(false);
         }
       } catch (err) {
         console.warn('Dashboard live sync note:', err?.message || err);
         if (isMounted) {
-          setStatsLoading(false);
-          setRecentReportsLoading(false);
+          setIsLoading(false);
         }
       }
     }
 
     fetchDashboardData();
 
-    // Direct local state updater for instant UI reaction (zero lag)
+    // Direct local state updater for instant UI reaction (zero lag, safe incremental updates)
     const handleReportLiveUpdate = (payload) => {
       if (!isMounted || !payload) return;
       const targetId = payload.report_id || payload.id || payload.reportId;
@@ -220,125 +242,117 @@ export default function AdminDashboard({ currentUser, userProfile, onSignOut, in
       const newStatus = payload.newStatus || payload.status;
       const newRemarks = payload.remarks !== undefined ? payload.remarks : payload.newRemarks;
 
-      if (eventType === 'DELETE') {
-        // DELETE: remove item directly from local state and decrement totalReports
-        setRecentReports((prev) => prev.filter((r) => r.id !== targetId && r.report_id !== targetId));
-        setStats((prev) => ({
-          ...prev,
-          totalReports: Math.max(0, (prev?.totalReports || 1) - 1),
-        }));
-      } else if (eventType === 'INSERT') {
-        // INSERT: add new item directly to top of recent reports
-        const rawReport = payload.report || payload.new || payload;
-        const formatted = formatAdminDashboardReport(rawReport);
-        if (formatted) {
-          setRecentReports((prev) => {
-            const exists = prev.some((r) => r.id === formatted.id || r.report_id === formatted.report_id);
-            if (exists) return prev;
-            return [formatted, ...prev].slice(0, 5);
-          });
+      setAllReports((prev) => {
+        if (!prev) return prev;
+
+        if (eventType === 'DELETE') {
+          return prev.filter(
+            (r) => r.id !== targetId && r.report_id !== targetId && r.canonicalUuid !== targetId
+          );
         }
-        setStats((prev) => {
-          const isHold = newStatus === 'On Hold' || newStatus === 'on_hold';
-          const isRes = newStatus === 'Resolved';
-          return {
-            ...prev,
-            totalReports: (prev?.totalReports || 0) + 1,
-            onHoldReports: isHold ? (prev?.onHoldReports || 0) + 1 : (prev?.onHoldReports || 0),
-            resolvedThisMonth: isRes ? (prev?.resolvedThisMonth || 0) + 1 : (prev?.resolvedThisMonth || 0),
-          };
-        });
-      } else {
-        // UPDATE: replace item by ID and recompute relevant stat cards
-        setRecentReports((prev) =>
-          prev.map((r) => {
-            if (r.id === targetId || r.report_id === targetId) {
-              let displayStatus = 'RESOLVED';
-              let statusClass = 'status-resolved';
-              if (newStatus === 'Submitted' || newStatus === 'Under Review' || newStatus === 'Reviewed') {
-                displayStatus = 'UNDER REVIEW';
-                statusClass = 'status-under-review';
-              } else if (newStatus === 'Under Repair' || newStatus === 'Under repair') {
-                displayStatus = 'UNDER REPAIR';
-                statusClass = 'status-under-repair';
-              } else if (newStatus === 'On Hold' || newStatus === 'on_hold') {
-                displayStatus = 'ON HOLD';
-                statusClass = 'status-on-hold';
-              }
 
-              return {
-                ...r,
-                status: newStatus || r.status,
-                displayStatus,
-                display_status: displayStatus,
-                statusClass,
-                status_class: statusClass,
-                remarks: newRemarks !== undefined ? newRemarks : r.remarks,
-              };
+        if (eventType === 'INSERT') {
+          const rawReport = payload.report || payload.new || payload;
+          const formatted = formatAdminDashboardReport(rawReport);
+          if (!formatted) return prev;
+
+          // Check if report already exists in list (avoid duplicate)
+          const exists = prev.some(
+            (r) =>
+              r.id === formatted.id ||
+              r.report_id === formatted.report_id ||
+              (rawReport.id && r.id === rawReport.id) ||
+              (rawReport.report_id && r.report_id === rawReport.report_id)
+          );
+          if (exists) {
+            // Update in place if newer
+            return prev.map((r) =>
+              r.id === formatted.id || r.report_id === formatted.report_id ? { ...r, ...formatted } : r
+            );
+          }
+          return [formatted, ...prev];
+        }
+
+        // UPDATE: replace item by ID in place safely
+        let matched = false;
+        const updated = prev.map((r) => {
+          const isMatch =
+            r.id === targetId ||
+            r.report_id === targetId ||
+            (payload.canonicalUuid && (r.canonicalUuid === payload.canonicalUuid || r.id === payload.canonicalUuid));
+
+          if (isMatch) {
+            matched = true;
+            const effectiveStatus = newStatus || r.status;
+            const effectiveRemarks = newRemarks !== undefined ? newRemarks : r.remarks;
+
+            // Check if status & remarks are already identical (ignore duplicate)
+            if (r.status === effectiveStatus && r.remarks === effectiveRemarks) {
+              return r;
             }
-            return r;
-          })
-        );
-      }
 
-      // Background verification from Supabase single source of truth
-      fetchDashboardData(true);
+            // Check out-of-order timestamp
+            if (payload.updated_at && r.updated_at && new Date(payload.updated_at) < new Date(r.updated_at)) {
+              return r;
+            }
+
+            let displayStatus = 'RESOLVED';
+            let statusClass = 'status-resolved';
+            if (effectiveStatus === 'Submitted' || effectiveStatus === 'Under Review' || effectiveStatus === 'Reviewed') {
+              displayStatus = 'UNDER REVIEW';
+              statusClass = 'status-under-review';
+            } else if (effectiveStatus === 'Under Repair' || effectiveStatus === 'Under repair') {
+              displayStatus = 'UNDER REPAIR';
+              statusClass = 'status-under-repair';
+            } else if (effectiveStatus === 'On Hold' || effectiveStatus === 'on_hold') {
+              displayStatus = 'ON HOLD';
+              statusClass = 'status-on-hold';
+            }
+
+            return {
+              ...r,
+              status: effectiveStatus,
+              displayStatus,
+              display_status: displayStatus,
+              statusClass,
+              status_class: statusClass,
+              remarks: effectiveRemarks,
+              updated_at: payload.updated_at || new Date().toISOString(),
+            };
+          }
+          return r;
+        });
+
+        return matched ? updated : prev;
+      });
     };
 
-    // 1. Supabase Realtime subscription on core tables (Phase 6 Deliverable #2)
-    let dashboardChannel = null;
-    try {
-      dashboardChannel = safeRealtimeChannel('admin-dashboard-global-sync')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, (payload) => {
-          const data = payload.new || payload.old || {};
-          handleReportLiveUpdate({
-            ...data,
-            eventType: payload.eventType,
-            new: payload.new,
-            old: payload.old,
-          });
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'reports_of_student' }, (payload) => {
-          const data = payload.new || payload.old || {};
-          handleReportLiveUpdate({
-            ...data,
-            eventType: payload.eventType,
-            new: payload.new,
-            old: payload.old,
-          });
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, (payload) => {
-          if (payload.eventType === 'INSERT') {
-            setStats((prev) => ({ ...prev, totalStudents: (prev?.totalStudents || 0) + 1 }));
-          } else if (payload.eventType === 'UPDATE' && payload.new?.status !== 'active') {
-            setStats((prev) => ({ ...prev, totalStudents: Math.max(0, (prev?.totalStudents || 1) - 1) }));
-          }
-          fetchDashboardData(true);
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'guides' }, (payload) => {
-          if (payload.eventType === 'INSERT') {
-            setStats((prev) => ({ ...prev, totalGuides: (prev?.totalGuides || 0) + 1 }));
-          } else if (payload.eventType === 'DELETE') {
-            setStats((prev) => ({ ...prev, totalGuides: Math.max(0, (prev?.totalGuides || 1) - 1) }));
-          }
-          fetchDashboardData(true);
-        })
-        .subscribe();
-    } catch (chanErr) {
-      console.warn('Dashboard realtime setup note:', chanErr);
-    }
-
-    // 2. Realtime Broadcast & Cross-window listener for instant sync
+    // 1. Centralized Realtime & Broadcast listeners (single source of events via realtimeSyncService)
     const unsubReports = subscribeToReportUpdates(handleReportLiveUpdate);
-    const unsubStudents = subscribeToStudentUpdates(() => fetchDashboardData(true));
-    const unsubGuides = subscribeToGuideUpdates(() => fetchDashboardData(true));
+    const unsubStudents = subscribeToStudentUpdates((payload) => {
+      if (payload?.eventType === 'INSERT') {
+        setTotalStudents((prev) => (prev !== null ? prev + 1 : prev));
+      } else if (payload?.eventType === 'UPDATE' && payload?.new?.status !== 'active') {
+        setTotalStudents((prev) => (prev !== null ? Math.max(0, prev - 1) : prev));
+      } else {
+        fetchDashboardData(true);
+      }
+    });
+    const unsubGuides = subscribeToGuideUpdates((payload) => {
+      if (payload?.eventType === 'INSERT') {
+        setTotalGuides((prev) => (prev !== null ? prev + 1 : prev));
+      } else if (payload?.eventType === 'DELETE') {
+        setTotalGuides((prev) => (prev !== null ? Math.max(0, prev - 1) : prev));
+      } else {
+        fetchDashboardData(true);
+      }
+    });
 
-    // 3. Tab visibility and network reconnect refetching
+    // 2. Tab visibility and network reconnect refetching
     const unsubVisibility = registerVisibilityAndOnlineSync(() => fetchDashboardData(true));
 
     return () => {
       isMounted = false;
-      safeRemoveChannel(dashboardChannel);
       unsubReports();
       unsubStudents();
       unsubGuides();
@@ -424,9 +438,9 @@ export default function AdminDashboard({ currentUser, userProfile, onSignOut, in
         ) : (
           <DashboardContent
             stats={stats}
-            statsLoading={statsLoading}
+            statsLoading={isLoading}
             recentReports={recentReports}
-            recentReportsLoading={recentReportsLoading}
+            recentReportsLoading={isLoading}
             onSelectReport={(report) => setSelectedReport(report)}
             onNavigate={(navTarget, filter = 'ALL') => {
               if (filter && filter !== 'ALL') {
@@ -472,20 +486,22 @@ export default function AdminDashboard({ currentUser, userProfile, onSignOut, in
                       ? 'status-on-hold'
                       : 'status-resolved';
 
-            setRecentReports((prev) =>
-              prev.map((r) => {
-                if (r.id === reportId || r.report_id === reportId) {
-                  return {
-                    ...r,
-                    status: newStatus,
-                    displayStatus,
-                    statusClass,
-                    history: updatedHistory,
-                    remarks: newRemarks !== undefined ? newRemarks : r.remarks,
-                  };
-                }
-                return r;
-              })
+            setAllReports((prev) =>
+              prev
+                ? prev.map((r) => {
+                    if (r.id === reportId || r.report_id === reportId) {
+                      return {
+                        ...r,
+                        status: newStatus,
+                        displayStatus,
+                        statusClass,
+                        history: updatedHistory,
+                        remarks: newRemarks !== undefined ? newRemarks : r.remarks,
+                      };
+                    }
+                    return r;
+                  })
+                : prev
             );
 
             setSelectedReport((prev) => {

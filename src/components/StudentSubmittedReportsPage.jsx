@@ -257,7 +257,9 @@ export default function StudentSubmittedReportsPage({
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <span className="student-metric-number font-serif">{stats.total}</span>
+            <span className="student-metric-number font-serif">
+              {reportsData.isLoading && reportsList.length === 0 ? '...' : (stats.total ?? 0)}
+            </span>
           </div>
           <p className="student-metric-caption">All submitted laboratory tickets.</p>
         </div>
@@ -280,7 +282,9 @@ export default function StudentSubmittedReportsPage({
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <span className="student-metric-number font-serif">{stats.underReview}</span>
+            <span className="student-metric-number font-serif">
+              {reportsData.isLoading && reportsList.length === 0 ? '...' : (stats.underReview ?? 0)}
+            </span>
           </div>
           <p className="student-metric-caption">Awaiting triage & technician review.</p>
         </div>
@@ -303,7 +307,9 @@ export default function StudentSubmittedReportsPage({
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <span className="student-metric-number font-serif">{stats.underRepair}</span>
+            <span className="student-metric-number font-serif">
+              {reportsData.isLoading && reportsList.length === 0 ? '...' : (stats.underRepair ?? 0)}
+            </span>
           </div>
           <p className="student-metric-caption">Currently being serviced & fixed.</p>
         </div>
@@ -326,7 +332,9 @@ export default function StudentSubmittedReportsPage({
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <span className="student-metric-number font-serif">{stats.resolved}</span>
+            <span className="student-metric-number font-serif">
+              {reportsData.isLoading && reportsList.length === 0 ? '...' : (stats.resolved ?? 0)}
+            </span>
           </div>
           <p className="student-metric-caption">Issues successfully fixed & closed.</p>
         </div>
@@ -495,7 +503,18 @@ export default function StudentSubmittedReportsPage({
               </tr>
             </thead>
             <tbody>
-              {paginatedReports.length > 0 ? (
+              {reportsData.isLoading && reportsList.length === 0 ? (
+                [...Array(5)].map((_, idx) => (
+                  <tr key={`student-loading-row-${idx}`} className="reports-table-data-row loading-skeleton-row">
+                    <td className="cell-id"><div className="skeleton-line skeleton-badge" /></td>
+                    <td className="cell-equipment"><div className="skeleton-line skeleton-title" /><div className="skeleton-line skeleton-sub" /></td>
+                    <td className="cell-location"><div className="skeleton-line skeleton-title" /></td>
+                    <td className="cell-submitted"><div className="skeleton-line skeleton-title" /></td>
+                    <td className="cell-status"><div className="skeleton-line skeleton-pill" /></td>
+                    <td className="cell-action"><div className="skeleton-line skeleton-btn" /></td>
+                  </tr>
+                ))
+              ) : paginatedReports.length > 0 ? (
                 paginatedReports.map((report) => (
                   <tr key={report.id || report.report_id} className="reports-table-data-row">
                     {/* Column 1: ID Badge */}

@@ -126,7 +126,9 @@ export function normalizeStatusLabel(st) {
   if (s.includes('resolve')) return 'Resolved';
   if (s === 'on hold' || s === 'on_hold' || s.includes('hold')) return 'On Hold';
   if (s.includes('repair')) return 'Under Repair';
-  if (s.includes('review')) return 'Under Review';
+  if (s === 'reviewed') return 'Reviewed';
+  if (s === 'under review' || s === 'under_review') return 'Reviewed';
+  if (s.includes('review')) return 'Reviewed';
   if (s.includes('submit')) return 'Submitted';
   return st || 'Submitted';
 }
@@ -215,15 +217,15 @@ export function buildUnifiedHistoryEntries({
     });
 
     if (item.status === 'Submitted') timestamps.submitted = formattedTime;
-    if (item.status === 'Under Review') timestamps.reviewed = formattedTime;
+    if (item.status === 'Reviewed' || item.status === 'Under Review') timestamps.reviewed = formattedTime;
     if (item.status === 'Under Repair') timestamps.underRepair = formattedTime;
     if (item.status === 'On Hold') timestamps.onHold = formattedTime;
     if (item.status === 'Resolved') timestamps.resolved = formattedTime;
   }
 
-  // Ensure current status matches the latest history entry
+  // Ensure current status matches the latest history entry if database has newer status
   const normCurrent = normalizeStatusLabel(currentStatus);
-  if (normCurrent && entries.length > 0) {
+  if (normCurrent && entries.length > 0 && normCurrent !== 'Submitted' && normCurrent !== 'Under Review') {
     const lastEntry = entries[entries.length - 1];
     if (lastEntry.status !== normCurrent) {
       const upTime = currentReport.updated_at || new Date().toISOString();
@@ -234,7 +236,7 @@ export function buildUnifiedHistoryEntries({
         timeFormatted: formattedUpTime,
         createdAt: upTime,
       });
-      if (normCurrent === 'Under Review') timestamps.reviewed = formattedUpTime;
+      if (normCurrent === 'Reviewed' || normCurrent === 'Under Review') timestamps.reviewed = formattedUpTime;
       if (normCurrent === 'Under Repair') timestamps.underRepair = formattedUpTime;
       if (normCurrent === 'On Hold') timestamps.onHold = formattedUpTime;
       if (normCurrent === 'Resolved') timestamps.resolved = formattedUpTime;
@@ -411,14 +413,13 @@ function getInitialReportStatus(report) {
   ) {
     return 'Under Repair';
   }
-  if (
-    report.status === 'Reviewed' ||
-    report.status === 'Under Review' ||
-    report.display_status === 'REVIEWED'
-  ) {
-    return 'Under Review';
+  if (report.status === 'Reviewed') {
+    return 'Reviewed';
   }
   if (report.status === 'Submitted') {
+    return 'Submitted';
+  }
+  if (report.status === 'Under Review' || report.display_status === 'UNDER REVIEW') {
     return 'Submitted';
   }
 
@@ -433,8 +434,9 @@ function getPhaseIndex(status) {
     case 'Submitted':
       return 1;
     case 'Reviewed':
-    case 'Under Review':
       return 2;
+    case 'Under Review':
+      return 1;
     case 'Under Repair':
     case 'On Hold':
       return 3;
@@ -554,12 +556,25 @@ export default function ReportDetailsModal({
   const [resolutionRemarks, setResolutionRemarks] = useState(isLR24 ? 'Replace Monitor' : '');
   const [resolutionError, setResolutionError] = useState(false);
 
+  // Keep ref to always access latest report without invalidating callbacks
+  const reportRef = useRef(report);
+  useEffect(() => {
+    reportRef.current = report;
+  }, [report]);
+
+  const isFetchingRef = useRef(false);
+
   // Load fresh report details and audit history from Supabase
-  const loadFreshReportAndHistory = useCallback(async () => {
-    if (!report) return;
-    setHistoryLoading(true);
+  const loadFreshReportAndHistory = useCallback(async (isInitial = false) => {
+    const curReport = reportRef.current;
+    if (!curReport) return;
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    if (isInitial) {
+      setHistoryLoading(true);
+    }
     try {
-      const { canonicalUuid, reportCode } = await getCanonicalReportInfo(report);
+      const { canonicalUuid, reportCode } = await getCanonicalReportInfo(curReport);
 
       let liveReport = null;
       if (canonicalUuid) {
@@ -590,19 +605,19 @@ export default function ReportDetailsModal({
         if (rshData) historyRows = rshData;
       }
 
-      const rawActive = liveReport?.status || liveRos?.status || report?.status || currentStatus;
+      const rawActive = liveReport?.status || liveRos?.status || curReport?.status || currentStatus;
       const activeStatus = normalizeStatusLabel(rawActive);
       const activeRemarks =
         liveReport?.remarks !== undefined
           ? liveReport.remarks
-          : (liveRos?.remarks !== undefined ? liveRos.remarks : report?.remarks);
+          : (liveRos?.remarks !== undefined ? liveRos.remarks : curReport?.remarks);
 
       const unified = buildUnifiedHistoryEntries({
         historyRows,
         studentHistoryArray: Array.isArray(liveRos?.history)
           ? liveRos.history
-          : (Array.isArray(report?.history) ? report.history : []),
-        currentReport: { ...report, ...(liveReport || {}), ...(liveRos || {}) },
+          : (Array.isArray(curReport?.history) ? curReport.history : []),
+        currentReport: { ...curReport, ...(liveReport || {}), ...(liveRos || {}) },
         currentStatus: activeStatus,
         currentRemarks: activeRemarks,
       });
@@ -633,24 +648,31 @@ export default function ReportDetailsModal({
     } catch (err) {
       console.warn('Error loading fresh report and status history:', err);
     } finally {
-      setHistoryLoading(false);
+      if (isInitial) {
+        setHistoryLoading(false);
+      }
+      isFetchingRef.current = false;
     }
-  }, [report]);
+  }, [currentStatus]);
 
-  // Synchronize on mount and subscribe to realtime report updates
+  // Synchronize on mount and subscribe to realtime report updates (anchored to report ID)
+  const reportKeyId = report?.report_id || report?.id;
+
   useEffect(() => {
-    loadFreshReportAndHistory();
+    if (!reportKeyId) return;
+    loadFreshReportAndHistory(true);
 
     const handleReportUpdateLive = (updateData) => {
       if (!updateData) return;
-      const targetId = report?.report_id || report?.id;
+      const curRep = reportRef.current;
+      const targetId = curRep?.report_id || curRep?.id;
       const matches =
         !updateData.reportId ||
         updateData.reportId === targetId ||
-        updateData.reportId === report?.report_id ||
-        updateData.reportId === report?.id ||
-        (updateData.canonicalUuid && (updateData.canonicalUuid === report?.id || updateData.canonicalUuid === report?.canonical_uuid)) ||
-        (updateData.report_id && (updateData.report_id === report?.report_id || updateData.report_id === targetId));
+        updateData.reportId === curRep?.report_id ||
+        updateData.reportId === curRep?.id ||
+        (updateData.canonicalUuid && (updateData.canonicalUuid === curRep?.id || updateData.canonicalUuid === curRep?.canonical_uuid)) ||
+        (updateData.report_id && (updateData.report_id === curRep?.report_id || updateData.report_id === targetId));
 
       if (matches) {
         // Immediate local state update for zero lag
@@ -671,64 +693,23 @@ export default function ReportDetailsModal({
           setTimestamps((prev) => ({ ...prev, ...updateData.timestamps }));
         }
 
-        // Fresh audit history and row verification
-        loadFreshReportAndHistory();
+        // Seamless background audit history refresh without flickering
+        loadFreshReportAndHistory(false);
       }
     };
 
+    // Centralized singleton realtime subscriber
     const unsub = subscribeToReportUpdates(handleReportUpdateLive);
 
-    // Supabase Realtime CDC channel for this report and report_status_history
-    let modalChannel = null;
-    try {
-      const currentReportId = report?.report_id || report?.id;
-      if (currentReportId) {
-        modalChannel = safeRealtimeChannel(`report-details-modal-${currentReportId}`)
-          .on(
-            'postgres_changes',
-            { event: '*', schema: 'public', table: 'reports' },
-            (payload) => {
-              handleReportUpdateLive({
-                ...payload.new,
-                ...payload.old,
-                eventType: payload.eventType,
-              });
-            }
-          )
-          .on(
-            'postgres_changes',
-            { event: '*', schema: 'public', table: 'reports_of_student' },
-            (payload) => {
-              handleReportUpdateLive({
-                ...payload.new,
-                ...payload.old,
-                eventType: payload.eventType,
-              });
-            }
-          )
-          .on(
-            'postgres_changes',
-            { event: '*', schema: 'public', table: 'report_status_history' },
-            () => {
-              loadFreshReportAndHistory();
-            }
-          )
-          .subscribe();
-      }
-    } catch (chanErr) {
-      console.warn('Report details modal realtime note:', chanErr);
-    }
-
     const unsubVisibility = registerVisibilityAndOnlineSync(() => {
-      loadFreshReportAndHistory();
+      loadFreshReportAndHistory(false);
     });
 
     return () => {
       unsub();
       unsubVisibility();
-      safeRemoveChannel(modalChannel);
     };
-  }, [report, loadFreshReportAndHistory]);
+  }, [reportKeyId, loadFreshReportAndHistory]);
 
   // Sync state only when a different report is opened
   useEffect(() => {
@@ -872,7 +853,7 @@ export default function ReportDetailsModal({
         reviewed: nowFormatted,
       };
 
-      setCurrentStatus('Under Review');
+      setCurrentStatus('Reviewed');
       setTimestamps(updatedTimestamps);
 
       try {
@@ -893,8 +874,9 @@ export default function ReportDetailsModal({
 
       broadcastReportStatusUpdate({
         reportId: targetId,
-        newStatus: 'Under Review',
-        status: 'Under Review',
+        newStatus: 'Reviewed',
+        status: 'Reviewed',
+        displayStatus: 'UNDER REVIEW',
         timestamps: updatedTimestamps,
         updatedAt: nowIso,
       });
@@ -902,9 +884,9 @@ export default function ReportDetailsModal({
       loadFreshReportAndHistory();
 
       if (onUpdateStatus) {
-        onUpdateStatus(targetId, 'Under Review', updatedTimestamps);
+        onUpdateStatus(targetId, 'Reviewed', updatedTimestamps);
       }
-    } else if (currentStatus === 'Reviewed' || currentStatus === 'Under Review') {
+    } else if (currentStatus === 'Reviewed') {
       setIsSubmitting(true);
       const nextStatus = 'Under Repair';
       const nowIso = new Date().toISOString();
@@ -1684,7 +1666,7 @@ export default function ReportDetailsModal({
                 <div key={`${item.status}-${idx}`} className="tp-history-entry-wrap">
                   <div className={`timestamp-row ${item.status === 'On Hold' ? 'row-on-hold' : ''}`}>
                     <span className="timestamp-label">
-                      {item.status === 'Submitted' ? 'Date Submitted' : item.status}
+                      {item.status}
                     </span>
                     <span className="timestamp-value">{item.timeFormatted}</span>
                   </div>
@@ -1697,7 +1679,7 @@ export default function ReportDetailsModal({
               ))
             ) : (
               <div className="timestamp-row">
-                <span className="timestamp-label">Date Submitted</span>
+                <span className="timestamp-label">Submitted</span>
                 <span className="timestamp-value">{timestamps.submitted || formatCurrentTimestamp()}</span>
               </div>
             )}
@@ -1712,7 +1694,7 @@ export default function ReportDetailsModal({
               currentStatus === 'Under Repair' ? 'footer-between' : 'footer-end'
             }`}
           >
-            {/* Stage 1: Mark as reviewed */}
+            {/* Stage 1: Mark as Reviewed */}
             {currentStatus === 'Submitted' && (
               <button
                 type="button"
@@ -1726,13 +1708,13 @@ export default function ReportDetailsModal({
                     <span>Updating...</span>
                   </>
                 ) : (
-                  <span>Mark as reviewed</span>
+                  <span>Mark as Reviewed</span>
                 )}
               </button>
             )}
 
             {/* Stage 2: Start Repair */}
-            {(currentStatus === 'Reviewed' || currentStatus === 'Under Review') && (
+            {currentStatus === 'Reviewed' && (
               <button
                 type="button"
                 className="btn-modal-action-white"

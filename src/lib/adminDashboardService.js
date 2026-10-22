@@ -128,6 +128,18 @@ export function formatAdminDashboardReport(r) {
   };
 }
 
+export function isReportOnHold(report) {
+  if (!report) return false;
+  const statusStr = (report.status || '').toLowerCase().trim();
+  const displayStatusStr = (report.display_status || report.displayStatus || '').toLowerCase().trim();
+  return (
+    statusStr === 'on hold' ||
+    statusStr === 'on_hold' ||
+    statusStr === 'hold' ||
+    displayStatusStr === 'on hold'
+  );
+}
+
 // In-memory module cache for instant hydration
 let cachedAdminDashboardData = null;
 let inFlightDashboardPromise = null;
@@ -142,8 +154,8 @@ export function clearAdminDashboardCache() {
 }
 
 /**
- * Fetch all Technical Personnel Dashboard metrics & recent reports from Supabase.
- * Uses exact counts from Supabase as single source of truth.
+ * Fetch all Technical Personnel Dashboard metrics & reports from Supabase.
+ * Reports and stat card counts are derived from ONE single source of truth.
  */
 export async function fetchAdminDashboardData(forceRefresh = false) {
   if (!forceRefresh && inFlightDashboardPromise) {
@@ -154,37 +166,43 @@ export async function fetchAdminDashboardData(forceRefresh = false) {
     try {
       const [
         studentRes,
-        reportRes,
-        onHoldRes,
+        reportsRes,
         guideRes,
-        resolvedRes,
-        recentReportsRes,
       ] = await Promise.all([
         supabase.from('students').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-        supabase.from('reports').select('*', { count: 'exact', head: true }),
-        supabase.from('reports').select('*', { count: 'exact', head: true }).or('status.eq.On Hold,status.eq.on_hold,status.ilike.%hold%'),
-        supabase.from('guides').select('*', { count: 'exact', head: true }),
-        supabase.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'Resolved'),
         supabase
           .from('reports')
           .select('*, students(*)')
           .order('created_at', { ascending: false })
-          .order('report_id', { ascending: false })
-          .limit(5),
+          .order('report_id', { ascending: false }),
+        supabase.from('guides').select('*', { count: 'exact', head: true }),
       ]);
 
+      const rawReports = reportsRes?.data || [];
+      const reports = rawReports.map(formatAdminDashboardReport).filter(Boolean);
+
+      const totalStudents = typeof studentRes?.count === 'number' ? studentRes.count : 0;
+      const totalGuides = typeof guideRes?.count === 'number' ? guideRes.count : 0;
+      const totalReports = reports.length;
+      const onHoldReports = reports.filter(isReportOnHold).length;
+      const resolvedThisMonth = reports.filter((r) => r.status === 'Resolved' || (r.displayStatus || '').toUpperCase() === 'RESOLVED').length;
+
       const stats = {
-        totalStudents: typeof studentRes?.count === 'number' ? studentRes.count : 0,
-        totalReports: typeof reportRes?.count === 'number' ? reportRes.count : 0,
-        totalGuides: typeof guideRes?.count === 'number' ? guideRes.count : 0,
-        onHoldReports: typeof onHoldRes?.count === 'number' ? onHoldRes.count : 0,
-        resolvedThisMonth: typeof resolvedRes?.count === 'number' ? resolvedRes.count : 0,
+        totalStudents,
+        totalReports,
+        totalGuides,
+        onHoldReports,
+        resolvedThisMonth,
       };
 
-      const rawReports = recentReportsRes?.data || [];
-      const recentReports = rawReports.map(formatAdminDashboardReport).filter(Boolean);
+      const result = {
+        reports,
+        stats,
+        recentReports: reports.slice(0, 5),
+        totalStudents,
+        totalGuides,
+      };
 
-      const result = { stats, recentReports };
       cachedAdminDashboardData = result;
       return result;
     } finally {

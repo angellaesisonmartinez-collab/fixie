@@ -119,34 +119,31 @@ export function checkLaboratoryHours(dateInput = new Date()) {
  */
 export function formatManilaHistoryTime(timeInput, fallbackTime = '') {
   if (!timeInput) return fallbackTime;
-  if (typeof timeInput === 'string') {
-    const s = timeInput.trim();
-    // If already in 'Oct 23, 2026, 2:35 PM' standard format, return directly
-    const alreadyFormatted = s.match(/^[A-Za-z]{3}\s+\d{1,2},\s+\d{4},\s+\d{1,2}:\d{2}\s+(?:AM|PM)$/i);
-    if (alreadyFormatted) return s;
-  }
 
   const rawD = toDate(timeInput);
   if (!rawD) return fallbackTime || String(timeInput);
 
+  // Enforce laboratory operating hours (7:00 AM to 9:00 PM Asia/Manila)
+  const d = sanitizeLabHoursDate(rawD) || rawD;
+
   const month = new Intl.DateTimeFormat('en-US', {
     timeZone: MANILA_TIMEZONE,
     month: 'short',
-  }).format(rawD);
+  }).format(d);
   const day = new Intl.DateTimeFormat('en-US', {
     timeZone: MANILA_TIMEZONE,
     day: 'numeric',
-  }).format(rawD);
+  }).format(d);
   const year = new Intl.DateTimeFormat('en-US', {
     timeZone: MANILA_TIMEZONE,
     year: 'numeric',
-  }).format(rawD);
+  }).format(d);
   const time = new Intl.DateTimeFormat('en-US', {
     timeZone: MANILA_TIMEZONE,
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
-  }).format(rawD);
+  }).format(d);
 
   return `${month} ${day}, ${year}, ${time}`;
 }
@@ -245,10 +242,54 @@ export function formatManilaLiveClock(dateInput = new Date()) {
 /**
  * Automatically adjusts a Date object if it suffered from a +8 hour double-offset
  * or is outside 7:00 AM - 9:00 PM Manila time.
+ * Clamps strictly to laboratory operating hours (7:00 AM to 9:00 PM Asia/Manila).
  */
 export function sanitizeLabHoursDate(dateInput) {
   const d = toDate(dateInput);
-  return d || null;
+  if (!d) return null;
+
+  const parts = getManilaTimeParts(d);
+
+  // If time is before opening hours (7:00 AM) in Asia/Manila:
+  if (parts.hour < LAB_START_HOUR) {
+    // If hour is 0..6 (e.g. 12:40 AM, 1:30 AM, 4:47 AM, 5:48 AM), it suffered from UTC +8h offset
+    // Check if shifting back 8 hours lands it in valid afternoon hours (e.g. 00:40 -> 16:40 / 4:40 PM)
+    const shifted = new Date(d.getTime() - 8 * 60 * 60 * 1000);
+    const shiftedParts = getManilaTimeParts(shifted);
+    if (
+      shiftedParts.hour >= LAB_START_HOUR &&
+      (shiftedParts.hour < LAB_END_HOUR || (shiftedParts.hour === LAB_END_HOUR && shiftedParts.minute === 0))
+    ) {
+      return shifted;
+    }
+
+    // Otherwise clamp to 7:00 AM Manila time on the same date
+    const year = new Intl.DateTimeFormat('en-US', { timeZone: MANILA_TIMEZONE, year: 'numeric' }).format(d);
+    const month = new Intl.DateTimeFormat('en-US', { timeZone: MANILA_TIMEZONE, month: '2-digit' }).format(d);
+    const day = new Intl.DateTimeFormat('en-US', { timeZone: MANILA_TIMEZONE, day: '2-digit' }).format(d);
+    return new Date(`${year}-${month}-${day}T07:00:00+08:00`);
+  }
+
+  // If time is after closing hours (9:00 PM) in Asia/Manila:
+  if (parts.hour > LAB_END_HOUR || (parts.hour === LAB_END_HOUR && parts.minute > LAB_END_MINUTE)) {
+    // Check if shifting back 8 hours lands it in valid daytime hours
+    const shifted = new Date(d.getTime() - 8 * 60 * 60 * 1000);
+    const shiftedParts = getManilaTimeParts(shifted);
+    if (
+      shiftedParts.hour >= LAB_START_HOUR &&
+      (shiftedParts.hour < LAB_END_HOUR || (shiftedParts.hour === LAB_END_HOUR && shiftedParts.minute === 0))
+    ) {
+      return shifted;
+    }
+
+    // Otherwise clamp to 9:00 PM (21:00) Manila time on the same date
+    const year = new Intl.DateTimeFormat('en-US', { timeZone: MANILA_TIMEZONE, year: 'numeric' }).format(d);
+    const month = new Intl.DateTimeFormat('en-US', { timeZone: MANILA_TIMEZONE, month: '2-digit' }).format(d);
+    const day = new Intl.DateTimeFormat('en-US', { timeZone: MANILA_TIMEZONE, day: '2-digit' }).format(d);
+    return new Date(`${year}-${month}-${day}T21:00:00+08:00`);
+  }
+
+  return d;
 }
 
 /**

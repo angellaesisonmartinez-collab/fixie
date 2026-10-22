@@ -502,7 +502,9 @@ export default function StudentDashboard({
                   </div>
                 </div>
                 <div className="stat-card-value-display">
-                  <span className="stat-number-serif">{activeReportsCount}</span>
+                  <span className="stat-number-serif">
+                    {studentReportsData.isLoading && allReports.length === 0 ? '...' : activeReportsCount}
+                  </span>
                 </div>
                 <p className="stat-card-caption">
                   Reports still being reviewed or repaired.
@@ -530,7 +532,9 @@ export default function StudentDashboard({
                   </div>
                 </div>
                 <div className="stat-card-value-display">
-                  <span className="stat-number-serif">{resolvedCount}</span>
+                  <span className="stat-number-serif">
+                    {studentReportsData.isLoading && allReports.length === 0 ? '...' : resolvedCount}
+                  </span>
                 </div>
                 <p className="stat-card-caption">
                   Reports fixed by technical personnel.
@@ -562,7 +566,9 @@ export default function StudentDashboard({
                   </div>
                 </div>
                 <div className="stat-card-value-display">
-                  <span className="stat-number-serif">{savedGuidesCount}</span>
+                  <span className="stat-number-serif">
+                    {studentReportsData.isLoading && allReports.length === 0 ? '...' : savedGuidesCount}
+                  </span>
                 </div>
                 <p className="stat-card-caption">
                   Your bookmarked laboratory guides.

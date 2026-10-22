@@ -543,38 +543,17 @@ export default function StudentsPage() {
           })
         );
       }
-
-      fetchStudents(false);
     };
 
-    // 1. Supabase Realtime channel subscription
-    let channel = null;
-    try {
-      channel = safeRealtimeChannel('public:students-sync')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, (payload) => {
-          const data = payload.new || payload.old || {};
-          handleStudentLiveUpdate({
-            ...data,
-            eventType: payload.eventType,
-            new: payload.new,
-            old: payload.old,
-          });
-        })
-        .subscribe();
-    } catch (chanErr) {
-      console.warn('Students realtime setup note:', chanErr);
-    }
-
-    // 2. Cross-tab & broadcast listener
+    // 1. Centralized cross-tab & broadcast listener via realtimeSyncService
     const unsubStudents = subscribeToStudentUpdates(handleStudentLiveUpdate);
 
-    // 3. Tab visibility and network reconnect refetching
+    // 2. Tab visibility and network reconnect refetching
     const unsubVisibility = registerVisibilityAndOnlineSync(() => {
       fetchStudents(false);
     });
 
     return () => {
-      safeRemoveChannel(channel);
       unsubStudents();
       unsubVisibility();
     };

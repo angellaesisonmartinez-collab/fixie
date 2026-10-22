@@ -25,13 +25,13 @@ export default function StatusStepper({
   } else {
     if (s.includes('resolve')) phaseIndex = 4;
     else if (isOnHold || s.includes('repair')) phaseIndex = 3;
-    else if (s.includes('review')) phaseIndex = 2;
+    else if (s === 'reviewed') phaseIndex = 2;
     else phaseIndex = 1;
   }
 
   const steps = [
     { index: 1, label: 'Submitted' },
-    { index: 2, label: 'Under Review' },
+    { index: 2, label: 'Reviewed' },
     { index: 3, label: 'Under Repair' },
     { index: 4, label: 'Resolved' },
   ];

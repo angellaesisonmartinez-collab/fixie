@@ -628,6 +628,92 @@ function getInitialTechnicalReports() {
   return defaultReports;
 }
 
+// Helper to determine if a report has "On Hold" status
+function isReportOnHold(report) {
+  if (!report) return false;
+  const statusStr = (report.status || '').toLowerCase().trim();
+  const displayStatusStr = (report.display_status || report.displayStatus || '').toLowerCase().trim();
+  return (
+    statusStr === 'on hold' ||
+    statusStr === 'on_hold' ||
+    statusStr === 'hold' ||
+    displayStatusStr === 'on hold'
+  );
+}
+
+// Helper to search strictly by Report ID (e.g. LR-27) or PC number (1-40)
+function matchesReportIdOrPcNumber(report, searchQuery) {
+  const cleanQuery = (searchQuery || '').trim().toLowerCase();
+  if (!cleanQuery) return true;
+
+  const normalizedQuery = cleanQuery.replace(/\s+/g, ' ');
+  const queryAlpha = cleanQuery.replace(/[^a-z0-9]/gi, '');
+  const isPureNumber = /^\d+$/.test(cleanQuery);
+  const queryNum = isPureNumber ? parseInt(cleanQuery, 10) : null;
+
+  // 1. Report ID matching (e.g. "LR-27", "lr-27", "lr 27", "lr27", "27")
+  const rawReportId = (report.report_id || report.id || '').toLowerCase().trim();
+  const reportIdNormalized = rawReportId.replace(/\s+/g, ' ');
+  const reportIdAlpha = rawReportId.replace(/[^a-z0-9]/gi, '');
+  const repNumMatch = rawReportId.match(/\d+/);
+  const repNum = repNumMatch ? parseInt(repNumMatch[0], 10) : null;
+
+  let matchReportId = false;
+  if (isPureNumber) {
+    if (
+      repNum !== null &&
+      (repNum === queryNum ||
+        String(repNum) === cleanQuery ||
+        String(repNum).padStart(2, '0') === cleanQuery)
+    ) {
+      matchReportId = true;
+    }
+  } else {
+    matchReportId =
+      reportIdNormalized.includes(normalizedQuery) ||
+      (queryAlpha.length > 0 && reportIdAlpha.includes(queryAlpha));
+
+    if (!matchReportId && repNum !== null && queryAlpha.startsWith('lr')) {
+      const qNumMatch = queryAlpha.match(/\d+/);
+      if (qNumMatch && parseInt(qNumMatch[0], 10) === repNum) {
+        matchReportId = true;
+      }
+    }
+  }
+
+  // 2. PC Number matching (e.g. "PC-#14", "PC-14", "PC 14", "pc14", "14", "4", "PC 4")
+  const rawUnit = (report.unit_number || report.unitNumber || '').toLowerCase().trim();
+  const unitNormalized = rawUnit.replace(/\s+/g, ' ');
+  const unitAlpha = rawUnit.replace(/[^a-z0-9]/gi, '');
+  const pcNumMatch = rawUnit.match(/\d+/);
+  const pcNum = pcNumMatch ? parseInt(pcNumMatch[0], 10) : null;
+
+  let matchPc = false;
+  if (isPureNumber) {
+    if (
+      pcNum !== null &&
+      (pcNum === queryNum ||
+        String(pcNum) === cleanQuery ||
+        String(pcNum).padStart(2, '0') === cleanQuery)
+    ) {
+      matchPc = true;
+    }
+  } else {
+    matchPc =
+      unitNormalized.includes(normalizedQuery) ||
+      (queryAlpha.length > 0 && unitAlpha.includes(queryAlpha));
+
+    if (!matchPc && pcNum !== null && queryAlpha.startsWith('pc')) {
+      const qNumMatch = queryAlpha.match(/\d+/);
+      if (qNumMatch && parseInt(qNumMatch[0], 10) === pcNum) {
+        matchPc = true;
+      }
+    }
+  }
+
+  return matchReportId || matchPc;
+}
+
 function TechnicalPersonnelReportsPage({
   initialFilter = 'ALL',
   onSelectReport: _onSelectReport,
@@ -635,24 +721,39 @@ function TechnicalPersonnelReportsPage({
 
   const [reportsList, setReportsList] = useState(getInitialTechnicalReports);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(!cachedTechnicalReports);
 
-  // Search & Filter state
+  // Search state
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedStatusFilter, setSelectedStatusFilter] = useState(() => {
+
+  // Tab state: 'DEFAULT' or 'ON_HOLD' (separated from status filter)
+  const [activeTab, setActiveTab] = useState(() => {
     if (
-      typeof window !== 'undefined' &&
-      (window.location.hash === '#reports-on-hold' ||
-        window.location.hash === '#reports/on-hold' ||
-        window.location.hash === '#on-hold')
+      initialFilter === 'ON_HOLD' ||
+      (typeof window !== 'undefined' &&
+        (window.location.hash === '#reports-on-hold' ||
+          window.location.hash === '#reports/on-hold' ||
+          window.location.hash === '#on-hold'))
     ) {
       return 'ON_HOLD';
     }
-    return initialFilter || 'ALL';
+    return 'DEFAULT';
+  });
+
+  // Status Filter state: 'ALL', 'SUBMITTED', 'UNDER_REVIEW', 'UNDER_REPAIR', 'RESOLVED'
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState(() => {
+    if (initialFilter && initialFilter !== 'ON_HOLD') {
+      return initialFilter;
+    }
+    return 'ALL';
   });
 
   useEffect(() => {
-    if (initialFilter) {
+    if (initialFilter === 'ON_HOLD') {
+      setActiveTab('ON_HOLD');
+    } else if (initialFilter) {
       setSelectedStatusFilter(initialFilter);
+      setActiveTab('DEFAULT');
     }
   }, [initialFilter]);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
@@ -662,6 +763,19 @@ function TechnicalPersonnelReportsPage({
   // Modal state
   const [activeReportModal, setActiveReportModal] = useState(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  // Synchronize activeReportModal if reportsList updates in realtime
+  useEffect(() => {
+    if (!activeReportModal) return;
+    const match = reportsList.find(
+      (r) =>
+        (r.report_id && r.report_id === activeReportModal.report_id) ||
+        (r.id && r.id === activeReportModal.id)
+    );
+    if (match) {
+      setActiveReportModal((prev) => (prev ? { ...prev, ...match } : null));
+    }
+  }, [reportsList]);
 
   // Fetch live reports from Supabase
   const fetchLiveReports = async (showSpinner = false) => {
@@ -751,8 +865,6 @@ function TechnicalPersonnelReportsPage({
           };
         });
 
-
-
         cachedTechnicalReports = mapped;
         try {
           if (typeof window !== 'undefined' && window.sessionStorage) {
@@ -765,6 +877,7 @@ function TechnicalPersonnelReportsPage({
     } catch (err) {
       console.warn('Reports sync error:', err.message);
     } finally {
+      setIsLoading(false);
       if (showSpinner) setIsRefreshing(false);
     }
   };
@@ -772,13 +885,14 @@ function TechnicalPersonnelReportsPage({
   // Reset all filters, search query, dropdowns, and pagination back to original default values
   const handleResetAllFilters = () => {
     setSelectedStatusFilter('ALL');
+    setActiveTab('DEFAULT');
     setSearchQuery('');
     setStatusDropdownOpen(false);
     setCurrentPage(1);
     fetchLiveReports(false);
   };
 
-  // Supabase Realtime replication & cross-component sync (Phase 6 Deliverable #2)
+  // Realtime replication & cross-component sync via centralized realtimeSyncService
   useEffect(() => {
     fetchLiveReports(false);
 
@@ -796,6 +910,7 @@ function TechnicalPersonnelReportsPage({
           const updated = prevList.filter(
             (r) => r.report_id !== targetId && r.id !== targetId && r.canonicalUuid !== targetId
           );
+          if (updated.length === prevList.length) return prevList;
           cachedTechnicalReports = updated;
           try {
             if (typeof window !== 'undefined' && window.sessionStorage) {
@@ -877,9 +992,19 @@ function TechnicalPersonnelReportsPage({
 
         setReportsList((prevList) => {
           const exists = prevList.some(
-            (r) => r.report_id === reportId || r.id === newMapped.id || (rawReport.id && r.id === rawReport.id)
+            (r) =>
+              r.report_id === reportId ||
+              r.id === newMapped.id ||
+              (rawReport.id && (r.id === rawReport.id || r.canonicalUuid === rawReport.id))
           );
-          if (exists) return prevList;
+          if (exists) {
+            // Update in place if already present
+            return prevList.map((r) =>
+              r.report_id === reportId || r.id === newMapped.id || (rawReport.id && r.id === rawReport.id)
+                ? { ...r, ...newMapped }
+                : r
+            );
+          }
           const updated = [newMapped, ...prevList];
           cachedTechnicalReports = updated;
           try {
@@ -889,28 +1014,10 @@ function TechnicalPersonnelReportsPage({
           } catch {}
           return updated;
         });
-      } else if (targetId && newStatus) {
-        // UPDATE: replace item by ID
-        let displayStatus = 'RESOLVED';
-        let statusClass = 'status-resolved';
-        if (newStatus === 'Submitted' || newStatus === 'Under Review') {
-          displayStatus = 'UNDER REVIEW';
-          statusClass = 'status-under-review';
-        } else if (newStatus === 'Reviewed') {
-          displayStatus = 'REVIEWED';
-          statusClass = 'status-reviewed';
-        } else if (newStatus === 'Under Repair' || newStatus === 'Under repair') {
-          displayStatus = 'UNDER REPAIR';
-          statusClass = 'status-under-repair';
-        } else if (newStatus === 'On Hold' || newStatus === 'on_hold') {
-          displayStatus = 'ON HOLD';
-          statusClass = 'status-on-hold';
-        } else if (newStatus === 'Resolved') {
-          displayStatus = 'RESOLVED';
-          statusClass = 'status-resolved';
-        }
-
+      } else if (targetId && (newStatus || newRemarks !== undefined)) {
+        // UPDATE: replace item by ID safely with deduplication
         setReportsList((prevList) => {
+          let hasMatch = false;
           const updated = prevList.map((r) => {
             const isMatch =
               r.report_id === targetId ||
@@ -918,18 +1025,50 @@ function TechnicalPersonnelReportsPage({
               (payload.canonicalUuid && (r.canonicalUuid === payload.canonicalUuid || r.id === payload.canonicalUuid));
 
             if (isMatch) {
+              hasMatch = true;
+              const effectiveStatus = newStatus || r.status;
+              const effectiveRemarks = newRemarks !== undefined ? newRemarks : r.remarks;
+
+              // Check if status & remarks are already identical (ignore duplicate)
+              if (r.status === effectiveStatus && r.remarks === effectiveRemarks) {
+                return r;
+              }
+
+              // Check out-of-order timestamp
+              if (payload.updated_at && r.raw_created_at && new Date(payload.updated_at) < new Date(r.raw_created_at)) {
+                return r;
+              }
+
+              let displayStatus = 'RESOLVED';
+              let statusClass = 'status-resolved';
+              if (effectiveStatus === 'Submitted' || effectiveStatus === 'Reviewed' || effectiveStatus === 'Under Review') {
+                displayStatus = 'UNDER REVIEW';
+                statusClass = 'status-under-review';
+              } else if (effectiveStatus === 'Under Repair' || effectiveStatus === 'Under repair') {
+                displayStatus = 'UNDER REPAIR';
+                statusClass = 'status-under-repair';
+              } else if (effectiveStatus === 'On Hold' || effectiveStatus === 'on_hold') {
+                displayStatus = 'ON HOLD';
+                statusClass = 'status-on-hold';
+              } else if (effectiveStatus === 'Resolved') {
+                displayStatus = 'RESOLVED';
+                statusClass = 'status-resolved';
+              }
+
               return {
                 ...r,
-                status: newStatus,
+                status: effectiveStatus,
                 display_status: displayStatus,
                 displayStatus: displayStatus,
                 status_class: statusClass,
                 statusClass: statusClass,
-                remarks: newRemarks !== undefined ? newRemarks : r.remarks,
+                remarks: effectiveRemarks,
               };
             }
             return r;
           });
+
+          if (!hasMatch) return prevList;
           cachedTechnicalReports = updated;
           try {
             if (typeof window !== 'undefined' && window.sessionStorage) {
@@ -939,42 +1078,12 @@ function TechnicalPersonnelReportsPage({
           return updated;
         });
       }
-
-      fetchLiveReports(false);
     };
-
-    // 1. Supabase Realtime channel for table 'reports' and 'reports_of_student'
-    let channel = null;
-    try {
-      channel = safeRealtimeChannel('public:reports-live-sync')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, (payload) => {
-          const data = payload.new || payload.old || {};
-          handleSyncPayload({
-            ...data,
-            eventType: payload.eventType,
-            new: payload.new,
-            old: payload.old,
-          });
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'reports_of_student' }, (payload) => {
-          const data = payload.new || payload.old || {};
-          handleSyncPayload({
-            ...data,
-            eventType: payload.eventType,
-            new: payload.new,
-            old: payload.old,
-          });
-        })
-        .subscribe();
-    } catch (chanErr) {
-      console.warn('Reports realtime setup note:', chanErr);
-    }
 
     const unsubSync = subscribeToReportUpdates(handleSyncPayload);
     const unsubVisibility = registerVisibilityAndOnlineSync(() => fetchLiveReports(false));
 
     return () => {
-      safeRemoveChannel(channel);
       unsubSync();
       unsubVisibility();
     };
@@ -989,13 +1098,29 @@ function TechnicalPersonnelReportsPage({
     let resolved = 0;
 
     reportsList.forEach((r) => {
-      if (r.status === 'Reviewed' || r.status === 'Submitted' || r.display_status === 'UNDER REVIEW') {
-        underReview += 1;
-      } else if (r.status === 'Under Repair' || r.display_status === 'UNDER REPAIR') {
-        underRepair += 1;
-      } else if (r.status === 'On Hold' || r.display_status === 'ON HOLD') {
+      if (isReportOnHold(r)) {
         onHold += 1;
-      } else if (r.status === 'Resolved' || r.display_status === 'RESOLVED') {
+      } else if (
+        r.status === 'Reviewed' ||
+        r.status === 'Submitted' ||
+        r.status === 'Under Review' ||
+        (r.display_status || '').toUpperCase() === 'UNDER REVIEW' ||
+        (r.displayStatus || '').toUpperCase() === 'UNDER REVIEW'
+      ) {
+        underReview += 1;
+      } else if (
+        r.status === 'Under Repair' ||
+        r.status === 'under repair' ||
+        (r.display_status || '').toUpperCase() === 'UNDER REPAIR' ||
+        (r.displayStatus || '').toUpperCase() === 'UNDER REPAIR'
+      ) {
+        underRepair += 1;
+      } else if (
+        r.status === 'Resolved' ||
+        r.status === 'resolved' ||
+        (r.display_status || '').toUpperCase() === 'RESOLVED' ||
+        (r.displayStatus || '').toUpperCase() === 'RESOLVED'
+      ) {
         resolved += 1;
       }
     });
@@ -1012,40 +1137,55 @@ function TechnicalPersonnelReportsPage({
   // Filtered and searched reports
   const filteredReports = useMemo(() => {
     return reportsList.filter((r) => {
-      // 1. Status Filter
-      if (selectedStatusFilter === 'SUBMITTED') {
-        if (r.status !== 'Submitted') return false;
-      } else if (selectedStatusFilter === 'UNDER_REVIEW') {
-        if (r.display_status !== 'UNDER REVIEW' && r.status !== 'Reviewed' && r.status !== 'Submitted') return false;
-      } else if (selectedStatusFilter === 'UNDER_REPAIR') {
-        if (r.display_status !== 'UNDER REPAIR' && r.status !== 'Under Repair') return false;
-      } else if (selectedStatusFilter === 'ON_HOLD') {
-        if (r.display_status !== 'ON HOLD' && r.status !== 'On Hold') return false;
-      } else if (selectedStatusFilter === 'RESOLVED') {
-        if (r.display_status !== 'RESOLVED' && r.status !== 'Resolved') return false;
+      // 1. Tab & Status Filtering
+      if (activeTab === 'ON_HOLD') {
+        // "On Hold" is its own tab: show only On Hold reports
+        if (!isReportOnHold(r)) return false;
+      } else {
+        // Default tab: On Hold reports belong in the On Hold tab
+        if (isReportOnHold(r)) return false;
+
+        // Status filter applies only to Submitted, Under Review, Under Repair, Resolved
+        if (selectedStatusFilter === 'SUBMITTED') {
+          if (r.status !== 'Submitted') return false;
+        } else if (selectedStatusFilter === 'UNDER_REVIEW') {
+          const isUnderReview =
+            r.status === 'Reviewed' ||
+            r.status === 'Submitted' ||
+            r.status === 'Under Review' ||
+            (r.display_status || '').toUpperCase() === 'UNDER REVIEW' ||
+            (r.displayStatus || '').toUpperCase() === 'UNDER REVIEW';
+          if (!isUnderReview) return false;
+        } else if (selectedStatusFilter === 'UNDER_REPAIR') {
+          const isUnderRepair =
+            r.status === 'Under Repair' ||
+            r.status === 'under repair' ||
+            (r.display_status || '').toUpperCase() === 'UNDER REPAIR' ||
+            (r.displayStatus || '').toUpperCase() === 'UNDER REPAIR';
+          if (!isUnderRepair) return false;
+        } else if (selectedStatusFilter === 'RESOLVED') {
+          const isResolved =
+            r.status === 'Resolved' ||
+            r.status === 'resolved' ||
+            (r.display_status || '').toUpperCase() === 'RESOLVED' ||
+            (r.displayStatus || '').toUpperCase() === 'RESOLVED';
+          if (!isResolved) return false;
+        }
       }
 
-      // 2. Search query
+      // 2. Search query: ONLY by Report ID (e.g. LR-27) and PC number (1-40)
       if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase().trim();
-        const matchId = (r.report_id || '').toLowerCase().includes(query);
-        const matchUnit = (r.unit_number || '').toLowerCase().includes(query);
-        const matchEquip = (r.equipment || '').toLowerCase().includes(query);
-        const matchStudent = (r.student_name || '').toLowerCase().includes(query);
-        const matchLocation = `${r.location_center} ${r.location_room}`.toLowerCase().includes(query);
-        const matchDesc = (r.description || '').toLowerCase().includes(query);
-
-        return matchId || matchUnit || matchEquip || matchStudent || matchLocation || matchDesc;
+        return matchesReportIdOrPcNumber(r, searchQuery);
       }
 
       return true;
     });
-  }, [reportsList, selectedStatusFilter, searchQuery]);
+  }, [reportsList, activeTab, selectedStatusFilter, searchQuery]);
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedStatusFilter]);
+  }, [searchQuery, selectedStatusFilter, activeTab]);
 
   // Paginate reports: 7 per page
   const totalPages = Math.max(1, Math.ceil(filteredReports.length / itemsPerPage));
@@ -1076,7 +1216,7 @@ function TechnicalPersonnelReportsPage({
     );
   };
 
-  // Status badge label helper
+  // Status badge label helper (Status filter dropdown only works for Submitted, Under Review, Under Repair, Resolved, All Statuses)
   const getStatusLabel = (filterKey) => {
     switch (filterKey) {
       case 'SUBMITTED':
@@ -1085,10 +1225,9 @@ function TechnicalPersonnelReportsPage({
         return 'Under Review';
       case 'UNDER_REPAIR':
         return 'Under Repair';
-      case 'ON_HOLD':
-        return 'On Hold';
       case 'RESOLVED':
         return 'Resolved';
+      case 'ALL':
       default:
         return 'All Statuses';
     }
@@ -1101,12 +1240,9 @@ function TechnicalPersonnelReportsPage({
 
     let displayStatus = 'RESOLVED';
     let statusClass = 'status-resolved';
-    if (newStatus === 'Submitted') {
+    if (newStatus === 'Submitted' || newStatus === 'Reviewed' || newStatus === 'Under Review') {
       displayStatus = 'UNDER REVIEW';
       statusClass = 'status-under-review';
-    } else if (newStatus === 'Reviewed') {
-      displayStatus = 'REVIEWED';
-      statusClass = 'status-reviewed';
     } else if (newStatus === 'Under Repair') {
       displayStatus = 'UNDER REPAIR';
       statusClass = 'status-under-repair';
@@ -1200,8 +1336,9 @@ function TechnicalPersonnelReportsPage({
       <div className="reports-metric-cards-grid">
         {/* 1. TOTAL REPORTS */}
         <div
-          className={`student-metric-card tech-stat-card card-all-guides ${selectedStatusFilter === 'ALL' ? 'card-filter-active' : ''}`}
+          className={`student-metric-card tech-stat-card card-all-guides ${activeTab === 'DEFAULT' && selectedStatusFilter === 'ALL' ? 'card-filter-active' : ''}`}
           onClick={() => {
+            setActiveTab('DEFAULT');
             setSelectedStatusFilter('ALL');
             setCurrentPage(1);
           }}
@@ -1216,16 +1353,17 @@ function TechnicalPersonnelReportsPage({
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <span className="student-metric-number">{stats.total}</span>
+            <span className="student-metric-number">{isLoading && (!reportsList || reportsList.length === 0) ? '...' : stats.total}</span>
           </div>
           <p className="student-metric-caption">All submitted laboratory tickets.</p>
         </div>
 
         {/* 2. UNDER REVIEW */}
         <div
-          className={`student-metric-card ${selectedStatusFilter === 'UNDER_REVIEW' ? 'card-filter-active' : ''}`}
+          className={`student-metric-card ${activeTab === 'DEFAULT' && selectedStatusFilter === 'UNDER_REVIEW' ? 'card-filter-active' : ''}`}
           onClick={() => {
-            setSelectedStatusFilter((prev) => (prev === 'UNDER_REVIEW' ? 'ALL' : 'UNDER_REVIEW'));
+            setActiveTab('DEFAULT');
+            setSelectedStatusFilter((prev) => (activeTab === 'DEFAULT' && prev === 'UNDER_REVIEW' ? 'ALL' : 'UNDER_REVIEW'));
             setCurrentPage(1);
           }}
           role="button"
@@ -1239,16 +1377,17 @@ function TechnicalPersonnelReportsPage({
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <span className="student-metric-number font-serif">{stats.underReview}</span>
+            <span className="student-metric-number font-serif">{isLoading && (!reportsList || reportsList.length === 0) ? '...' : stats.underReview}</span>
           </div>
           <p className="student-metric-caption">Awaiting triage & technician review.</p>
         </div>
 
         {/* 3. UNDER REPAIR */}
         <div
-          className={`student-metric-card ${selectedStatusFilter === 'UNDER_REPAIR' ? 'card-filter-active' : ''}`}
+          className={`student-metric-card ${activeTab === 'DEFAULT' && selectedStatusFilter === 'UNDER_REPAIR' ? 'card-filter-active' : ''}`}
           onClick={() => {
-            setSelectedStatusFilter((prev) => (prev === 'UNDER_REPAIR' ? 'ALL' : 'UNDER_REPAIR'));
+            setActiveTab('DEFAULT');
+            setSelectedStatusFilter((prev) => (activeTab === 'DEFAULT' && prev === 'UNDER_REPAIR' ? 'ALL' : 'UNDER_REPAIR'));
             setCurrentPage(1);
           }}
           role="button"
@@ -1262,16 +1401,17 @@ function TechnicalPersonnelReportsPage({
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <span className="student-metric-number font-serif">{stats.underRepair}</span>
+            <span className="student-metric-number font-serif">{isLoading && (!reportsList || reportsList.length === 0) ? '...' : stats.underRepair}</span>
           </div>
           <p className="student-metric-caption">Currently being serviced & fixed.</p>
         </div>
 
         {/* 4. RESOLVED */}
         <div
-          className={`student-metric-card ${selectedStatusFilter === 'RESOLVED' ? 'card-filter-active' : ''}`}
+          className={`student-metric-card ${activeTab === 'DEFAULT' && selectedStatusFilter === 'RESOLVED' ? 'card-filter-active' : ''}`}
           onClick={() => {
-            setSelectedStatusFilter((prev) => (prev === 'RESOLVED' ? 'ALL' : 'RESOLVED'));
+            setActiveTab('DEFAULT');
+            setSelectedStatusFilter((prev) => (activeTab === 'DEFAULT' && prev === 'RESOLVED' ? 'ALL' : 'RESOLVED'));
             setCurrentPage(1);
           }}
           role="button"
@@ -1285,7 +1425,7 @@ function TechnicalPersonnelReportsPage({
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <span className="student-metric-number font-serif">{stats.resolved}</span>
+            <span className="student-metric-number font-serif">{isLoading && (!reportsList || reportsList.length === 0) ? '...' : stats.resolved}</span>
           </div>
           <p className="student-metric-caption">Issues successfully fixed & closed.</p>
         </div>
@@ -1293,13 +1433,13 @@ function TechnicalPersonnelReportsPage({
 
       {/* Filter and Search Bar Controls Row */}
       <div className="reports-controls-bar">
-        {/* Search Input Box */}
+        {/* Search Input Box (Search ONLY by Report ID and PC number) */}
         <div className="reports-search-box-wrapper">
           <Search size={15} className="reports-search-icon" />
           <input
             type="text"
             className="reports-search-input"
-            placeholder="Search by report ID, PC, or description"
+            placeholder="Search by report ID or PC number"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -1315,7 +1455,7 @@ function TechnicalPersonnelReportsPage({
           )}
         </div>
 
-        {/* Status Filter Dropdown */}
+        {/* Status Filter Dropdown (Separated from On Hold tab) */}
         <div className="reports-dropdown-relative">
           <button
             type="button"
@@ -1331,77 +1471,87 @@ function TechnicalPersonnelReportsPage({
             <div className="reports-dropdown-menu">
               <button
                 type="button"
-                className={`dropdown-menu-opt ${selectedStatusFilter === 'ALL' ? 'opt-active' : ''}`}
+                className={`dropdown-menu-opt ${activeTab === 'DEFAULT' && selectedStatusFilter === 'ALL' ? 'opt-active' : ''}`}
                 onClick={() => {
                   setSelectedStatusFilter('ALL');
+                  setActiveTab('DEFAULT');
                   setStatusDropdownOpen(false);
+                  setCurrentPage(1);
                 }}
               >
                 <span>All Statuses</span>
-                {selectedStatusFilter === 'ALL' && <Check size={14} className="opt-check" />}
+                {activeTab === 'DEFAULT' && selectedStatusFilter === 'ALL' && <Check size={14} className="opt-check" />}
               </button>
               <button
                 type="button"
-                className={`dropdown-menu-opt ${selectedStatusFilter === 'SUBMITTED' ? 'opt-active' : ''}`}
+                className={`dropdown-menu-opt ${activeTab === 'DEFAULT' && selectedStatusFilter === 'SUBMITTED' ? 'opt-active' : ''}`}
                 onClick={() => {
                   setSelectedStatusFilter('SUBMITTED');
+                  setActiveTab('DEFAULT');
                   setStatusDropdownOpen(false);
+                  setCurrentPage(1);
                 }}
               >
                 <span>Submitted</span>
-                {selectedStatusFilter === 'SUBMITTED' && <Check size={14} className="opt-check" />}
+                {activeTab === 'DEFAULT' && selectedStatusFilter === 'SUBMITTED' && <Check size={14} className="opt-check" />}
               </button>
               <button
                 type="button"
-                className={`dropdown-menu-opt ${selectedStatusFilter === 'UNDER_REVIEW' ? 'opt-active' : ''}`}
+                className={`dropdown-menu-opt ${activeTab === 'DEFAULT' && selectedStatusFilter === 'UNDER_REVIEW' ? 'opt-active' : ''}`}
                 onClick={() => {
                   setSelectedStatusFilter('UNDER_REVIEW');
+                  setActiveTab('DEFAULT');
                   setStatusDropdownOpen(false);
+                  setCurrentPage(1);
                 }}
               >
                 <span>Under Review</span>
-                {selectedStatusFilter === 'UNDER_REVIEW' && <Check size={14} className="opt-check" />}
+                {activeTab === 'DEFAULT' && selectedStatusFilter === 'UNDER_REVIEW' && <Check size={14} className="opt-check" />}
               </button>
               <button
                 type="button"
-                className={`dropdown-menu-opt ${selectedStatusFilter === 'UNDER_REPAIR' ? 'opt-active' : ''}`}
+                className={`dropdown-menu-opt ${activeTab === 'DEFAULT' && selectedStatusFilter === 'UNDER_REPAIR' ? 'opt-active' : ''}`}
                 onClick={() => {
                   setSelectedStatusFilter('UNDER_REPAIR');
+                  setActiveTab('DEFAULT');
                   setStatusDropdownOpen(false);
+                  setCurrentPage(1);
                 }}
               >
                 <span>Under Repair</span>
-                {selectedStatusFilter === 'UNDER_REPAIR' && <Check size={14} className="opt-check" />}
+                {activeTab === 'DEFAULT' && selectedStatusFilter === 'UNDER_REPAIR' && <Check size={14} className="opt-check" />}
               </button>
               <button
                 type="button"
-                className={`dropdown-menu-opt ${selectedStatusFilter === 'RESOLVED' ? 'opt-active' : ''}`}
+                className={`dropdown-menu-opt ${activeTab === 'DEFAULT' && selectedStatusFilter === 'RESOLVED' ? 'opt-active' : ''}`}
                 onClick={() => {
                   setSelectedStatusFilter('RESOLVED');
+                  setActiveTab('DEFAULT');
                   setStatusDropdownOpen(false);
+                  setCurrentPage(1);
                 }}
               >
                 <span>Resolved</span>
-                {selectedStatusFilter === 'RESOLVED' && <Check size={14} className="opt-check" />}
+                {activeTab === 'DEFAULT' && selectedStatusFilter === 'RESOLVED' && <Check size={14} className="opt-check" />}
               </button>
             </div>
           )}
         </div>
 
-        {/* Dedicated Clickable On Hold Pill Button */}
+        {/* Dedicated Clickable On Hold Tab Pill Button */}
         <button
           type="button"
-          className={`reports-on-hold-pill-btn ${selectedStatusFilter === 'ON_HOLD' ? 'pill-active' : ''}`}
+          className={`reports-on-hold-pill-btn ${activeTab === 'ON_HOLD' ? 'pill-active' : ''}`}
           onClick={() => {
-            setSelectedStatusFilter((prev) => (prev === 'ON_HOLD' ? 'ALL' : 'ON_HOLD'));
+            setActiveTab((prev) => (prev === 'ON_HOLD' ? 'DEFAULT' : 'ON_HOLD'));
             setStatusDropdownOpen(false);
             setCurrentPage(1);
           }}
-          aria-pressed={selectedStatusFilter === 'ON_HOLD'}
-          title="Filter by On Hold reports"
+          aria-pressed={activeTab === 'ON_HOLD'}
+          title="On Hold tab"
         >
           <span>On Hold</span>
-          <span className="reports-on-hold-badge-count">{stats.onHold}</span>
+          <span className="reports-on-hold-badge-count">{isLoading && (!reportsList || reportsList.length === 0) ? '...' : stats.onHold}</span>
         </button>
 
         {/* Reset All Filters Button */}
@@ -1432,7 +1582,19 @@ function TechnicalPersonnelReportsPage({
               </tr>
             </thead>
             <tbody>
-              {paginatedReports.length > 0 ? (
+              {isLoading && (!reportsList || reportsList.length === 0) ? (
+                [...Array(7)].map((_, idx) => (
+                  <tr key={`loading-reports-row-${idx}`} className="reports-table-data-row loading-skeleton-row">
+                    <td className="cell-id"><div className="skeleton-line skeleton-badge" /></td>
+                    <td className="cell-equipment"><div className="skeleton-line skeleton-title" /><div className="skeleton-line skeleton-sub" /></td>
+                    <td className="cell-reported"><div className="skeleton-line skeleton-title" /></td>
+                    <td className="cell-location"><div className="skeleton-line skeleton-title" /></td>
+                    <td className="cell-submitted"><div className="skeleton-line skeleton-title" /></td>
+                    <td className="cell-status"><div className="skeleton-line skeleton-pill" /></td>
+                    <td className="cell-action"><div className="skeleton-line skeleton-btn" /></td>
+                  </tr>
+                ))
+              ) : paginatedReports.length > 0 ? (
                 paginatedReports.map((report) => {
                   const avatar = getAvatar(report);
                   return (
@@ -1519,10 +1681,7 @@ function TechnicalPersonnelReportsPage({
                       <button
                         type="button"
                         className="reset-filters-btn"
-                        onClick={() => {
-                          setSearchQuery('');
-                          setSelectedStatusFilter('ALL');
-                        }}
+                        onClick={handleResetAllFilters}
                       >
                         Clear all filters
                       </button>

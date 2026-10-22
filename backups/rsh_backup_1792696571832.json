@@ -1,0 +1,646 @@
+[
+  {
+    "id": "7bfbf55b-e694-4787-ac8a-e36c781fe7f0",
+    "report_id": "cf627f2d-7690-4890-9b34-5465375cbfcb",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-01T01:15:00+00:00"
+  },
+  {
+    "id": "47acd3ee-4571-4a5c-8a79-958a468633d3",
+    "report_id": "17c3cf50-2a1a-47b4-a58c-1ea74941f031",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-01T03:00:00+00:00"
+  },
+  {
+    "id": "6be16593-6417-480b-a369-1ed0e66446c1",
+    "report_id": "84b02d8d-bdae-447a-8e41-969c4f6c8e95",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-01T06:15:00+00:00"
+  },
+  {
+    "id": "e32c60a1-56bc-47d9-98f7-0653ecfce869",
+    "report_id": "21d93fda-33bf-4ffb-8753-90b9738d15fe",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-01T08:45:00+00:00"
+  },
+  {
+    "id": "49c2e394-b7e4-439e-9e8e-dd3061d95f9d",
+    "report_id": "5a012e00-b230-44e0-8c8a-d488f834061d",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-02T02:00:00+00:00"
+  },
+  {
+    "id": "aa3d4d1c-d0c8-4ba4-81dd-adb7276cd6a9",
+    "report_id": "af3e22d9-8f18-421a-b82f-1e4fe283b9be",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-02T02:00:00+00:00"
+  },
+  {
+    "id": "c38a3cdc-f941-489a-b7a5-04717068fec9",
+    "report_id": "2a772fb8-e648-4df9-92ae-01d266d6b76a",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-02T04:20:00+00:00"
+  },
+  {
+    "id": "c2489bae-183e-4215-85f2-15735f01cc39",
+    "report_id": "c26bfb00-8c9f-449c-b028-3a6aa545f8f5",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-02T06:40:00+00:00"
+  },
+  {
+    "id": "085f74f3-8f15-4570-86e9-5a9ec809bf6e",
+    "report_id": "f03e36d8-b60a-48f7-b864-05ab029fddfd",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-03T01:30:00+00:00"
+  },
+  {
+    "id": "e3ea7982-3181-41a0-a850-6b142c75d378",
+    "report_id": "0b877f0f-e337-4709-9758-319e7da2bafa",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-03T06:10:00+00:00"
+  },
+  {
+    "id": "4f84c658-6c8c-4b4b-9511-f7c83a9cf2f5",
+    "report_id": "e516afc4-7130-464d-8367-85322b485180",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-04T05:00:00+00:00"
+  },
+  {
+    "id": "734a71e6-55c1-47c1-8800-1161fe97cfc4",
+    "report_id": "f1177e44-e45a-4253-83f2-93aea8d50238",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-04T07:00:00+00:00"
+  },
+  {
+    "id": "7711e272-41d8-46ad-9373-aca4f8efb077",
+    "report_id": "2ac46da3-965a-4590-9d89-d275d012b35f",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-04T08:15:00+00:00"
+  },
+  {
+    "id": "2c9f21e8-24b0-416c-a7b9-3b00f4e4bf65",
+    "report_id": "4bb3c437-9466-4d6a-a5bf-6d5bace7998b",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-05T01:30:00+00:00"
+  },
+  {
+    "id": "92df5f1d-c7f3-4011-bac7-71dead915393",
+    "report_id": "9bd54049-4649-42ee-8175-b12ffc6e3d59",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-07T03:45:00+00:00"
+  },
+  {
+    "id": "278d6da6-4f03-4355-8d30-c9e8f26dff70",
+    "report_id": "a8c9be1d-79a7-485c-a4a2-0d7c7ea06db0",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-08T05:10:00+00:00"
+  },
+  {
+    "id": "3b518e63-2019-4fd1-9f16-8b6dd70d7865",
+    "report_id": "1070a947-6906-4d0b-a6a2-0c7f136a398d",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-09T02:15:00+00:00"
+  },
+  {
+    "id": "484ff05a-94e6-4e74-9384-ec9644915dc2",
+    "report_id": "1246836c-d549-45b0-911b-7b6cb0e4a17d",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-12T07:15:00+00:00"
+  },
+  {
+    "id": "867764c6-f65a-48a5-b445-861393467a53",
+    "report_id": "ffb1d69a-1c25-4141-bf2a-128f38b73180",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-12T07:15:00+00:00"
+  },
+  {
+    "id": "57989c9e-215c-4ca7-a75c-a31230e28e96",
+    "report_id": "239c5683-74e0-4cf1-b16b-507bad342b83",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-12T07:15:00+00:00"
+  },
+  {
+    "id": "0d06b6be-c227-4c6d-88e4-df0ae50ccf6c",
+    "report_id": "6bcccb3c-7942-4040-a1a4-56a920fe0331",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-14T06:45:00+00:00"
+  },
+  {
+    "id": "f6fdfa3a-b0d0-45e6-9912-0a3653ec6b14",
+    "report_id": "f500023f-b377-4313-8e12-8995712a60d5",
+    "status": "Submitted",
+    "remarks": "Port keystone needs replacement. Parts requisition submitted.",
+    "created_at": "2026-10-15T05:30:00+00:00"
+  },
+  {
+    "id": "5e6bd9d9-833f-46a2-a469-bb1956d6bc54",
+    "report_id": "bf4bfa59-9fb6-4810-b6af-42ada03a0ab2",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-16T01:30:00+00:00"
+  },
+  {
+    "id": "f43376ef-111f-472a-931e-5a652611e7ca",
+    "report_id": "3d6ba9ed-1146-4ef8-896d-053d29b6c28c",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-17T02:40:00+00:00"
+  },
+  {
+    "id": "7b592b98-8c63-4a27-b25f-4de54b20bae5",
+    "report_id": "bf4bfa59-9fb6-4810-b6af-42ada03a0ab2",
+    "status": "Reviewed",
+    "remarks": null,
+    "created_at": "2026-10-17T16:40:22.156995+00:00"
+  },
+  {
+    "id": "ce2660ca-d42a-46a1-b7c3-8ce97560a04d",
+    "report_id": "f500023f-b377-4313-8e12-8995712a60d5",
+    "status": "Under Repair",
+    "remarks": "Port keystone needs replacement. Parts requisition submitted.",
+    "created_at": "2026-10-17T16:40:22.485462+00:00"
+  },
+  {
+    "id": "2dc11d9a-d05d-455f-a497-ab5fcdbd5415",
+    "report_id": "6bcccb3c-7942-4040-a1a4-56a920fe0331",
+    "status": "Resolved",
+    "remarks": "Re-crimped RJ-45 connector and tested continuous ping at 0% drop rate.",
+    "created_at": "2026-10-17T16:40:22.789843+00:00"
+  },
+  {
+    "id": "f31860ed-33e5-461a-b0d4-2e0ecc452709",
+    "report_id": "239c5683-74e0-4cf1-b16b-507bad342b83",
+    "status": "Resolved",
+    "remarks": "Replaced patch cable with Cat6 shielded cable. Full gigabit link restored.",
+    "created_at": "2026-10-17T16:40:23.12404+00:00"
+  },
+  {
+    "id": "f2e75531-dd7e-4f39-8a0b-b66160c76053",
+    "report_id": "1246836c-d549-45b0-911b-7b6cb0e4a17d",
+    "status": "Resolved",
+    "remarks": "Cleaned switches and replaced worn keycaps.",
+    "created_at": "2026-10-17T16:40:23.822+00:00"
+  },
+  {
+    "id": "d00745c7-2b23-4a8f-bcf9-702efcc62404",
+    "report_id": "1070a947-6906-4d0b-a6a2-0c7f136a398d",
+    "status": "Resolved",
+    "remarks": "Replaced chassis fan and reapplied thermal paste. Temperatures normal.",
+    "created_at": "2026-10-17T16:40:24.133152+00:00"
+  },
+  {
+    "id": "c3535837-36c0-4351-9fed-c3a3f746aedc",
+    "report_id": "a8c9be1d-79a7-485c-a4a2-0d7c7ea06db0",
+    "status": "Resolved",
+    "remarks": "Defective fuse replaced and surge suppression load-tested.",
+    "created_at": "2026-10-17T16:40:24.467196+00:00"
+  },
+  {
+    "id": "d61f0415-5299-4642-88b5-d3b498ed9e5e",
+    "report_id": "9bd54049-4649-42ee-8175-b12ffc6e3d59",
+    "status": "Resolved",
+    "remarks": "Renewed institutional license server key and verified compiler build.",
+    "created_at": "2026-10-17T16:40:24.818625+00:00"
+  },
+  {
+    "id": "d531a08b-30be-49ef-a8ba-020e93dd3cd3",
+    "report_id": "4bb3c437-9466-4d6a-a5bf-6d5bace7998b",
+    "status": "Resolved",
+    "remarks": "Replaced bent HDMI cable and recalibrated color profile.",
+    "created_at": "2026-10-17T16:40:25.153653+00:00"
+  },
+  {
+    "id": "c1335d96-728e-4569-94b0-4398e99fcd57",
+    "report_id": "f1177e44-e45a-4253-83f2-93aea8d50238",
+    "status": "Resolved",
+    "remarks": "Firmware updated and cable seated properly in rear USB 3.0 port.",
+    "created_at": "2026-10-17T16:40:25.472462+00:00"
+  },
+  {
+    "id": "c65d9df6-2987-4c94-96d5-78ebec9fbd6c",
+    "report_id": "5a012e00-b230-44e0-8c8a-d488f834061d",
+    "status": "Resolved",
+    "remarks": "Replaced microswitch. Verified click reliability in diagnostic tool.",
+    "created_at": "2026-10-17T16:40:25.774136+00:00"
+  },
+  {
+    "id": "dfd39d62-0f8f-4546-ba46-1d9b32991fba",
+    "report_id": "e516afc4-7130-464d-8367-85322b485180",
+    "status": "Resolved",
+    "remarks": "RAM module reseated and memory diagnostics passed clean.",
+    "created_at": "2026-10-17T16:40:26.07331+00:00"
+  },
+  {
+    "id": "5c3340a3-7c38-4fba-9283-cbeb49975459",
+    "report_id": "2ac46da3-965a-4590-9d89-d275d012b35f",
+    "status": "Resolved",
+    "remarks": "Replaced electrical wall outlet plate and tightened terminal lugs.",
+    "created_at": "2026-10-17T16:40:26.432386+00:00"
+  },
+  {
+    "id": "47275b39-7cd1-44bc-a383-c54cdb160504",
+    "report_id": "f03e36d8-b60a-48f7-b864-05ab029fddfd",
+    "status": "Resolved",
+    "remarks": "Realtek audio driver reinstalled from OEM repository.",
+    "created_at": "2026-10-17T16:40:27.216319+00:00"
+  },
+  {
+    "id": "5cd8a5cf-4618-403a-9843-28b2b854a7b6",
+    "report_id": "0b877f0f-e337-4709-9758-319e7da2bafa",
+    "status": "Resolved",
+    "remarks": "Installed updated Intel display graphics drivers.",
+    "created_at": "2026-10-17T16:40:27.558651+00:00"
+  },
+  {
+    "id": "91b9b7ee-ad4e-42c6-932d-c73a6a41c6a8",
+    "report_id": "af3e22d9-8f18-421a-b82f-1e4fe283b9be",
+    "status": "Resolved",
+    "remarks": "Keyboard controller reset; normal operation verified.",
+    "created_at": "2026-10-17T16:40:27.896727+00:00"
+  },
+  {
+    "id": "b4844e3c-d50b-4b6d-8ff5-13d7f0e9177c",
+    "report_id": "2a772fb8-e648-4df9-92ae-01d266d6b76a",
+    "status": "Resolved",
+    "remarks": "Optical wheel encoder cleaned and tested.",
+    "created_at": "2026-10-17T16:40:28.196264+00:00"
+  },
+  {
+    "id": "b7d4d4cb-d1a7-4da5-ad04-bc516711e81c",
+    "report_id": "c26bfb00-8c9f-449c-b028-3a6aa545f8f5",
+    "status": "Resolved",
+    "remarks": "Switch port VLAN membership reconfigured in rack 2.",
+    "created_at": "2026-10-17T16:40:28.498164+00:00"
+  },
+  {
+    "id": "f9bad041-23c0-462e-a47c-9c73c7a7b783",
+    "report_id": "cf627f2d-7690-4890-9b34-5465375cbfcb",
+    "status": "Resolved",
+    "remarks": "Reconnected front-panel motherboard header cable.",
+    "created_at": "2026-10-17T16:40:28.856543+00:00"
+  },
+  {
+    "id": "8c651e7a-0afc-47fb-b55a-73eef444afae",
+    "report_id": "17c3cf50-2a1a-47b4-a58c-1ea74941f031",
+    "status": "Resolved",
+    "remarks": "Battery calibrated and sensitivity potentiometer adjusted.",
+    "created_at": "2026-10-17T16:40:29.203429+00:00"
+  },
+  {
+    "id": "f00f3e50-88ea-4297-8689-ecd958281ab8",
+    "report_id": "84b02d8d-bdae-447a-8e41-969c4f6c8e95",
+    "status": "Resolved",
+    "remarks": "Replacement keyboard issued from stock. Verified operational.",
+    "created_at": "2026-10-17T16:40:29.541256+00:00"
+  },
+  {
+    "id": "98f9f363-eecc-4217-9368-e8f299966e67",
+    "report_id": "21d93fda-33bf-4ffb-8753-90b9738d15fe",
+    "status": "Resolved",
+    "remarks": "OS re-imaged and updated. Verified operational.",
+    "created_at": "2026-10-17T16:40:29.908694+00:00"
+  },
+  {
+    "id": "ab61e1c0-c3db-41ab-8057-db7ab55941d7",
+    "report_id": "ffb1d69a-1c25-4141-bf2a-128f38b73180",
+    "status": "On Hold",
+    "remarks": "Awaiting replacement parts from supplier.",
+    "created_at": "2026-10-19T20:23:09.433663+00:00"
+  },
+  {
+    "id": "6bd29fbc-a673-4fad-98a3-9d50c0932421",
+    "report_id": "e516afc4-7130-464d-8367-85322b485180",
+    "status": "Under Repair",
+    "remarks": "Technician currently re-terminating patch panel drop cable.",
+    "created_at": "2026-10-21T13:05:16.245645+00:00"
+  },
+  {
+    "id": "04831805-dea5-4305-a646-41927b5a2e7d",
+    "report_id": "5a012e00-b230-44e0-8c8a-d488f834061d",
+    "status": "Reviewed",
+    "remarks": "Assigned for hardware diagnostic by technical personnel.",
+    "created_at": "2026-10-21T13:05:55.501151+00:00"
+  },
+  {
+    "id": "7d16f518-e636-4c69-b427-de27f30ed449",
+    "report_id": "17c6e0d0-d4f3-4d47-83dd-1f751f8548f3",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-22T04:50:00+00:00"
+  },
+  {
+    "id": "b5577198-b922-463b-bbeb-1471d5c2dc9b",
+    "report_id": "1c9691cd-e738-48aa-819b-fd884af6dd34",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-22T08:31:18.853276+00:00"
+  },
+  {
+    "id": "03271235-1571-4cff-87c1-843821eaf96e",
+    "report_id": "bf4bfa59-9fb6-4810-b6af-42ada03a0ab2",
+    "status": "Reviewed",
+    "remarks": null,
+    "created_at": "2026-10-22T08:59:34.639406+00:00"
+  },
+  {
+    "id": "4a59e717-50f5-4b13-acbd-1942c7c49546",
+    "report_id": "bf4bfa59-9fb6-4810-b6af-42ada03a0ab2",
+    "status": "Under Repair",
+    "remarks": null,
+    "created_at": "2026-10-22T09:00:08.242126+00:00"
+  },
+  {
+    "id": "07208fb7-71e6-4423-9933-5b551bdc1d53",
+    "report_id": "bf4bfa59-9fb6-4810-b6af-42ada03a0ab2",
+    "status": "On Hold",
+    "remarks": "Pending network diagnosis.",
+    "created_at": "2026-10-22T10:14:50.180801+00:00"
+  },
+  {
+    "id": "5fde7e4b-89fc-44c1-b39b-ac5f0e5f437b",
+    "report_id": "d3acb1d4-a32d-4d41-b276-c95acc82c0e3",
+    "status": "Submitted",
+    "remarks": null,
+    "created_at": "2026-10-22T11:12:56.931051+00:00"
+  },
+  {
+    "id": "8ddc0aea-1b13-4815-ad93-9f366f662d9a",
+    "report_id": "d3acb1d4-a32d-4d41-b276-c95acc82c0e3",
+    "status": "Reviewed",
+    "remarks": null,
+    "created_at": "2026-10-22T11:13:47.811559+00:00"
+  },
+  {
+    "id": "95120c28-665a-4f3c-b0ed-8bef6758ada0",
+    "report_id": "d3acb1d4-a32d-4d41-b276-c95acc82c0e3",
+    "status": "Under Repair",
+    "remarks": null,
+    "created_at": "2026-10-22T11:14:25.475846+00:00"
+  },
+  {
+    "id": "3e910148-6c8c-460c-b5a5-67a7d949305c",
+    "report_id": "d3acb1d4-a32d-4d41-b276-c95acc82c0e3",
+    "status": "Resolved",
+    "remarks": "The monitor reported is now replaced and it can be used now.",
+    "created_at": "2026-10-22T11:15:39.450005+00:00"
+  },
+  {
+    "id": "3e58684a-b801-4cdc-bb2f-336bd7239000",
+    "report_id": "6bcccb3c-7942-4040-a1a4-56a920fe0331",
+    "status": "Reviewed",
+    "remarks": "Reviewed by Technical Personnel",
+    "created_at": "2026-10-22T11:23:00+00:00"
+  },
+  {
+    "id": "ec762764-8187-4ec2-b135-c8c1b183080d",
+    "report_id": "17c6e0d0-d4f3-4d47-83dd-1f751f8548f3",
+    "status": "Under Repair",
+    "remarks": null,
+    "created_at": "2026-10-22T11:24:37.300769+00:00"
+  },
+  {
+    "id": "3d410b4a-eb0c-46a6-8ed8-965cb200691f",
+    "report_id": "ffb1d69a-1c25-4141-bf2a-128f38b73180",
+    "status": "Under Repair",
+    "remarks": "Awaiting replacement parts from supplier.",
+    "created_at": "2026-10-22T11:30:09.295214+00:00"
+  },
+  {
+    "id": "7bae848e-9f32-4d49-a414-c24e21dea052",
+    "report_id": "ffb1d69a-1c25-4141-bf2a-128f38b73180",
+    "status": "On Hold",
+    "remarks": "Awaiting replacement parts from supplier.",
+    "created_at": "2026-10-22T11:30:10.718582+00:00"
+  },
+  {
+    "id": "cbdd1b3f-8c14-4cc9-a163-dcd373ec1fdb",
+    "report_id": "6bcccb3c-7942-4040-a1a4-56a920fe0331",
+    "status": "Under Repair",
+    "remarks": "Re-crimped RJ-45 connector and tested continuous ping at 0% drop rate.",
+    "created_at": "2026-10-22T11:30:12.786747+00:00"
+  },
+  {
+    "id": "95408e3a-38f1-45f1-8df6-e0c5caa6d14a",
+    "report_id": "6bcccb3c-7942-4040-a1a4-56a920fe0331",
+    "status": "Resolved",
+    "remarks": "Re-crimped RJ-45 connector and tested continuous ping at 0% drop rate.",
+    "created_at": "2026-10-22T11:30:13.843972+00:00"
+  },
+  {
+    "id": "fadf9cd0-710f-46d4-a7af-56f5e3103690",
+    "report_id": "bf4bfa59-9fb6-4810-b6af-42ada03a0ab2",
+    "status": "Under Repair",
+    "remarks": "Pending network diagnosis.",
+    "created_at": "2026-10-22T11:30:15.629362+00:00"
+  },
+  {
+    "id": "53c58806-50df-453b-9bbc-2c7a5c3c06fa",
+    "report_id": "bf4bfa59-9fb6-4810-b6af-42ada03a0ab2",
+    "status": "On Hold",
+    "remarks": "Pending network diagnosis.",
+    "created_at": "2026-10-22T11:30:16.541514+00:00"
+  },
+  {
+    "id": "7a620f02-294a-4ee8-8355-c75654a7ca77",
+    "report_id": "c26bfb00-8c9f-449c-b028-3a6aa545f8f5",
+    "status": "Under Repair",
+    "remarks": "RJ-45 connector re-crimped and patch cable tested.",
+    "created_at": "2026-10-22T11:30:16.891801+00:00"
+  },
+  {
+    "id": "9eb7e02c-f768-4d3d-a30c-161fa2a14636",
+    "report_id": "c26bfb00-8c9f-449c-b028-3a6aa545f8f5",
+    "status": "Resolved",
+    "remarks": "RJ-45 connector re-crimped and patch cable tested.",
+    "created_at": "2026-10-22T11:30:17.861801+00:00"
+  },
+  {
+    "id": "dabfc418-e21a-4d7b-b01e-4aaefc1a272e",
+    "report_id": "9bd54049-4649-42ee-8175-b12ffc6e3d59",
+    "status": "Under Repair",
+    "remarks": "Configured DHCP reservation and flushed DNS cache.",
+    "created_at": "2026-10-22T11:30:18.438128+00:00"
+  },
+  {
+    "id": "55ea1071-2c1f-46fb-a4fc-aabee6565956",
+    "report_id": "9bd54049-4649-42ee-8175-b12ffc6e3d59",
+    "status": "Resolved",
+    "remarks": "Configured DHCP reservation and flushed DNS cache.",
+    "created_at": "2026-10-22T11:30:19.384786+00:00"
+  },
+  {
+    "id": "08e41a59-871e-4f39-a76f-bd2292ed232b",
+    "report_id": "a8c9be1d-79a7-485c-a4a2-0d7c7ea06db0",
+    "status": "Under Repair",
+    "remarks": "Power brick replaced with original manufacturer 19V supply.",
+    "created_at": "2026-10-22T11:30:19.712885+00:00"
+  },
+  {
+    "id": "009345eb-2d7a-4107-9750-c7e53717986b",
+    "report_id": "a8c9be1d-79a7-485c-a4a2-0d7c7ea06db0",
+    "status": "Resolved",
+    "remarks": "Power brick replaced with original manufacturer 19V supply.",
+    "created_at": "2026-10-22T11:30:20.65532+00:00"
+  },
+  {
+    "id": "bf06eaee-3f1e-4301-9f98-90caf26d7b6a",
+    "report_id": "21d93fda-33bf-4ffb-8753-90b9738d15fe",
+    "status": "Under Repair",
+    "remarks": "DisplayPort cable connected properly to discrete GPU.",
+    "created_at": "2026-10-22T11:30:20.924478+00:00"
+  },
+  {
+    "id": "0d2845cc-3b31-4c78-8c6e-b47c2db8194c",
+    "report_id": "21d93fda-33bf-4ffb-8753-90b9738d15fe",
+    "status": "Resolved",
+    "remarks": "DisplayPort cable connected properly to discrete GPU.",
+    "created_at": "2026-10-22T11:30:21.882624+00:00"
+  },
+  {
+    "id": "15951000-8d75-4549-b421-9a51162cde00",
+    "report_id": "f1177e44-e45a-4253-83f2-93aea8d50238",
+    "status": "Under Repair",
+    "remarks": "Mouse replaced with new optical mouse from storage.",
+    "created_at": "2026-10-22T11:30:22.181162+00:00"
+  },
+  {
+    "id": "f752549b-abae-454f-bb8e-9aa8dc3d9cda",
+    "report_id": "f1177e44-e45a-4253-83f2-93aea8d50238",
+    "status": "Resolved",
+    "remarks": "Mouse replaced with new optical mouse from storage.",
+    "created_at": "2026-10-22T11:30:23.122817+00:00"
+  },
+  {
+    "id": "98579a07-7d4d-4456-a088-fb72b05c4710",
+    "report_id": "2a772fb8-e648-4df9-92ae-01d266d6b76a",
+    "status": "Under Repair",
+    "remarks": "Environment paths corrected and tested with GCC build.",
+    "created_at": "2026-10-22T11:30:23.394152+00:00"
+  },
+  {
+    "id": "63b035ec-8587-4393-9c74-75b59b6901df",
+    "report_id": "2a772fb8-e648-4df9-92ae-01d266d6b76a",
+    "status": "Resolved",
+    "remarks": "Environment paths corrected and tested with GCC build.",
+    "created_at": "2026-10-22T11:30:24.387664+00:00"
+  },
+  {
+    "id": "74e62b89-91b7-41c2-91c6-3d89f63ed1fe",
+    "report_id": "5a012e00-b230-44e0-8c8a-d488f834061d",
+    "status": "Under Repair",
+    "remarks": "Assigned for hardware diagnostic by technical personnel.",
+    "created_at": "2026-10-22T11:30:24.733053+00:00"
+  },
+  {
+    "id": "4e1d864d-4e27-49a1-acd5-b38817953a05",
+    "report_id": "5a012e00-b230-44e0-8c8a-d488f834061d",
+    "status": "Reviewed",
+    "remarks": "Assigned for hardware diagnostic by technical personnel.",
+    "created_at": "2026-10-22T11:30:25.705969+00:00"
+  },
+  {
+    "id": "87e9b211-e12d-4072-b00c-0fed458496d8",
+    "report_id": "1c9691cd-e738-48aa-819b-fd884af6dd34",
+    "status": "Under Repair",
+    "remarks": null,
+    "created_at": "2026-10-22T11:30:48.366646+00:00"
+  },
+  {
+    "id": "91a72a9f-1db5-4941-b6e4-8ccbea04c2cc",
+    "report_id": "1c9691cd-e738-48aa-819b-fd884af6dd34",
+    "status": "Reviewed",
+    "remarks": null,
+    "created_at": "2026-10-22T11:40:24.07774+00:00"
+  },
+  {
+    "id": "52e466b6-db78-46c7-b2c8-c6f5a14c11e0",
+    "report_id": "1c9691cd-e738-48aa-819b-fd884af6dd34",
+    "status": "Under Repair",
+    "remarks": null,
+    "created_at": "2026-10-22T11:41:08.879483+00:00"
+  },
+  {
+    "id": "eba751fe-ce77-4d92-a6bd-a14a637342ab",
+    "report_id": "17c6e0d0-d4f3-4d47-83dd-1f751f8548f3",
+    "status": "Under Repair",
+    "remarks": null,
+    "created_at": "2026-10-22T11:47:12.74+00:00"
+  },
+  {
+    "id": "ecdb1056-c07a-4176-9963-f7ce8c7247d1",
+    "report_id": "17c6e0d0-d4f3-4d47-83dd-1f751f8548f3",
+    "status": "Resolved",
+    "remarks": "There is insufficient supplies yet.",
+    "created_at": "2026-10-22T16:24:59.369271+00:00"
+  },
+  {
+    "id": "7b2ab5fc-aaa1-4b7e-ae2e-b52b01efa4cd",
+    "report_id": "ffb1d69a-1c25-4141-bf2a-128f38b73180",
+    "status": "Resolved",
+    "remarks": "Replaced video cable and reset display configuration.",
+    "created_at": "2026-10-22T17:30:21.629+00:00"
+  },
+  {
+    "id": "68bf41b1-dbf2-4791-ab3f-0e9fbd0dec82",
+    "report_id": "bf4bfa59-9fb6-4810-b6af-42ada03a0ab2",
+    "status": "Submitted",
+    "remarks": "Pending network diagnosis.",
+    "created_at": "2026-10-22T19:11:36.653634+00:00"
+  },
+  {
+    "id": "b4da927f-5e5b-46f5-8712-e4a7d154cbdc",
+    "report_id": "bf4bfa59-9fb6-4810-b6af-42ada03a0ab2",
+    "status": "Reviewed",
+    "remarks": "Pending network diagnosis.",
+    "created_at": "2026-10-22T19:11:36.934604+00:00"
+  },
+  {
+    "id": "5b495c65-a321-4a81-ba4d-31d9cdf2b8c1",
+    "report_id": "bf4bfa59-9fb6-4810-b6af-42ada03a0ab2",
+    "status": "Under Repair",
+    "remarks": "Pending network diagnosis.",
+    "created_at": "2026-10-22T19:11:37.576751+00:00"
+  },
+  {
+    "id": "6c2727da-6f72-40d4-a5d6-847abfe8ac1f",
+    "report_id": "bf4bfa59-9fb6-4810-b6af-42ada03a0ab2",
+    "status": "On Hold",
+    "remarks": "Pending network diagnosis.",
+    "created_at": "2026-10-22T19:11:37.905432+00:00"
+  },
+  {
+    "id": "5b908786-8a1a-4bea-a86e-b33aebda1174",
+    "report_id": "bf4bfa59-9fb6-4810-b6af-42ada03a0ab2",
+    "status": "Resolved",
+    "remarks": "Pending network diagnosis.",
+    "created_at": "2026-10-22T19:11:38.205496+00:00"
+  },
+  {
+    "id": "00e73089-e8d3-48d7-8417-51a13d64e8d4",
+    "report_id": "bf4bfa59-9fb6-4810-b6af-42ada03a0ab2",
+    "status": "On Hold",
+    "remarks": "Pending network diagnosis.",
+    "created_at": "2026-10-22T19:11:38.477615+00:00"
+  }
+]

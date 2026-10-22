@@ -718,6 +718,7 @@ export function useStudentReports(studentProfile, { enabled = true } = {}) {
         setData((prev) => {
           if (!prev || !Array.isArray(prev.reports)) return prev;
           let matched = false;
+          let hasChange = false;
           const updatedReports = prev.reports.map((r) => {
             const isMatch =
               r.report_id === targetId ||
@@ -729,24 +730,31 @@ export function useStudentReports(studentProfile, { enabled = true } = {}) {
 
             if (isMatch) {
               matched = true;
+              const effectiveStatus = newStatus || r.status;
+              const effectiveRemarks = newRemarks !== undefined ? newRemarks : r.remarks;
+
+              // Check if already identical
+              if (r.status === effectiveStatus && r.remarks === effectiveRemarks) {
+                return r;
+              }
+
+              // Check out-of-order timestamp
+              if (payload.updated_at && r.updated_at && new Date(payload.updated_at) < new Date(r.updated_at)) {
+                return r;
+              }
+
+              hasChange = true;
               return normalizeStudentReportItem({
                 ...r,
-                status: newStatus || r.status,
-                remarks: newRemarks !== undefined ? newRemarks : r.remarks,
+                status: effectiveStatus,
+                remarks: effectiveRemarks,
                 updated_at: payload.updated_at || new Date().toISOString(),
               });
             }
             return r;
           });
 
-          if (!matched) {
-            const payloadStudent = payload.student_id || payload.student_uuid || payload.studentId;
-            if (
-              payloadStudent &&
-              (payloadStudent === studentProfile?.id || payloadStudent === studentProfile?.student_id)
-            ) {
-              loadData(true);
-            }
+          if (!matched || !hasChange) {
             return prev;
           }
 
@@ -764,135 +772,10 @@ export function useStudentReports(studentProfile, { enabled = true } = {}) {
       }
     };
 
-    // 1. Supabase real-time channel with collision-safe unique name
-    let channel = null;
-    try {
-      const isUuid = (val) =>
-        typeof val === 'string' &&
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
-      const studentUuid = studentProfile?.id;
-      const validUuid = isUuid(studentUuid) ? studentUuid : null;
-      const schoolId = studentProfile?.student_id;
-
-      let ch = safeRealtimeChannel(`student-reports-sync-${studentKey}`);
-
-      if (validUuid) {
-        ch = ch.on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'reports',
-            filter: `student_id=eq.${validUuid}`,
-          },
-          (p) => {
-            handleSyncReportPayload({
-              ...p.new,
-              ...p.old,
-              eventType: p.eventType,
-              new: p.new,
-              old: p.old,
-            });
-            loadData(true);
-          }
-        );
-      }
-
-      if (schoolId) {
-        ch = ch.on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'reports_of_student',
-            filter: `student_id=eq.${schoolId}`,
-          },
-          (p) => {
-            handleSyncReportPayload({
-              ...p.new,
-              ...p.old,
-              eventType: p.eventType,
-              new: p.new,
-              old: p.old,
-            });
-            loadData(true);
-          }
-        );
-      }
-
-      const rawStudentName = studentProfile?.name || studentProfile?.full_name || '';
-      if (rawStudentName) {
-        const customTable = `${rawStudentName.trim().split(/\s+/)[0].toLowerCase()}-reports`;
-        ch = ch.on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: customTable,
-          },
-          (p) => {
-            handleSyncReportPayload({
-              ...p.new,
-              ...p.old,
-              eventType: p.eventType,
-              new: p.new,
-              old: p.old,
-            });
-            loadData(true);
-          }
-        );
-      }
-
-      if (validUuid) {
-        ch = ch.on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'saved_guides',
-            filter: `student_id=eq.${validUuid}`,
-          },
-          () => {
-            loadData(true);
-          }
-        );
-      }
-
-      ch = ch.on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'report_status_history',
-        },
-        (p) => {
-          const item = p.new || p.old;
-          if (item?.report_id) {
-            handleSyncReportPayload({
-              canonicalUuid: item.report_id,
-              reportId: item.report_id,
-              report_id: item.report_id,
-              status: item.status,
-              newStatus: item.status,
-              remarks: item.remarks,
-              newRemarks: item.remarks,
-              updated_at: item.created_at,
-            });
-          }
-          loadData(true);
-        }
-      );
-
-      channel = ch.subscribe();
-    } catch (chanErr) {
-      console.warn('Realtime subscription setup note:', chanErr);
-    }
-
-    // 2. Centralized Realtime Broadcast & Cross-tab listener
+    // 1. Centralized Realtime Broadcast & Cross-tab listener via realtimeSyncService
     const unsubscribeSync = subscribeToReportUpdates(handleSyncReportPayload);
 
-    // 3. Cross-component window events
-    const handleStatusUpdate = () => loadData(true);
+    // 2. Saved guides updates
     const handleSavedUpdate = (e) => {
       if (typeof e.detail?.count === 'number') {
         setData((prev) => {
@@ -912,19 +795,14 @@ export function useStudentReports(studentProfile, { enabled = true } = {}) {
       }
     };
 
-    window.addEventListener('fixie_report_status_updated', handleStatusUpdate);
-    window.addEventListener('fixie_report_submitted', handleStatusUpdate);
     window.addEventListener('fixie_saved_guides_updated', handleSavedUpdate);
 
-    // 4. Tab visibility and network reconnect refetching
+    // 3. Tab visibility and network reconnect refetching
     const unsubVisibility = registerVisibilityAndOnlineSync(() => loadData(true));
 
     return () => {
-      safeRemoveChannel(channel);
       unsubscribeSync();
       unsubVisibility();
-      window.removeEventListener('fixie_report_status_updated', handleStatusUpdate);
-      window.removeEventListener('fixie_report_submitted', handleStatusUpdate);
       window.removeEventListener('fixie_saved_guides_updated', handleSavedUpdate);
     };
   }, [enabled, studentKey, loadData]);

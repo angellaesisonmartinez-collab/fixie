@@ -500,15 +500,24 @@ export default function SubmitReportPage({
         } catch {}
       }
 
-      // Record initial "Submitted" entry in public.report_status_history
+      // Record initial "Submitted" entry in public.report_status_history (if trigger didn't already create it)
       if (insertedReportUuid) {
         try {
-          await supabase.from('report_status_history').insert({
-            report_id: insertedReportUuid,
-            status: 'Submitted',
-            remarks: null,
-            created_at: nowIso,
-          });
+          const { data: existingHist } = await supabase
+            .from('report_status_history')
+            .select('id')
+            .eq('report_id', insertedReportUuid)
+            .eq('status', 'Submitted')
+            .limit(1);
+
+          if (!existingHist || existingHist.length === 0) {
+            await supabase.from('report_status_history').insert({
+              report_id: insertedReportUuid,
+              status: 'Submitted',
+              remarks: null,
+              created_at: nowIso,
+            });
+          }
         } catch (rshErr) {
           console.warn('Could not insert initial Submitted status history:', rshErr);
         }

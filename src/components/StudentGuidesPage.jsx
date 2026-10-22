@@ -72,6 +72,10 @@ export default function StudentGuidesPage({ studentProfile, currentUser }) {
 
   const studentNumber = studentProfile?.student_id || '24-0041-147';
   const [studentUuid, setStudentUuid] = useState(studentProfile?.id || null);
+  const studentUuidRef = useRef(studentUuid);
+  useEffect(() => {
+    studentUuidRef.current = studentUuid;
+  }, [studentUuid]);
 
   const viewedTimesStorageKey = `fixie_student_viewed_guide_times_${studentNumber}`;
   const savedStorageKey = `fixie_student_saved_guides_${studentNumber}`;
@@ -246,26 +250,9 @@ export default function StudentGuidesPage({ studentProfile, currentUser }) {
           prev.map((g) => (g.id === targetId ? { ...g, ...payload, ...(payload.new || {}) } : g))
         );
       }
-      fetchGuides();
     };
 
-    let channel = null;
-    try {
-      channel = safeRealtimeChannel('public:student-guides-sync')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'guides' }, (payload) => {
-          const data = payload.new || payload.old || {};
-          handleGuideLiveUpdate({
-            ...data,
-            eventType: payload.eventType,
-            new: payload.new,
-            old: payload.old,
-          });
-        })
-        .subscribe();
-    } catch (chanErr) {
-      console.warn('Student guides realtime setup note:', chanErr);
-    }
-
+    // Centralized cross-component & broadcast listener via realtimeSyncService
     const unsubGuides = subscribeToGuideUpdates(handleGuideLiveUpdate);
 
     const handleStorageEvent = (e) => {
@@ -287,18 +274,17 @@ export default function StudentGuidesPage({ studentProfile, currentUser }) {
 
     const unsubVisibility = registerVisibilityAndOnlineSync(() => {
       fetchGuides();
-      if (studentUuid) {
-        fetchSavedGuides(studentUuid);
+      if (studentUuidRef.current) {
+        fetchSavedGuides(studentUuidRef.current);
       }
     });
 
     return () => {
-      safeRemoveChannel(channel);
       unsubGuides();
       unsubVisibility();
       window.removeEventListener('storage', handleStorageEvent);
     };
-  }, [viewedTimesStorageKey, savedStorageKey, studentUuid]);
+  }, [viewedTimesStorageKey, savedStorageKey]);
 
   useEffect(() => {
     if (studentUuid) {

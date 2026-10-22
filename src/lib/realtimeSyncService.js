@@ -16,11 +16,41 @@ let crossTabChannel = null;
 let crossTabListenerInitialized = false;
 let windowListenerInitialized = false;
 
+// Cache to deduplicate rapid duplicate report events (e.g. broadcast + WAL CDC + status history within a short window)
+const recentReportEventTimestamps = new Map();
+
 /**
  * Dispatch a report update payload safely to all registered listeners.
+ * Deduplicates rapid identical events to prevent glitching, double counting, and jitter.
  */
 function notifyReportListeners(payload) {
   if (!payload) return;
+
+  const targetId = payload.report_id || payload.id || payload.reportId || payload.canonicalUuid;
+  const eventType = payload.eventType || (payload.report ? 'INSERT' : 'UPDATE');
+  const status = payload.newStatus || payload.status || '';
+  const remarks = payload.remarks !== undefined ? payload.remarks : (payload.newRemarks || '');
+
+  if (targetId && (eventType === 'UPDATE' || eventType === 'INSERT')) {
+    const signature = `${targetId}:${eventType}:${status}:${remarks}`;
+    const now = Date.now();
+    const lastTime = recentReportEventTimestamps.get(signature);
+    if (lastTime && now - lastTime < 1200) {
+      // Rapid duplicate event received within 1.2s; ignore duplicate dispatch
+      return;
+    }
+    recentReportEventTimestamps.set(signature, now);
+
+    // Periodically prune stale event signatures
+    if (recentReportEventTimestamps.size > 200) {
+      for (const [key, ts] of recentReportEventTimestamps.entries()) {
+        if (now - ts > 5000) {
+          recentReportEventTimestamps.delete(key);
+        }
+      }
+    }
+  }
+
   reportUpdateListeners.forEach((listener) => {
     try {
       listener(payload);
