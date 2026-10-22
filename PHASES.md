@@ -152,3 +152,14 @@ Same on both Student and Technical sides, chronological, Asia/Manila (PHT) timez
 - **Login Candidate Resolution**:
   - In [LoginPage.jsx](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/components/LoginPage.jsx), students logging in with Student ID match their account directly. For email-based logins, candidate accounts sharing the email are resolved by matching the password against `password_hash` via bcrypt.
 
+### [x] Phase 10: Under Repair Modal Form Empty Remarks Policy
+- **Empty Initial Remarks on Under Repair**:
+  - In [ReportDetailsModal.jsx](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/components/ReportDetailsModal.jsx), enforced that when the report status is "Under Repair", the remarks input field is strictly initialized as empty (`""`), displaying only the `"Enter remarks..."` placeholder.
+  - Prevents previous or default database remarks from pre-populating into the textarea when opening or switching to an Under Repair report.
+- **State Transition & Realtime Isolation**:
+  - When clicking "Start Repair" (transitioning from Reviewed to Under Repair), `remarks`, `editedRemarks`, and errors are reset to empty.
+  - In `loadFreshReportAndHistory` and realtime sync listener, background database remarks updates are prevented from overwriting the technician's input while in the Under Repair status.
+- **Enforced Validation Before Action**:
+  - The remarks field remains completely empty until the technical personnel types into it.
+  - Tapping "Mark as On Hold" or "Mark as Resolved" while remarks are empty triggers focused validation requiring remarks explaining the action before the status transition can proceed.
+

@@ -651,8 +651,12 @@ export default function ReportDetailsModal({
   });
 
   const [remarks, setRemarks] = useState(() => {
-    if (report?.remarks) return report.remarks;
     const initStatus = getInitialReportStatus(report);
+    // On the under repair modal form only, the remarks field must remain empty unless technical personnel types something
+    if (initStatus === 'Under Repair') {
+      return '';
+    }
+    if (report?.remarks) return report.remarks;
     if (isLR24) {
       if (initStatus === 'On Hold') return 'Awaiting replacement parts.';
       if (initStatus === 'Resolved') return 'Replace Monitor';
@@ -754,8 +758,11 @@ export default function ReportDetailsModal({
         setCurrentStatus(activeStatus);
       }
       if (activeRemarks !== undefined && activeRemarks !== null) {
-        setRemarks(activeRemarks);
-        setEditedRemarks(activeRemarks);
+        // Applicable only on the under repair modal form: remarks must remain empty unless typed by technical personnel
+        if (activeStatus !== 'Under Repair' && currentStatusRef.current !== 'Under Repair') {
+          setRemarks(activeRemarks);
+          setEditedRemarks(activeRemarks);
+        }
       }
       if (
         liveReport?.has_been_on_hold ||
@@ -805,8 +812,10 @@ export default function ReportDetailsModal({
         }
         const newRem = updateData.remarks !== undefined ? updateData.remarks : updateData.newRemarks;
         if (newRem !== undefined) {
-          setRemarks(newRem || '');
-          setEditedRemarks(newRem || '');
+          if (normSt !== 'Under Repair' && currentStatusRef.current !== 'Under Repair') {
+            setRemarks(newRem || '');
+            setEditedRemarks(newRem || '');
+          }
         }
         if (updateData.timestamps) {
           setTimestamps((prev) => ({ ...prev, ...updateData.timestamps }));
@@ -849,7 +858,10 @@ export default function ReportDetailsModal({
       setHasBeenOnHold(onHoldActive);
 
       let initialRemarks = report.remarks || '';
-      if (!initialRemarks && isCurrentLR24) {
+      if (initialStatus === 'Under Repair') {
+        // On the under repair modal form only, remarks must remain empty unless typed by technical personnel
+        initialRemarks = '';
+      } else if (!initialRemarks && isCurrentLR24) {
         if (initialStatus === 'On Hold') initialRemarks = 'Awaiting replacement parts.';
         else if (initialStatus === 'Resolved') initialRemarks = 'Replace Monitor';
       } else if (!initialRemarks && initialStatus === 'On Hold') {
@@ -1017,6 +1029,11 @@ export default function ReportDetailsModal({
       };
 
       setCurrentStatus(nextStatus);
+      // Remarks field must remain empty on the under repair modal form unless technical personnel types something
+      setRemarks('');
+      setEditedRemarks('');
+      setRemarksError(false);
+      setRemarksErrorMessage('');
       setTimestamps(updatedTimestamps);
 
       try {
@@ -1024,6 +1041,7 @@ export default function ReportDetailsModal({
           targetId,
           {
             status: nextStatus,
+            remarks: null,
             updated_at: nowIso,
           },
           report
