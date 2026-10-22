@@ -106,3 +106,28 @@ export function formatStudentEmail(email) {
   if (!email || typeof email !== 'string') return '';
   return email.trim().replace(/\+[^@]+@/, '@');
 }
+
+/**
+ * Official Student ID format requirement: XX-XXXX-XXX (e.g. 24-0908-909)
+ */
+export const STUDENT_ID_REGEX = /^\d{2}-\d{4}-\d{3}$/;
+
+/**
+ * Automatically masks/formats student ID input to strictly adhere to XX-XXXX-XXX format.
+ * Strips non-digits, limits to 9 digits, and auto-inserts hyphens:
+ * e.g., '240908909' -> '24-0908-909'
+ *
+ * @param {string} val
+ * @returns {string}
+ */
+export function formatStudentIdInput(val) {
+  if (!val) return '';
+  const clean = val.replace(/\D/g, '').slice(0, 9);
+  if (clean.length <= 2) {
+    return clean;
+  }
+  if (clean.length <= 6) {
+    return `${clean.slice(0, 2)}-${clean.slice(2)}`;
+  }
+  return `${clean.slice(0, 2)}-${clean.slice(2, 6)}-${clean.slice(6, 9)}`;
+}

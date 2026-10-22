@@ -7,7 +7,7 @@ import {
   Loader2,
   AlertCircle
 } from 'lucide-react';
-import { getStudentAvatar } from '../lib/studentAvatarUtils';
+import { getStudentAvatar, getStudentInitials } from '../lib/studentAvatarUtils';
 import Header from './Header';
 import Footer from './Footer';
 import PasswordUpdatedCard from './PasswordUpdatedCard';
@@ -119,14 +119,8 @@ export default function StudentAccountSetup({
   const studentName = formatStudentName(profileData) || profileData?.full_name || profileData?.name || 'Angel Lae Martinez';
 
   // Avatar resolution: use angelAvatar for Angel or fallback to initials
-  const isAngel = studentName.toLowerCase().includes('angel');
-  const studentInitials = studentName
-    .split(' ')
-    .filter(Boolean)
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase() || 'ST';
+  const isAngel = profileData?.student_id === '24-0041-147' || studentName.toLowerCase().includes('angel');
+  const studentInitials = getStudentInitials(profileData || studentName);
 
   const validateForm = () => {
     let isValid = true;
@@ -302,7 +296,7 @@ export default function StudentAccountSetup({
         showUser={true}
         userName={studentName}
         userRole={studentRole}
-        avatarImg={getStudentAvatar(userProfile)}
+        avatarImg={isAngel ? getStudentAvatar({ student_id: '24-0041-147' }) : getStudentAvatar(profileData || userProfile)}
         avatarText={studentInitials}
       />
 

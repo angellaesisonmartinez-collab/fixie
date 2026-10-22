@@ -27,13 +27,19 @@ import {
 } from '../lib/realtimeSyncService';
 import { sendStudentCredentialsEmail, generateDefaultStudentPassword } from '../lib/emailService';
 import { getVisiblePages, getDisplayedCount } from '../lib/paginationUtils';
-import { formatStudentName, formatYearBlock, formatStudentEmail } from '../lib/studentFormatUtils';
+import {
+  formatStudentName,
+  formatYearBlock,
+  formatStudentEmail,
+  STUDENT_ID_REGEX,
+  formatStudentIdInput,
+} from '../lib/studentFormatUtils';
 import bcrypt from 'bcryptjs';
 import Banner from './Banner';
 import fixieMascotSuccess from '../assets/fixie-mascot-success.png';
 import fixieMascotSad from '../assets/fixie-mascot-sad.png';
 
-import { getStudentAvatar } from '../lib/studentAvatarUtils';
+import { getStudentAvatar, getStudentInitials } from '../lib/studentAvatarUtils';
 
 // Official Year & Block list with 'BLK' format and '3rd year, BLK 3'
 export const YEAR_BLOCK_OPTIONS = [
@@ -407,12 +413,13 @@ export default function StudentsPage() {
     };
   }, [regYearBlockDropdownOpen]);
 
-  // Check registration form validity: all required fields filled and both confirmation checkboxes checked
+  // Check registration form validity: all required fields filled, Student ID matches XX-XXXX-XXX, and both checkboxes checked
   const isRegFormValid = Boolean(
     regFirstName.trim() &&
     regLastName.trim() &&
     regYearBlock &&
     regStudentId.trim() &&
+    STUDENT_ID_REGEX.test(regStudentId.trim()) &&
     regEmail.trim() &&
     regCheckIdVerified &&
     regCheckEmailVerified
@@ -677,6 +684,11 @@ export default function StudentsPage() {
 
     if (!regFirstName.trim() || !regLastName.trim() || !regYearBlock || !regStudentId.trim() || !regEmail.trim()) {
       setRegError('Please fill in all required fields.');
+      return;
+    }
+
+    if (!STUDENT_ID_REGEX.test(regStudentId.trim())) {
+      setRegError('Invalid Student ID format. Expected format: XX-XXXX-XXX (e.g. 24-0908-909).');
       return;
     }
 
@@ -1097,13 +1109,8 @@ export default function StudentsPage() {
     return getStudentAvatar(student);
   };
 
-  const getInitials = (name) => {
-    if (!name) return 'ST';
-    const parts = name.trim().split(/\s+/);
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    }
-    return name.slice(0, 2).toUpperCase();
+  const getInitials = (studentOrName) => {
+    return getStudentInitials(studentOrName);
   };
 
   return (
@@ -1346,7 +1353,7 @@ export default function StudentsPage() {
                           />
                         ) : (
                           <div className="student-initials-avatar" aria-hidden="true">
-                            <span>{getInitials(st.name)}</span>
+                            <span>{getInitials(st)}</span>
                           </div>
                         )}
                         <span className="student-full-name-text">{st.name}</span>
@@ -1709,9 +1716,11 @@ export default function StudentsPage() {
                   <input
                     id="reg-student-id"
                     type="text"
-                    className={`student-profile-input font-mono ${regHasAttemptedSubmit && !regStudentId.trim() ? 'input-error' : ''}`}
+                    maxLength={11}
+                    placeholder="24-0908-909"
+                    className={`student-profile-input font-mono ${regHasAttemptedSubmit && (!regStudentId.trim() || !STUDENT_ID_REGEX.test(regStudentId.trim())) ? 'input-error' : ''}`}
                     value={regStudentId}
-                    onChange={(e) => setRegStudentId(e.target.value)}
+                    onChange={(e) => setRegStudentId(formatStudentIdInput(e.target.value))}
                   />
                   <label className={`student-profile-checkbox-label ${regHasAttemptedSubmit && !regCheckIdVerified ? 'label-error' : ''}`}>
                     <input

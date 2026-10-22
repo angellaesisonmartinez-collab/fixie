@@ -25,8 +25,6 @@ import alyssaAvatar from '../assets/avatars/alyssa.png';
 export const STUDENT_AVATAR_ASSETS = {
   // 1. Angel Lae Martinez (3rd year, BLK 2)
   '24-0041-147': angelAvatar,
-  'martinezangellaewup@gmail.com': angelAvatar,
-  'angellae@gmail.com': angelAvatar,
   'Angel Lae Martinez': angelAvatar,
 
   // 2. Jennelyn Vergara (3rd year, BLK 2)
@@ -108,24 +106,67 @@ export const STUDENT_AVATAR_ASSETS = {
 };
 
 /**
+ * Resolves initials as first name first letter + last name first letter.
+ * E.g., 'Franz Fernando' -> 'FF'
+ * E.g., 'Franz Santos Fernando' -> 'FF'
+ */
+export function getStudentInitials(studentOrName) {
+  if (!studentOrName) return 'ST';
+
+  let firstName = '';
+  let lastName = '';
+
+  if (typeof studentOrName === 'object') {
+    firstName = (studentOrName.first_name || '').trim();
+    lastName = (studentOrName.last_name || '').trim();
+    if (firstName && lastName) {
+      return `${firstName[0]}${lastName[0]}`.toUpperCase();
+    }
+    const nameStr = (studentOrName.name || studentOrName.full_name || '').trim();
+    if (nameStr) {
+      const parts = nameStr.split(/\s+/).filter(Boolean);
+      if (parts.length >= 2) {
+        return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+      }
+      return nameStr.slice(0, 2).toUpperCase();
+    }
+    return 'ST';
+  }
+
+  const str = String(studentOrName).trim();
+  const parts = str.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  }
+  return str.slice(0, 2).toUpperCase();
+}
+
+/**
  * Returns a deterministic fallback SVG data URI with initials and distinct hue
  */
-export function generateInitialsAvatar(name = '', id = '') {
-  const cleanName = (name || id || 'Student').trim();
-  const parts = cleanName.split(/\s+/).filter(Boolean);
-  const initials = parts.length >= 2
-    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-    : cleanName.slice(0, 2).toUpperCase();
+export function generateInitialsAvatar(studentOrName = '', id = '') {
+  const initials = getStudentInitials(studentOrName);
+  const nameStr = typeof studentOrName === 'object'
+    ? (studentOrName?.name || studentOrName?.full_name || id || 'Student')
+    : String(studentOrName || id || 'Student');
 
   let hash = 0;
-  for (let i = 0; i < cleanName.length; i++) {
-    hash = cleanName.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < nameStr.length; i++) {
+    hash = nameStr.charCodeAt(i) + ((hash << 5) - hash);
   }
-  const hue = Math.abs(hash) % 360;
+
+  const palette = [
+    { bg: '#234637', text: '#FFFFFF' }, // deep forest green
+    { bg: '#1f5139', text: '#FFFFFF' }, // emerald dark green
+    { bg: '#2b5a44', text: '#FFFFFF' }, // pine green
+    { bg: '#173d2d', text: '#FFFFFF' }, // deep jade
+    { bg: '#28533e', text: '#FFFFFF' }, // dark sage
+  ];
+  const color = palette[Math.abs(hash) % palette.length];
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-    <rect width="64" height="64" fill="hsl(${hue}, 45%, 32%)"/>
-    <text x="50%" y="54%" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="600" fill="#FFFFFF" text-anchor="middle" dominant-baseline="middle">${initials}</text>
+    <circle cx="32" cy="32" r="32" fill="${color.bg}"/>
+    <text x="50%" y="54%" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="700" fill="${color.text}" text-anchor="middle" dominant-baseline="middle" letter-spacing="0.5">${initials}</text>
   </svg>`;
 
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
@@ -133,7 +174,7 @@ export function generateInitialsAvatar(name = '', id = '') {
 
 /**
  * Resolves the appropriate avatar URL or bundled image for a student object or identifier.
- * Prioritizes Supabase `profile_photo`, then unique bundled avatar, then deterministic SVG.
+ * Prioritizes Supabase `profile_photo`, then unique bundled avatar, then initials SVG.
  */
 export function getStudentAvatar(student) {
   if (!student) return null;
@@ -146,6 +187,7 @@ export function getStudentAvatar(student) {
     if (STUDENT_AVATAR_ASSETS[student]) {
       return STUDENT_AVATAR_ASSETS[student];
     }
+    return generateInitialsAvatar(student);
   }
 
   if (typeof student === 'object') {
@@ -164,19 +206,9 @@ export function getStudentAvatar(student) {
       }
     }
 
-    // Check direct avatar field if already attached
-    if (student.avatar && typeof student.avatar === 'string' && student.avatar !== angelAvatar) {
-      return student.avatar;
-    }
-
     // Match by student_id
     if (student.student_id && STUDENT_AVATAR_ASSETS[student.student_id]) {
       return STUDENT_AVATAR_ASSETS[student.student_id];
-    }
-
-    // Match by email
-    if (student.email && STUDENT_AVATAR_ASSETS[student.email]) {
-      return STUDENT_AVATAR_ASSETS[student.email];
     }
 
     // Match by name
@@ -185,17 +217,21 @@ export function getStudentAvatar(student) {
       return STUDENT_AVATAR_ASSETS[name];
     }
 
-    // Fallback: if student is Angel, return angelAvatar
+    // Strictly Angel Lae Martinez (24-0041-147) gets angelAvatar
     if (
       student.student_id === '24-0041-147' ||
-      student.email === 'martinezangellaewup@gmail.com' ||
       name === 'Angel Lae Martinez'
     ) {
       return angelAvatar;
     }
 
-    // Generate unique distinct SVG avatar for unmapped new students
-    return generateInitialsAvatar(name, student.student_id);
+    // Check direct avatar field if already attached and NOT angelAvatar
+    if (student.avatar && typeof student.avatar === 'string' && student.avatar !== angelAvatar) {
+      return student.avatar;
+    }
+
+    // Generate unique distinct SVG avatar with initials for unmapped new students (e.g. FF for Franz Fernando)
+    return generateInitialsAvatar(student, student.student_id);
   }
 
   return generateInitialsAvatar(String(student));

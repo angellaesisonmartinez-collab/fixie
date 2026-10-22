@@ -163,3 +163,26 @@ Same on both Student and Technical sides, chronological, Asia/Manila (PHT) timez
   - The remarks field remains completely empty until the technical personnel types into it.
   - Tapping "Mark as On Hold" or "Mark as Resolved" while remarks are empty triggers focused validation requiring remarks explaining the action before the status transition can proceed.
 
+### [x] Phase 11: Strict Student ID Format (XX-XXXX-XXX) & Student Cleanup
+- **Deleted Malformed Student Record**:
+  - Removed registered student "Franz Fernando" / "Franz Santos Fernando" (`student_id: 24-789-0234`, `id: 440a9c65-efe9-4164-8b08-759f2a329c49`) from the Supabase `students` table.
+- **Strict Format Enforcement**:
+  - Standardized the official Student ID format as `XX-XXXX-XXX` (e.g. `24-0908-909`) using regex `^\d{2}-\d{4}-\d{3}$`.
+  - Implemented `formatStudentIdInput()` in [studentFormatUtils.js](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/lib/studentFormatUtils.js) which automatically extracts digits, limits input to 9 digits, and auto-masks hyphens as the user types (e.g., typing `240908909` automatically formats to `24-0908-909`).
+  - Updated [StudentsPage.jsx](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/components/StudentsPage.jsx) with `placeholder="24-0908-909"`, `maxLength={11}`, form validity check `STUDENT_ID_REGEX.test(regStudentId.trim())`, and submit validation blocking any malformed Student ID.
+  - Updated [LoginPage.jsx](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/components/LoginPage.jsx) identifier input with `formatStudentIdInput` auto-masking and explicit format error messaging.
+
+### [x] Phase 12: Newly Registered Student Initials Avatar (First & Last Name Letter)
+- **Eliminated Email Collisions with Canonical Avatars**:
+  - Previously, `martinezangellaewup@gmail.com` mapped directly to `angelAvatar` in `STUDENT_AVATAR_ASSETS`. When new students were registered using `martinezangellaewup@gmail.com` as a testing receiver, they inadvertently inherited Angel's photo.
+  - Removed email mapping for Angel in [studentAvatarUtils.js](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/lib/studentAvatarUtils.js) so that `angelAvatar` is strictly granted only to Angel Lae Martinez (`student_id: 24-0041-147`).
+- **First & Last Name Letter Initials Extraction**:
+  - Implemented `getStudentInitials(studentOrName)` in [studentAvatarUtils.js](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/lib/studentAvatarUtils.js).
+  - Explicitly pairs the first letter of the first name and the first letter of the last name:
+    - `Franz Fernando` -> **`FF`**
+    - `Franz Santos Fernando` -> **`FF`**
+    - `{ first_name: 'Franz', middle_name: 'Santos', last_name: 'Fernando' }` -> **`FF`**
+- **Distinct Round Initials SVG Avatar**:
+  - Enhanced `generateInitialsAvatar()` to produce an SVG with a circular background styled in Fixie's dark forest green palette with bold white initials (`FF`).
+  - Integrated across [StudentsPage.jsx](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/components/StudentsPage.jsx), [StudentAccountSetup.jsx](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/components/StudentAccountSetup.jsx), and [StudentDashboard.jsx](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/components/StudentDashboard.jsx).
+

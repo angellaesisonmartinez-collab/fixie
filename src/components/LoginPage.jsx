@@ -27,7 +27,7 @@ import StudentAccountSetup from './StudentAccountSetup';
 import AdminDashboard from './AdminDashboard';
 import StudentDashboard from './StudentDashboard';
 import { supabase } from '../lib/supabase';
-import { formatStudentEmail } from '../lib/studentFormatUtils';
+import { formatStudentEmail, formatStudentIdInput, STUDENT_ID_REGEX } from '../lib/studentFormatUtils';
 import { fetchStudentReportsAndStats } from '../lib/studentReportsService';
 import { fetchAdminDashboardData, clearAdminDashboardCache } from '../lib/adminDashboardService';
 
@@ -93,10 +93,10 @@ export default function LoginPage() {
       setIdentifierError('Student ID or Username is required.');
       isValid = false;
     } else {
-      // If it looks like a student ID with hyphens and digits, validate regex format
-      const isStudentIdAttempt = /^\d+[\d-]*\d+$/.test(trimmedIdentifier) && trimmedIdentifier.includes('-');
+      // If it looks like a student ID with hyphens or all digits
+      const isStudentIdAttempt = /^\d+[\d-]*\d+$/.test(trimmedIdentifier) && !trimmedIdentifier.includes('@');
       if (isStudentIdAttempt && !STUDENT_ID_REGEX.test(trimmedIdentifier)) {
-        setIdentifierError('Invalid Student ID format. Expected format: XX-XXXX-XXX.');
+        setIdentifierError('Invalid Student ID format. Expected format: XX-XXXX-XXX (e.g. 24-0908-909).');
         isValid = false;
       }
     }
@@ -646,7 +646,12 @@ export default function LoginPage() {
                         placeholder="Enter student ID or username"
                         value={identifier}
                         onChange={(e) => {
-                          setIdentifier(e.target.value);
+                          const val = e.target.value;
+                          if (/^\d[\d-]*$/.test(val) && !val.includes('@')) {
+                            setIdentifier(formatStudentIdInput(val));
+                          } else {
+                            setIdentifier(val);
+                          }
                           if (identifierError) setIdentifierError('');
                         }}
                         disabled={isLoading}
