@@ -746,7 +746,6 @@ export default function StudentsPage() {
       email: submittedEmail,
       date_registered: regDateStr,
       created_at: createdIso,
-      has_viewed_guides: false,
       status: 'active',
       password_hash,
       must_change_password: true,
