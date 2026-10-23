@@ -11,6 +11,8 @@ import mariaAvatar from '../assets/avatars/maria.png';
 import mariaOrtizAvatar from '../assets/avatars/maria_ortiz.png';
 import phiaAvatar from '../assets/avatars/phia.png';
 import { getStudentAvatar } from './studentAvatarUtils';
+import { formatStudentName } from './studentFormatUtils';
+import { supabase } from './supabase';
 
 const ANGEL_RECORD = {
   student_id: '24-0041-147',
@@ -137,22 +139,102 @@ export const AUTHENTIC_REPORT_STUDENTS = {
   },
 };
 
+// In-memory student cache keyed by student_id and database id (UUID)
+const studentCache = new Map();
+
+/**
+ * Cache student record in-memory for instant 0ms retrieval.
+ */
+export function cacheStudentProfile(student) {
+  if (!student || typeof student !== 'object') return;
+  if (student.id) studentCache.set(student.id, student);
+  if (student.student_id) studentCache.set(student.student_id, student);
+  if (student.uuid) studentCache.set(student.uuid, student);
+}
+
+/**
+ * Dynamically fetches a student record from Supabase by UUID or Student ID.
+ */
+export async function fetchStudentForReport(studentIdOrUuid) {
+  if (!studentIdOrUuid) return null;
+  const cached = studentCache.get(studentIdOrUuid);
+  if (cached && (cached.name || cached.first_name || cached.full_name)) {
+    return cached;
+  }
+
+  try {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(studentIdOrUuid);
+    const query = isUuid
+      ? supabase.from('students').select('*').eq('id', studentIdOrUuid).maybeSingle()
+      : supabase.from('students').select('*').or(`student_id.eq.${studentIdOrUuid},id.eq.${studentIdOrUuid}`).maybeSingle();
+
+    const { data, error } = await query;
+    if (!error && data) {
+      const formatted = {
+        ...data,
+        name: formatStudentName(data) || data.name || `${data.first_name || ''} ${data.last_name || ''}`.trim(),
+        avatar: getStudentAvatar(data),
+      };
+      cacheStudentProfile(formatted);
+      return formatted;
+    }
+  } catch (err) {
+    console.warn('Note on fetching student for report:', err);
+  }
+  return null;
+}
+
 /**
  * Resolves the student metadata for a given report object and joined student object.
  * Always prefers the authentic database relation when present.
  */
 export function resolveAuthenticReportStudent(reportId, dbStudent = null) {
-  if (dbStudent && (dbStudent.name || dbStudent.student_id)) {
-    return {
+  // Check if dbStudent is a valid student object (and not a raw report object)
+  const isRawReport = dbStudent && (dbStudent.unit_number !== undefined || dbStudent.equipment !== undefined);
+  const hasRealStudentInfo =
+    dbStudent &&
+    !isRawReport &&
+    (dbStudent.name ||
+      dbStudent.full_name ||
+      dbStudent.first_name ||
+      dbStudent.last_name ||
+      (dbStudent.student_id && /^\d{2}-\d{4}-\d{3}$/.test(dbStudent.student_id)));
+
+  if (hasRealStudentInfo) {
+    const fullName = formatStudentName(dbStudent) || dbStudent.name || dbStudent.full_name;
+    const resolved = {
       ...dbStudent,
+      name: fullName,
+      full_name: fullName,
       avatar: getStudentAvatar(dbStudent),
     };
+    cacheStudentProfile(resolved);
+    return resolved;
+  }
+
+  // Check cache by student_id or id if dbStudent was a UUID string or reference
+  const potentialId = typeof dbStudent === 'string'
+    ? dbStudent
+    : (dbStudent?.student_id || dbStudent?.id);
+
+  if (potentialId && studentCache.has(potentialId)) {
+    const cached = studentCache.get(potentialId);
+    if (cached && (cached.name || cached.first_name || cached.full_name)) {
+      const fullName = formatStudentName(cached) || cached.name || cached.full_name;
+      return {
+        ...cached,
+        name: fullName,
+        full_name: fullName,
+        avatar: cached.avatar || getStudentAvatar(cached),
+      };
+    }
   }
 
   const authentic = AUTHENTIC_REPORT_STUDENTS[reportId];
   if (authentic) {
+    cacheStudentProfile(authentic);
     return authentic;
   }
 
-  return dbStudent || {};
+  return dbStudent && !isRawReport ? dbStudent : {};
 }

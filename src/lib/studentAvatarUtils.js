@@ -6,6 +6,7 @@
  * Strictly prevents one shared photo across different students.
  */
 
+import { supabase } from './supabase';
 import angelAvatar from '../assets/avatars/angel.png';
 import jennelynAvatar from '../assets/avatars/jennelyn.png';
 import reynAvatar from '../assets/avatars/reyn.png';
@@ -204,6 +205,14 @@ export function getStudentAvatar(student) {
           return asset;
         }
       }
+      // If stored in Supabase storage avatars bucket
+      try {
+        const storagePath = p.replace(/^avatars\//, '');
+        const { data } = supabase.storage.from('avatars').getPublicUrl(storagePath);
+        if (data?.publicUrl) {
+          return data.publicUrl;
+        }
+      } catch {}
     }
 
     // Match by student_id

@@ -19,7 +19,7 @@ import ReportDetailsModal, { reportHistoryCache, canonicalUuidCache, buildUnifie
 import StudentSubmittedReportsPage from './StudentSubmittedReportsPage';
 import { formatStudentName, formatYearBlock } from '../lib/studentFormatUtils';
 import { parseReportDateTime } from '../lib/reportDateUtils';
-import { resolveAuthenticReportStudent } from '../lib/reportStudentMapping';
+import { resolveAuthenticReportStudent, fetchStudentForReport } from '../lib/reportStudentMapping';
 import { getStudentAvatar } from '../lib/studentAvatarUtils';
 import { getReportAttachment } from '../lib/reportAttachmentUtils';
 import { broadcastReportStatusUpdate, broadcastReportDeleted, subscribeToReportUpdates, registerVisibilityAndOnlineSync } from '../lib/realtimeSyncService';
@@ -611,7 +611,10 @@ let cachedTechnicalReports = null;
 
 function getInitialTechnicalReports() {
   if (cachedTechnicalReports && Array.isArray(cachedTechnicalReports) && cachedTechnicalReports.length > 0) {
-    return cachedTechnicalReports;
+    const hasBroken = cachedTechnicalReports.some(
+      (r) => r.student_name === 'Student' || r.reportedByName === 'Student' || (!r.avatar && !r.profile_photo)
+    );
+    if (!hasBroken) return cachedTechnicalReports;
   }
   try {
     if (typeof window !== 'undefined' && window.sessionStorage) {
@@ -619,8 +622,13 @@ function getInitialTechnicalReports() {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          cachedTechnicalReports = parsed;
-          return parsed;
+          const hasBroken = parsed.some(
+            (r) => r.student_name === 'Student' || r.reportedByName === 'Student' || (!r.avatar && !r.profile_photo)
+          );
+          if (!hasBroken) {
+            cachedTechnicalReports = parsed;
+            return parsed;
+          }
         }
       }
     }
@@ -824,8 +832,9 @@ function TechnicalPersonnelReportsPage({
           if (r.report_id) canonicalUuidCache.set(r.report_id, r.id);
 
           // Student name and year block formatting consistently
-          const studentName = formatStudentName(st) || 'Student Reporter';
+          const studentName = formatStudentName(st) || st.name || st.full_name || 'Student Reporter';
           const yearBlock = formatYearBlock(st.year_block) || '3rd year, BLK 2';
+          const studentAvatar = st.avatar || getStudentAvatar(st);
 
           // Location split
           let locCenter = 'Computer Center';
@@ -888,6 +897,9 @@ function TechnicalPersonnelReportsPage({
             studentId: st.student_id || 'N/A',
             student_email: st.email || '',
             email: st.email || '',
+            profile_photo: st.profile_photo || r.students?.profile_photo || null,
+            avatar: studentAvatar,
+            students: st,
             location_center: locCenter,
             locationCenter: locCenter,
             location_room: locRoom,
@@ -964,100 +976,118 @@ function TechnicalPersonnelReportsPage({
           return updated;
         });
       } else if (eventType === 'INSERT') {
-        // INSERT: add new report item directly to list (avoiding duplicate by ID)
+        // INSERT: dynamically look up authentic student and add new report item
         const rawReport = payload.report || payload.new || payload;
         const reportId = rawReport.report_id || rawReport.id || targetId || `LR-${Date.now()}`;
-        const st = resolveAuthenticReportStudent(reportId, rawReport.students || rawReport);
-        const studentName = formatStudentName(st) || rawReport.student_name || rawReport.reportedByName || 'Student Reporter';
-        const yearBlock = formatYearBlock(st?.year_block || rawReport.student_year_block || rawReport.reportedByYearBlock) || '3rd year, BLK 2';
 
-        let locCenter = 'Computer Center';
-        let locRoom = 'Room';
-        if (rawReport.room) {
-          const parts = String(rawReport.room).split(',');
-          if (parts.length >= 2) {
-            locCenter = parts[0].trim();
-            locRoom = parts[1].trim();
-          } else {
-            locCenter = rawReport.room;
+        const processInsert = async () => {
+          let studentObj = rawReport.students;
+          if (!studentObj || (!studentObj.name && !studentObj.first_name)) {
+            const sid = rawReport.student_id || payload.student_id;
+            if (sid) {
+              studentObj = await fetchStudentForReport(sid);
+            }
           }
-        }
 
-        const parsedDT = parseReportDateTime(rawReport);
-        const submittedDate = parsedDT.submittedDate;
-        const submittedTime = parsedDT.submittedTime;
+          const st = resolveAuthenticReportStudent(reportId, studentObj);
+          const studentName = formatStudentName(st) || st.name || st.full_name || rawReport.student_name || rawReport.reportedByName || 'Student Reporter';
+          const yearBlock = formatYearBlock(st?.year_block || rawReport.student_year_block || rawReport.reportedByYearBlock) || '3rd year, BLK 2';
+          const studentAvatar = st.avatar || getStudentAvatar(st);
 
-        let displayStatus = 'UNDER REVIEW';
-        let statusClass = 'status-under-review';
-        if (rawReport.status === 'Under Repair') {
-          displayStatus = 'UNDER REPAIR';
-          statusClass = 'status-under-repair';
-        } else if (rawReport.status === 'On Hold' || rawReport.status === 'on_hold') {
-          displayStatus = 'ON HOLD';
-          statusClass = 'status-on-hold';
-        } else if (rawReport.status === 'Resolved') {
-          displayStatus = 'RESOLVED';
-          statusClass = 'status-resolved';
-        }
+          let locCenter = 'Computer Center';
+          let locRoom = 'Room';
+          if (rawReport.room) {
+            const parts = String(rawReport.room).split(',');
+            if (parts.length >= 2) {
+              locCenter = parts[0].trim();
+              locRoom = parts[1].trim();
+            } else {
+              locCenter = rawReport.room;
+            }
+          }
 
-        const newMapped = {
-          id: rawReport.id || reportId,
-          report_id: reportId,
-          unit_number: rawReport.unit_number || rawReport.unitNumber || 'PC-#01',
-          unitNumber: rawReport.unit_number || rawReport.unitNumber || 'PC-#01',
-          equipment: rawReport.equipment || 'Equipment',
-          student_name: studentName,
-          reportedByName: studentName,
-          student_year_block: yearBlock,
-          reportedByYearBlock: yearBlock,
-          student_id: st?.student_id || rawReport.student_id || 'N/A',
-          studentId: st?.student_id || rawReport.student_id || 'N/A',
-          student_email: st?.email || rawReport.student_email || '',
-          email: st?.email || rawReport.student_email || '',
-          location_center: locCenter,
-          locationCenter: locCenter,
-          location_room: locRoom,
-          locationRoom: locRoom,
-          submitted_date: submittedDate,
-          submittedDate: submittedDate,
-          submitted_time: submittedTime,
-          submittedTime: submittedTime,
-          raw_created_at: rawReport.created_at || new Date().toISOString(),
-          status: rawReport.status || 'Submitted',
-          display_status: displayStatus,
-          displayStatus: displayStatus,
-          status_class: statusClass,
-          statusClass: statusClass,
-          description: rawReport.description || '',
-          remarks: rawReport.remarks || null,
-          photo_url: rawReport.photo_url || null,
-          attachment: getReportAttachment(rawReport),
+          const parsedDT = parseReportDateTime(rawReport);
+          const submittedDate = parsedDT.submittedDate;
+          const submittedTime = parsedDT.submittedTime;
+
+          let displayStatus = 'UNDER REVIEW';
+          let statusClass = 'status-under-review';
+          if (rawReport.status === 'Under Repair') {
+            displayStatus = 'UNDER REPAIR';
+            statusClass = 'status-under-repair';
+          } else if (rawReport.status === 'On Hold' || rawReport.status === 'on_hold') {
+            displayStatus = 'ON HOLD';
+            statusClass = 'status-on-hold';
+          } else if (rawReport.status === 'Resolved') {
+            displayStatus = 'RESOLVED';
+            statusClass = 'status-resolved';
+          }
+
+          const newMapped = {
+            id: rawReport.id || reportId,
+            report_id: reportId,
+            unit_number: rawReport.unit_number || rawReport.unitNumber || 'PC-#01',
+            unitNumber: rawReport.unit_number || rawReport.unitNumber || 'PC-#01',
+            equipment: rawReport.equipment || 'Equipment',
+            student_name: studentName,
+            reportedByName: studentName,
+            student_year_block: yearBlock,
+            reportedByYearBlock: yearBlock,
+            student_id: st?.student_id || rawReport.student_id || 'N/A',
+            studentId: st?.student_id || rawReport.student_id || 'N/A',
+            student_email: st?.email || rawReport.student_email || '',
+            email: st?.email || rawReport.student_email || '',
+            profile_photo: st?.profile_photo || rawReport.profile_photo || null,
+            avatar: studentAvatar,
+            students: st,
+            location_center: locCenter,
+            locationCenter: locCenter,
+            location_room: locRoom,
+            locationRoom: locRoom,
+            submitted_date: submittedDate,
+            submittedDate: submittedDate,
+            submitted_time: submittedTime,
+            submittedTime: submittedTime,
+            raw_created_at: rawReport.created_at || new Date().toISOString(),
+            status: rawReport.status || 'Submitted',
+            display_status: displayStatus,
+            displayStatus: displayStatus,
+            status_class: statusClass,
+            statusClass: statusClass,
+            description: rawReport.description || '',
+            remarks: rawReport.remarks || null,
+            photo_url: rawReport.photo_url || null,
+            attachment: getReportAttachment(rawReport),
+          };
+
+          setReportsList((prevList) => {
+            const exists = prevList.some(
+              (r) =>
+                r.report_id === reportId ||
+                r.id === newMapped.id ||
+                (rawReport.id && (r.id === rawReport.id || r.canonicalUuid === rawReport.id))
+            );
+            if (exists) {
+              // Update in place if already present
+              return prevList.map((r) =>
+                r.report_id === reportId || r.id === newMapped.id || (rawReport.id && r.id === rawReport.id)
+                  ? { ...r, ...newMapped }
+                  : r
+              );
+            }
+            const updated = [newMapped, ...prevList];
+            cachedTechnicalReports = updated;
+            try {
+              if (typeof window !== 'undefined' && window.sessionStorage) {
+                sessionStorage.setItem('fixie_technical_reports_cache', JSON.stringify(updated));
+              }
+            } catch {}
+            return updated;
+          });
         };
 
-        setReportsList((prevList) => {
-          const exists = prevList.some(
-            (r) =>
-              r.report_id === reportId ||
-              r.id === newMapped.id ||
-              (rawReport.id && (r.id === rawReport.id || r.canonicalUuid === rawReport.id))
-          );
-          if (exists) {
-            // Update in place if already present
-            return prevList.map((r) =>
-              r.report_id === reportId || r.id === newMapped.id || (rawReport.id && r.id === rawReport.id)
-                ? { ...r, ...newMapped }
-                : r
-            );
-          }
-          const updated = [newMapped, ...prevList];
-          cachedTechnicalReports = updated;
-          try {
-            if (typeof window !== 'undefined' && window.sessionStorage) {
-              sessionStorage.setItem('fixie_technical_reports_cache', JSON.stringify(updated));
-            }
-          } catch {}
-          return updated;
-        });
+        processInsert();
+        fetchLiveReports(false);
       } else if (targetId && (newStatus || newRemarks !== undefined)) {
         // UPDATE: replace item by ID safely with deduplication
         setReportsList((prevList) => {
@@ -1250,12 +1280,13 @@ function TechnicalPersonnelReportsPage({
 
   // Avatar helper
   const getAvatar = (report) => {
+    if (report?.avatar) return report.avatar;
     return (
       getStudentAvatar({
-        name: report.student_name || report.reportedByName,
-        student_id: report.student_id || report.studentId,
-        email: report.student_email || report.email,
-        profile_photo: report.profile_photo || report.avatar,
+        name: report?.student_name || report?.reportedByName,
+        student_id: report?.student_id || report?.studentId,
+        email: report?.student_email || report?.email,
+        profile_photo: report?.profile_photo,
       })
     );
   };

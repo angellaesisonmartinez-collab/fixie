@@ -2,6 +2,7 @@ import { supabase } from './supabase.js';
 import { formatStudentName, formatYearBlock } from './studentFormatUtils.js';
 import { getReportAttachment } from './reportAttachmentUtils.js';
 import { resolveAuthenticReportStudent } from './reportStudentMapping.js';
+import { getStudentAvatar } from './studentAvatarUtils.js';
 import { fetchStudentsData } from './studentsService.js';
 import angelAvatar from '../assets/avatars/angel.png';
 import jennelynAvatar from '../assets/avatars/jennelyn.png';
@@ -43,7 +44,7 @@ export function formatAdminDashboardReport(r) {
   const st = resolveAuthenticReportStudent(reportId, r.students);
 
   // Format student name consistently (no middle initial or middle name)
-  const studentName = formatStudentName(st) || 'Student';
+  const studentName = formatStudentName(st) || st?.name || st?.full_name || 'Student Reporter';
   const yearBlock = formatYearBlock(st?.year_block) || '3rd year, BLK 2';
 
   // Split location
@@ -88,6 +89,7 @@ export function formatAdminDashboardReport(r) {
   // Avatar lookup
   const avatar =
     st?.avatar ||
+    getStudentAvatar(st) ||
     avatarMap[st?.student_id] ||
     avatarMap[st?.email] ||
     avatarMap[studentName] ||
@@ -107,7 +109,9 @@ export function formatAdminDashboardReport(r) {
     studentId: st?.student_id || 'N/A',
     student_id: st?.student_id || 'N/A',
     email: st?.email || '',
+    profile_photo: st?.profile_photo || r.students?.profile_photo || null,
     avatar,
+    students: st,
     locationCenter,
     location_center: locationCenter,
     locationRoom,

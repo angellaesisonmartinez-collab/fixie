@@ -979,7 +979,7 @@ export default function ReportDetailsModal({
   const studentId = (report.student_id === '2024-147-098' || report.studentId === '2024-147-098')
     ? '24-0041-147'
     : (resolvedSt.student_id || report.student_id || report.studentId || report.students?.student_id || '24-0041-147');
-  const cleanStudentName = formatStudentName(resolvedSt);
+  const cleanStudentName = formatStudentName(resolvedSt) || resolvedSt.name || resolvedSt.full_name || report.student_name || report.reportedByName || 'Student Reporter';
   const yearBlockRaw = resolvedSt.year_block || report.student_year_block || report.reportedByYearBlock || report.students?.year_block || '3rd year, BLK 2';
   const cleanYearBlock = formatYearBlock(yearBlockRaw);
   const reportedByDisplay = `${cleanStudentName} (${cleanYearBlock})`;

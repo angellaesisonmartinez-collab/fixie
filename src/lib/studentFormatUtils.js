@@ -15,12 +15,16 @@ export function formatStudentName(studentOrName) {
   if (!studentOrName) return '';
 
   if (typeof studentOrName === 'object') {
-    const { first_name, last_name, name, middle_name } = studentOrName;
+    const { first_name, last_name, name, full_name, middle_name } = studentOrName;
     if (first_name && last_name) {
       return `${first_name.trim()} ${last_name.trim()}`;
     }
-    if (name) {
-      return cleanStudentNameString(name, middle_name);
+    const rawName = name || full_name;
+    if (rawName) {
+      return cleanStudentNameString(rawName, middle_name);
+    }
+    if (first_name) {
+      return first_name.trim();
     }
     return '';
   }

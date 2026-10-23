@@ -15,6 +15,7 @@ import { supabase } from '../lib/supabase';
 import ReportSubmittedModal from './ReportSubmittedModal';
 import { DEFAULT_COMPUTER_CENTERS } from './SubmitReportPage';
 import { formatStudentName, formatYearBlock } from '../lib/studentFormatUtils';
+import { getStudentAvatar } from '../lib/studentAvatarUtils';
 import {
   getServerTime,
   checkLaboratoryHours,
@@ -207,9 +208,16 @@ export default function ReportProblemModal({
       const nowIso = freshServerTime.toISOString();
 
       const formattedUnit = `PC-#${String(unitInt).padStart(2, '0')}`;
-      const studentName = formatStudentName(studentProfile) || studentProfile?.full_name || studentProfile?.name || 'Student';
-      const studentId = studentProfile?.student_id || '';
-      const studentYearBlock = formatYearBlock(studentProfile?.year_block) || studentProfile?.year_block || '';
+      const effectiveStudent = studentProfile || (() => {
+        try {
+          const s = sessionStorage.getItem('fixie_authenticated_student');
+          return s ? JSON.parse(s) : null;
+        } catch { return null; }
+      })();
+      const studentName = formatStudentName(effectiveStudent) || effectiveStudent?.full_name || effectiveStudent?.name || 'Student Reporter';
+      const studentId = effectiveStudent?.student_id || '';
+      const studentYearBlock = formatYearBlock(effectiveStudent?.year_block) || effectiveStudent?.year_block || '';
+      const avatarSrc = effectiveStudent?.avatar || getStudentAvatar(effectiveStudent);
 
       const newReportData = {
         id: `rep-${nextIdNumber}`,
@@ -229,8 +237,23 @@ export default function ReportProblemModal({
         status_class: 'status-under-review',
         student_id: studentId,
         student_name: studentName,
+        reportedByName: studentName,
         student_year_block: studentYearBlock,
-        student_email: studentProfile?.email || '',
+        reportedByYearBlock: studentYearBlock,
+        student_email: effectiveStudent?.email || '',
+        profile_photo: effectiveStudent?.profile_photo || null,
+        avatar: avatarSrc,
+        students: {
+          id: effectiveStudent?.id || studentId,
+          student_id: studentId,
+          name: studentName,
+          first_name: effectiveStudent?.first_name || '',
+          last_name: effectiveStudent?.last_name || '',
+          year_block: studentYearBlock,
+          email: effectiveStudent?.email || '',
+          profile_photo: effectiveStudent?.profile_photo || null,
+          avatar: avatarSrc,
+        },
         submitted_date: submittedDate,
         submittedDate: submittedDate,
         submitted_time: submittedTime,

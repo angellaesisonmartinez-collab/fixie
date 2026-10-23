@@ -44,7 +44,7 @@ import {
 } from './TechNavIcons';
 import { formatStudentName, formatYearBlock } from '../lib/studentFormatUtils';
 import { getReportAttachment } from '../lib/reportAttachmentUtils';
-import { resolveAuthenticReportStudent } from '../lib/reportStudentMapping';
+import { resolveAuthenticReportStudent, fetchStudentForReport } from '../lib/reportStudentMapping';
 import {
   fetchAdminDashboardData,
   getCachedAdminDashboardData,
@@ -253,24 +253,38 @@ export default function AdminDashboard({ currentUser, userProfile, onSignOut, in
 
         if (eventType === 'INSERT') {
           const rawReport = payload.report || payload.new || payload;
-          const formatted = formatAdminDashboardReport(rawReport);
-          if (!formatted) return prev;
 
-          // Check if report already exists in list (avoid duplicate)
-          const exists = prev.some(
-            (r) =>
-              r.id === formatted.id ||
-              r.report_id === formatted.report_id ||
-              (rawReport.id && r.id === rawReport.id) ||
-              (rawReport.report_id && r.report_id === rawReport.report_id)
-          );
-          if (exists) {
-            // Update in place if newer
-            return prev.map((r) =>
-              r.id === formatted.id || r.report_id === formatted.report_id ? { ...r, ...formatted } : r
-            );
-          }
-          return [formatted, ...prev];
+          const processAdminInsert = async () => {
+            let studentObj = rawReport.students;
+            if (!studentObj || (!studentObj.name && !studentObj.first_name)) {
+              const sid = rawReport.student_id || payload.student_id;
+              if (sid) {
+                studentObj = await fetchStudentForReport(sid);
+              }
+            }
+            const formatted = formatAdminDashboardReport({ ...rawReport, students: studentObj });
+            if (!formatted) return;
+
+            setAllReports((current) => {
+              if (!current) return current;
+              const exists = current.some(
+                (r) =>
+                  r.id === formatted.id ||
+                  r.report_id === formatted.report_id ||
+                  (rawReport.id && r.id === rawReport.id) ||
+                  (rawReport.report_id && r.report_id === rawReport.report_id)
+              );
+              if (exists) {
+                return current.map((r) =>
+                  r.id === formatted.id || r.report_id === formatted.report_id ? { ...r, ...formatted } : r
+                );
+              }
+              return [formatted, ...current];
+            });
+          };
+
+          processAdminInsert();
+          return prev;
         }
 
         // UPDATE: replace item by ID in place safely

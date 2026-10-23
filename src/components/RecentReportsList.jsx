@@ -1,4 +1,5 @@
 import React from 'react';
+import { getStudentAvatar } from '../lib/studentAvatarUtils';
 
 /**
  * Reusable RecentReportsList Component (Image 5 Reference)
@@ -99,9 +100,11 @@ export default function RecentReportsList({
                 <td className="cell-reported">
                   <div className="reporter-avatar-row">
                     <div className="reporter-avatar-frame">
-                      {report.avatar ? (
+                    {(() => {
+                      const repAvatar = report.avatar || getStudentAvatar(report);
+                      return repAvatar ? (
                         <img
-                          src={report.avatar}
+                          src={repAvatar}
                           alt={report.reportedByName || report.student_name}
                           className="reporter-avatar-img"
                         />
@@ -109,7 +112,8 @@ export default function RecentReportsList({
                         <div className="reporter-avatar-fallback">
                           {(report.reportedByName || report.student_name)?.charAt(0) || 'U'}
                         </div>
-                      )}
+                      );
+                    })()}
                     </div>
                     <div className="cell-stack-block">
                       <span className="cell-main-text">{report.reportedByName || report.student_name}</span>
