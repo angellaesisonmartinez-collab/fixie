@@ -23,6 +23,7 @@ import {
 } from '../lib/guideDateUtils';
 import { getVisiblePages, getDisplayedCount } from '../lib/paginationUtils';
 import Banner from './Banner';
+import GuideMetricNumber from './GuideMetricNumber';
 import { defaultGuides } from '../lib/defaultGuides';
 import './StudentGuidesPage.css';
 
@@ -606,7 +607,7 @@ export default function StudentGuidesPage({ studentProfile, currentUser }) {
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <span className="student-metric-number">{counts.total}</span>
+            <GuideMetricNumber value={counts.total} />
           </div>
           <p className="student-metric-caption">Total published guides.</p>
         </div>
@@ -630,7 +631,7 @@ export default function StudentGuidesPage({ studentProfile, currentUser }) {
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <span className="student-metric-number">{counts.rules}</span>
+            <GuideMetricNumber value={counts.rules} />
           </div>
           <p className="student-metric-caption">Laboratory rules and conduct.</p>
         </div>
@@ -654,7 +655,7 @@ export default function StudentGuidesPage({ studentProfile, currentUser }) {
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <span className="student-metric-number">{counts.reminder}</span>
+            <GuideMetricNumber value={counts.reminder} />
           </div>
           <p className="student-metric-caption">Safety tips and reminders.</p>
         </div>
@@ -678,7 +679,7 @@ export default function StudentGuidesPage({ studentProfile, currentUser }) {
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <span className="student-metric-number">{counts.howTo}</span>
+            <GuideMetricNumber value={counts.howTo} />
           </div>
           <p className="student-metric-caption">Procedures and tutorials.</p>
         </div>

@@ -20,6 +20,7 @@ import {
 } from '../lib/realtimeSyncService';
 import StudentGuidesPage from './StudentGuidesPage';
 import fixieMascotSuccess from '../assets/fixie-mascot-success.png';
+import GuideMetricNumber from './GuideMetricNumber';
 import {
   formatGuideDateDisplay,
   getGuideSortTime,
@@ -604,7 +605,7 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <span className="student-metric-number">{counts.all}</span>
+            <GuideMetricNumber value={counts.all} />
           </div>
           <p className="student-metric-caption">Total published guides.</p>
         </div>
@@ -624,7 +625,7 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <span className="student-metric-number">{counts.rules}</span>
+            <GuideMetricNumber value={counts.rules} />
           </div>
           <p className="student-metric-caption">Laboratory rules and conduct.</p>
         </div>
@@ -644,7 +645,7 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <span className="student-metric-number">{counts.reminders}</span>
+            <GuideMetricNumber value={counts.reminders} />
           </div>
           <p className="student-metric-caption">Safety tips and reminders.</p>
         </div>
@@ -664,7 +665,7 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <span className="student-metric-number">{counts.howTo}</span>
+            <GuideMetricNumber value={counts.howTo} />
           </div>
           <p className="student-metric-caption">Procedures and tutorials.</p>
         </div>
