@@ -236,7 +236,7 @@ export default function ForgotPasswordPage({ initialStep = 1, onReturnToLogin })
             must_change_password: false,
             updated_at: nowIso,
           })
-          .or(`email.eq.${trimmedEmail},email.ilike.${userPart}+%@${domainPart}`)
+          .or(`email.ilike.${trimmedEmail},email.ilike.${userPart}+%@${domainPart}`)
           .select('id');
         if (stErr) console.warn('Student password update note:', stErr.message);
         if (stRows && stRows.length > 0) updatedAnyRecord = true;
