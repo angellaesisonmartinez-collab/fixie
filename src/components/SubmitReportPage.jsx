@@ -70,6 +70,8 @@ export default function SubmitReportPage({
   const [equipment, setEquipment] = useState('');
   const [equipmentDropdownOpen, setEquipmentDropdownOpen] = useState(false);
   const equipmentDropdownRef = useRef(null);
+  const [centerDropdownOpen, setCenterDropdownOpen] = useState(false);
+  const centerDropdownRef = useRef(null);
   const [unitNumber, setUnitNumber] = useState('');
   const [description, setDescription] = useState('');
 
@@ -78,6 +80,9 @@ export default function SubmitReportPage({
     const handleClickOutside = (e) => {
       if (equipmentDropdownRef.current && !equipmentDropdownRef.current.contains(e.target)) {
         setEquipmentDropdownOpen(false);
+      }
+      if (centerDropdownRef.current && !centerDropdownRef.current.contains(e.target)) {
+        setCenterDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -634,12 +639,6 @@ export default function SubmitReportPage({
 
       {/* Submission Form */}
       <form onSubmit={handleSubmit} className="submit-report-form" noValidate>
-        {errorMessage && (
-          <div className="report-error-alert" role="alert">
-            <AlertCircle size={18} />
-            <span>{errorMessage}</span>
-          </div>
-        )}
 
         {/* ====================================================
             CARD 01: Where did the problem occur?
@@ -661,25 +660,61 @@ export default function SubmitReportPage({
           <div className="card-form-grid-2">
             {/* Field: Computer Center */}
             <div className="report-field-group">
-              <label htmlFor="computer-center-select" className="report-field-label">
+              <label id="computer-center-select-label" className="report-field-label">
                 Computer Center <span className="required-asterisk">*</span>
               </label>
-              <div className="report-select-wrapper">
-                <select
+              <div className="reports-dropdown-relative report-equipment-dropdown-container" ref={centerDropdownRef}>
+                <button
                   id="computer-center-select"
-                  className={`report-select-input ${errors.computerCenter ? 'input-error' : ''}`}
-                  value={computerCenter}
-                  onChange={(e) => handleCenterChange(e.target.value)}
-                  required
+                  type="button"
+                  aria-labelledby="computer-center-select-label"
+                  aria-haspopup="listbox"
+                  aria-expanded={centerDropdownOpen}
+                  className={`reports-filter-dropdown-btn report-equipment-dropdown-btn ${centerDropdownOpen ? 'dropdown-active' : ''} ${errors.computerCenter ? 'input-error' : ''}`}
+                  onClick={() => setCenterDropdownOpen(!centerDropdownOpen)}
                 >
-                  <option value="">Select Computer Center</option>
-                  {centersList.map((cc) => (
-                    <option key={cc.name} value={cc.name}>
-                      {cc.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={18} className="select-chevron-icon" />
+                  <span className={!computerCenter ? 'equipment-placeholder-text' : 'equipment-selected-text'}>
+                    {computerCenter || 'Select Computer Center'}
+                  </span>
+                  <ChevronDown
+                    size={14}
+                    className={`dropdown-arrow-icon ${centerDropdownOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+
+                {centerDropdownOpen && (
+                  <div className="reports-dropdown-menu report-equipment-dropdown-menu" role="listbox">
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={!computerCenter}
+                      className={`dropdown-menu-opt ${!computerCenter ? 'opt-active' : ''}`}
+                      onClick={() => {
+                        handleCenterChange('');
+                        setCenterDropdownOpen(false);
+                      }}
+                    >
+                      <span className="equipment-placeholder-text">Select Computer Center</span>
+                      {!computerCenter && <Check size={14} className="opt-check" />}
+                    </button>
+                    {centersList.map((cc) => (
+                      <button
+                        key={cc.name}
+                        type="button"
+                        role="option"
+                        aria-selected={computerCenter === cc.name}
+                        className={`dropdown-menu-opt ${computerCenter === cc.name ? 'opt-active' : ''}`}
+                        onClick={() => {
+                          handleCenterChange(cc.name);
+                          setCenterDropdownOpen(false);
+                        }}
+                      >
+                        <span className="equipment-option-text">{cc.name}</span>
+                        {computerCenter === cc.name && <Check size={14} className="opt-check" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               {errors.computerCenter && (
                 <p className="field-error-text" role="alert">
@@ -994,6 +1029,13 @@ export default function SubmitReportPage({
         {/* ====================================================
             BOTTOM SUBMISSION BAR
             ==================================================== */}
+        {errorMessage && (
+          <div className="report-error-alert" role="alert">
+            <AlertCircle size={18} />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
         <footer className="report-bottom-bar">
           <div className="bottom-bar-notice">
             <div className="notice-alert-icon" aria-hidden="true">!</div>

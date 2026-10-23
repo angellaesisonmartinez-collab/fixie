@@ -3,6 +3,7 @@ import { User, FileText, BookOpen, PauseCircle } from 'lucide-react';
 import Banner from './Banner';
 import StatCard from './StatCard';
 import RecentReportsList from './RecentReportsList';
+import { useStatsRefresh } from './GuideMetricNumber';
 
 /**
  * DashboardContent Component
@@ -19,7 +20,14 @@ export default function DashboardContent({
   onSelectReport = () => {},
   onNavigate = () => {},
 }) {
-  const isStatsLoading = statsLoading || !stats;
+  const isInitialStatsLoading = statsLoading || !stats;
+
+  // When any one count changes, all four cards show the loading placeholder together
+  const statsRefreshing = useStatsRefresh(
+    `${stats?.totalStudents}|${stats?.totalReports}|${stats?.totalGuides}|${stats?.onHoldReports}`,
+    isInitialStatsLoading
+  );
+  const isStatsLoading = isInitialStatsLoading || statsRefreshing;
 
   return (
     <div className="dashboard-content-layout">

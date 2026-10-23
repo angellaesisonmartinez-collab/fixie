@@ -23,7 +23,7 @@ import {
 } from '../lib/guideDateUtils';
 import { getVisiblePages, getDisplayedCount } from '../lib/paginationUtils';
 import Banner from './Banner';
-import GuideMetricNumber from './GuideMetricNumber';
+import GuideMetricNumber, { useStatsRefresh } from './GuideMetricNumber';
 import { defaultGuides } from '../lib/defaultGuides';
 import './StudentGuidesPage.css';
 
@@ -309,12 +309,15 @@ export default function StudentGuidesPage({ studentProfile, currentUser }) {
         fetchGuides();
         if (studentUuidRef.current) fetchSavedGuides(studentUuidRef.current);
       }
-    }, 4000);
+    }, 2500);
+    const handleFocus = () => fetchGuides();
+    window.addEventListener('focus', handleFocus);
 
     return () => {
       unsubGuides();
       unsubVisibility();
       clearInterval(pollId);
+      window.removeEventListener('focus', handleFocus);
       window.removeEventListener('storage', handleStorageEvent);
     };
   }, [viewedTimesStorageKey, savedStorageKey]);
@@ -476,6 +479,11 @@ export default function StudentGuidesPage({ studentProfile, currentUser }) {
     };
   }, [guidesList, validSavedGuides]);
 
+  // All four stat cards show the loading placeholder together whenever any count changes
+  const statsRefreshing = useStatsRefresh(
+    `${counts.total}|${counts.rules}|${counts.reminder}|${counts.howTo}`
+  );
+
   // Filter guides based on search, category dropdown, and saved tab filter
   const filteredGuides = useMemo(() => {
     return guidesList.filter((guide) => {
@@ -607,7 +615,7 @@ export default function StudentGuidesPage({ studentProfile, currentUser }) {
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <GuideMetricNumber value={counts.total} />
+            <GuideMetricNumber value={counts.total} loading={statsRefreshing} />
           </div>
           <p className="student-metric-caption">Total published guides.</p>
         </div>
@@ -631,7 +639,7 @@ export default function StudentGuidesPage({ studentProfile, currentUser }) {
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <GuideMetricNumber value={counts.rules} />
+            <GuideMetricNumber value={counts.rules} loading={statsRefreshing} />
           </div>
           <p className="student-metric-caption">Laboratory rules and conduct.</p>
         </div>
@@ -655,7 +663,7 @@ export default function StudentGuidesPage({ studentProfile, currentUser }) {
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <GuideMetricNumber value={counts.reminder} />
+            <GuideMetricNumber value={counts.reminder} loading={statsRefreshing} />
           </div>
           <p className="student-metric-caption">Safety tips and reminders.</p>
         </div>
@@ -679,7 +687,7 @@ export default function StudentGuidesPage({ studentProfile, currentUser }) {
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <GuideMetricNumber value={counts.howTo} />
+            <GuideMetricNumber value={counts.howTo} loading={statsRefreshing} />
           </div>
           <p className="student-metric-caption">Procedures and tutorials.</p>
         </div>

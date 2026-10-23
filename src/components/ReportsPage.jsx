@@ -15,7 +15,7 @@ import {
 import { supabase, safeRealtimeChannel, safeRemoveChannel } from '../lib/supabase';
 import { getVisiblePages, getDisplayedCount } from '../lib/paginationUtils';
 import Banner from './Banner';
-import GuideMetricNumber from './GuideMetricNumber';
+import GuideMetricNumber, { useStatsRefresh } from './GuideMetricNumber';
 import ReportDetailsModal, { reportHistoryCache, canonicalUuidCache, buildUnifiedHistoryEntries } from './ReportDetailsModal';
 import StudentSubmittedReportsPage from './StudentSubmittedReportsPage';
 import { formatStudentName, formatYearBlock } from '../lib/studentFormatUtils';
@@ -1261,6 +1261,13 @@ function TechnicalPersonnelReportsPage({
     };
   }, [reportsList]);
 
+  // All stat cards show the loading placeholder together whenever any count changes
+  const initialStatsLoading = Boolean(isLoading && (!reportsList || reportsList.length === 0));
+  const statsRefreshing = useStatsRefresh(
+    `${stats.total}|${stats.underReview}|${stats.underRepair}|${stats.onHold}|${stats.resolved}`,
+    initialStatsLoading
+  );
+
   // Filtered and searched reports
   const filteredReports = useMemo(() => {
     const list = reportsList.filter((r) => {
@@ -1506,7 +1513,7 @@ function TechnicalPersonnelReportsPage({
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <GuideMetricNumber value={stats.total} loading={isLoading && (!reportsList || reportsList.length === 0)} />
+            <GuideMetricNumber value={stats.total} loading={initialStatsLoading || statsRefreshing} />
           </div>
           <p className="student-metric-caption">All submitted laboratory tickets.</p>
         </div>
@@ -1530,7 +1537,7 @@ function TechnicalPersonnelReportsPage({
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <GuideMetricNumber className="student-metric-number font-serif" value={stats.underReview} loading={isLoading && (!reportsList || reportsList.length === 0)} />
+            <GuideMetricNumber className="student-metric-number font-serif" value={stats.underReview} loading={initialStatsLoading || statsRefreshing} />
           </div>
           <p className="student-metric-caption">Awaiting triage & technician review.</p>
         </div>
@@ -1554,7 +1561,7 @@ function TechnicalPersonnelReportsPage({
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <GuideMetricNumber className="student-metric-number font-serif" value={stats.underRepair} loading={isLoading && (!reportsList || reportsList.length === 0)} />
+            <GuideMetricNumber className="student-metric-number font-serif" value={stats.underRepair} loading={initialStatsLoading || statsRefreshing} />
           </div>
           <p className="student-metric-caption">Currently being serviced & fixed.</p>
         </div>
@@ -1578,7 +1585,7 @@ function TechnicalPersonnelReportsPage({
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <GuideMetricNumber className="student-metric-number font-serif" value={stats.resolved} loading={isLoading && (!reportsList || reportsList.length === 0)} />
+            <GuideMetricNumber className="student-metric-number font-serif" value={stats.resolved} loading={initialStatsLoading || statsRefreshing} />
           </div>
           <p className="student-metric-caption">Issues successfully fixed & closed.</p>
         </div>

@@ -31,7 +31,7 @@ import ReportProblemModal from './ReportProblemModal';
 import SubmitReportPage from './SubmitReportPage';
 import HeaderRings from './HeaderRings';
 import Banner from './Banner';
-import GuideMetricNumber from './GuideMetricNumber';
+import GuideMetricNumber, { useStatsRefresh } from './GuideMetricNumber';
 import AppLayout from './AppLayout';
 import ErrorBoundary from './ErrorBoundary';
 import { formatStudentName, formatYearBlock } from '../lib/studentFormatUtils';
@@ -326,6 +326,13 @@ export default function StudentDashboard({
   const activeReportsCount = stats.activeReportsCount ?? 0;
   const resolvedCount = stats.resolvedCount ?? 0;
   const savedGuidesCount = stats.savedGuidesCount ?? 0;
+
+  // All stat cards show the loading placeholder together whenever any count changes
+  const initialStatsLoading = Boolean(studentReportsData.isLoading && allReports.length === 0);
+  const statsRefreshing = useStatsRefresh(
+    `${activeReportsCount}|${resolvedCount}|${savedGuidesCount}`,
+    initialStatsLoading
+  );
 
   // Strict scope: For Angel Lae Martinez's account, align Date & Time Submitted column
   // with the authentic Supabase submission timestamp from Status History
@@ -636,7 +643,7 @@ export default function StudentDashboard({
                   </div>
                 </div>
                 <div className="stat-card-value-display">
-                  <GuideMetricNumber className="stat-number-serif" value={activeReportsCount} loading={studentReportsData.isLoading && allReports.length === 0} />
+                  <GuideMetricNumber className="stat-number-serif" value={activeReportsCount} loading={initialStatsLoading || statsRefreshing} />
                 </div>
                 <p className="stat-card-caption">
                   Reports still being reviewed or repaired.
@@ -664,7 +671,7 @@ export default function StudentDashboard({
                   </div>
                 </div>
                 <div className="stat-card-value-display">
-                  <GuideMetricNumber className="stat-number-serif" value={resolvedCount} loading={studentReportsData.isLoading && allReports.length === 0} />
+                  <GuideMetricNumber className="stat-number-serif" value={resolvedCount} loading={initialStatsLoading || statsRefreshing} />
                 </div>
                 <p className="stat-card-caption">
                   Reports fixed by technical personnel.
@@ -696,7 +703,7 @@ export default function StudentDashboard({
                   </div>
                 </div>
                 <div className="stat-card-value-display">
-                  <GuideMetricNumber className="stat-number-serif" value={savedGuidesCount} loading={studentReportsData.isLoading && allReports.length === 0} />
+                  <GuideMetricNumber className="stat-number-serif" value={savedGuidesCount} loading={initialStatsLoading || statsRefreshing} />
                 </div>
                 <p className="stat-card-caption">
                   Your bookmarked laboratory guides.

@@ -20,7 +20,7 @@ import { parseReportDateTime, formatManilaHistoryTime } from '../lib/reportDateU
 import { AUTHENTIC_REPORT_STUDENTS } from '../lib/reportStudentMapping';
 import { getReportAttachment } from '../lib/reportAttachmentUtils';
 import Banner from './Banner';
-import GuideMetricNumber from './GuideMetricNumber';
+import GuideMetricNumber, { useStatsRefresh } from './GuideMetricNumber';
 import {
   useStudentReports,
   normalizeStudentReportItem,
@@ -87,6 +87,13 @@ export default function StudentSubmittedReportsPage({
   const reportsData = incomingReportsData || fallbackReportsData;
   const { reports: reportsList = [], stats = {}, refetch } = reportsData;
   const isRefreshing = Boolean(reportsData.isLoading);
+
+  // All stat cards show the loading placeholder together whenever any count changes
+  const initialStatsLoading = Boolean(reportsData.isLoading && reportsList.length === 0);
+  const statsRefreshing = useStatsRefresh(
+    `${stats.total}|${stats.underReview}|${stats.underRepair}|${stats.resolved}`,
+    initialStatsLoading
+  );
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -312,7 +319,7 @@ export default function StudentSubmittedReportsPage({
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <GuideMetricNumber className="student-metric-number font-serif" value={stats.total ?? 0} loading={reportsData.isLoading && reportsList.length === 0} />
+            <GuideMetricNumber className="student-metric-number font-serif" value={stats.total ?? 0} loading={initialStatsLoading || statsRefreshing} />
           </div>
           <p className="student-metric-caption">All submitted laboratory tickets.</p>
         </div>
@@ -335,7 +342,7 @@ export default function StudentSubmittedReportsPage({
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <GuideMetricNumber className="student-metric-number font-serif" value={stats.underReview ?? 0} loading={reportsData.isLoading && reportsList.length === 0} />
+            <GuideMetricNumber className="student-metric-number font-serif" value={stats.underReview ?? 0} loading={initialStatsLoading || statsRefreshing} />
           </div>
           <p className="student-metric-caption">Awaiting triage & technician review.</p>
         </div>
@@ -358,7 +365,7 @@ export default function StudentSubmittedReportsPage({
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <GuideMetricNumber className="student-metric-number font-serif" value={stats.underRepair ?? 0} loading={reportsData.isLoading && reportsList.length === 0} />
+            <GuideMetricNumber className="student-metric-number font-serif" value={stats.underRepair ?? 0} loading={initialStatsLoading || statsRefreshing} />
           </div>
           <p className="student-metric-caption">Currently being serviced & fixed.</p>
         </div>
@@ -381,7 +388,7 @@ export default function StudentSubmittedReportsPage({
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <GuideMetricNumber className="student-metric-number font-serif" value={stats.resolved ?? 0} loading={reportsData.isLoading && reportsList.length === 0} />
+            <GuideMetricNumber className="student-metric-number font-serif" value={stats.resolved ?? 0} loading={initialStatsLoading || statsRefreshing} />
           </div>
           <p className="student-metric-caption">Issues successfully fixed & closed.</p>
         </div>

@@ -20,7 +20,7 @@ import {
 } from '../lib/realtimeSyncService';
 import StudentGuidesPage from './StudentGuidesPage';
 import fixieMascotSuccess from '../assets/fixie-mascot-success.png';
-import GuideMetricNumber from './GuideMetricNumber';
+import GuideMetricNumber, { useStatsRefresh } from './GuideMetricNumber';
 import {
   formatGuideDateDisplay,
   getGuideSortTime,
@@ -228,12 +228,15 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
     // 3. Polling safety net so changes appear automatically even if realtime events are missed
     const pollId = setInterval(() => {
       if (document.visibilityState === 'visible') fetchGuides();
-    }, 4000);
+    }, 2500);
+    const handleFocus = () => fetchGuides();
+    window.addEventListener('focus', handleFocus);
 
     return () => {
       unsubGuides();
       unsubVisibility();
       clearInterval(pollId);
+      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 
@@ -257,6 +260,11 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
       howTo,
     };
   }, [guidesList]);
+
+  // All four stat cards show the loading placeholder together whenever any count changes
+  const statsRefreshing = useStatsRefresh(
+    `${counts.all}|${counts.rules}|${counts.reminders}|${counts.howTo}`
+  );
 
   // Filter guides based on active category and search query
   const filteredGuides = useMemo(() => {
@@ -605,7 +613,7 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <GuideMetricNumber value={counts.all} />
+            <GuideMetricNumber value={counts.all} loading={statsRefreshing} />
           </div>
           <p className="student-metric-caption">Total published guides.</p>
         </div>
@@ -625,7 +633,7 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <GuideMetricNumber value={counts.rules} />
+            <GuideMetricNumber value={counts.rules} loading={statsRefreshing} />
           </div>
           <p className="student-metric-caption">Laboratory rules and conduct.</p>
         </div>
@@ -645,7 +653,7 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <GuideMetricNumber value={counts.reminders} />
+            <GuideMetricNumber value={counts.reminders} loading={statsRefreshing} />
           </div>
           <p className="student-metric-caption">Safety tips and reminders.</p>
         </div>
@@ -665,7 +673,7 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <GuideMetricNumber value={counts.howTo} />
+            <GuideMetricNumber value={counts.howTo} loading={statsRefreshing} />
           </div>
           <p className="student-metric-caption">Procedures and tutorials.</p>
         </div>

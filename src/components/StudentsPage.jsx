@@ -44,7 +44,7 @@ import {
 import bcrypt from 'bcryptjs';
 import Banner from './Banner';
 import fixieMascotSuccess from '../assets/fixie-mascot-success.png';
-import GuideMetricNumber from './GuideMetricNumber';
+import GuideMetricNumber, { useStatsRefresh } from './GuideMetricNumber';
 import fixieMascotSad from '../assets/fixie-mascot-sad.png';
 
 import { getStudentAvatar, getStudentInitials } from '../lib/studentAvatarUtils';
@@ -646,6 +646,9 @@ export default function StudentsPage() {
     [studentsList]
   );
 
+  // Both stat cards show the loading placeholder together whenever either count changes
+  const statsRefreshing = useStatsRefresh(`${activeCount}|${deactivatedCount}`);
+
   // Filter students based on status dropdown, search query, and year & block
   const filteredStudents = useMemo(() => {
     const list = studentsList.filter((st) => {
@@ -1184,7 +1187,7 @@ export default function StudentsPage() {
               </div>
             </div>
             <div className="student-metric-value-wrap">
-              <GuideMetricNumber value={activeCount} />
+              <GuideMetricNumber value={activeCount} loading={statsRefreshing} />
             </div>
             <p className="student-metric-caption">Currently enrolled students.</p>
           </div>
@@ -1207,7 +1210,7 @@ export default function StudentsPage() {
               </div>
             </div>
             <div className="student-metric-value-wrap">
-              <GuideMetricNumber value={deactivatedCount} />
+              <GuideMetricNumber value={deactivatedCount} loading={statsRefreshing} />
             </div>
             <p className="student-metric-caption">Graduated or transferred students.</p>
           </div>
