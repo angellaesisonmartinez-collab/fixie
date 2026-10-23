@@ -1719,16 +1719,9 @@ function TechnicalPersonnelReportsPage({
                 })
               ) : (
                 <tr>
-                  <td colSpan="7" className="reports-empty-cell">
+                  <td colSpan="7" className="reports-empty-cell" style={{ padding: '36px 16px' }}>
                     <div className="reports-empty-state">
                       <p>No reports match your current search query or filter selection.</p>
-                      <button
-                        type="button"
-                        className="reset-filters-btn"
-                        onClick={handleResetAllFilters}
-                      >
-                        Clear all filters
-                      </button>
                     </div>
                   </td>
                 </tr>

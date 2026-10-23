@@ -1,7 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const supabaseUrl =
+  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SUPABASE_URL) ||
+  (typeof process !== 'undefined' && process.env && process.env.VITE_SUPABASE_URL) ||
+  'https://ieznsbzddanjwmnpvncs.supabase.co';
+
+const supabaseAnonKey =
+  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY) ||
+  (typeof process !== 'undefined' && process.env && process.env.VITE_SUPABASE_PUBLISHABLE_KEY) ||
+  'sb_publishable_U9igmXfsc3LK2ota2FuC6w_QxW2ojfr';
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(

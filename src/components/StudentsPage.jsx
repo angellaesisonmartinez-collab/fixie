@@ -25,6 +25,13 @@ import {
   registerVisibilityAndOnlineSync,
   broadcastStudentChange,
 } from '../lib/realtimeSyncService';
+import {
+  fetchStudentsData,
+  getCachedStudents,
+  setCachedStudents,
+  updateCachedStudent,
+  formatStudentListItem,
+} from '../lib/studentsService';
 import { sendStudentCredentialsEmail, generateDefaultStudentPassword } from '../lib/emailService';
 import { getVisiblePages, getDisplayedCount } from '../lib/paginationUtils';
 import {
@@ -240,6 +247,20 @@ const defaultStudents = [
     status: 'active',
     must_change_password: false,
   },
+  {
+    id: 'ea5d1085-7bf1-430a-a1af-3a290695348b',
+    student_id: '24-0905-789',
+    name: 'Franz Fernando',
+    first_name: 'Franz',
+    middle_name: 'Santos',
+    last_name: 'Fernando',
+    year_block: '3rd year, BLK 3',
+    email: 'martinezangellaewup+240905789@gmail.com',
+    date_registered: '2026-10-22',
+    created_at: '2026-10-22T21:25:12.258Z',
+    status: 'active',
+    must_change_password: false,
+  },
   // Deactivated accounts (registered in September 2026)
   {
     id: 's-14',
@@ -275,34 +296,38 @@ const defaultStudents = [
   year_block: formatYearBlock(st.year_block),
 }));
 
-// Helper to format date strings into "Month DD, YYYY" (e.g. Sept 28, 2026 or Oct 19, 2026)
+// Helper to format date strings into "Month DD, YYYY" (e.g. Sept 28, 2026, Oct 23, 2026, Oct 24, 2026)
 const MONTH_NAMES = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
   'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'
 ];
 
-function formatDisplayDate(dateInput) {
-  if (!dateInput) return 'Sept 01, 2026';
+export function formatDisplayDate(dateInput) {
+  if (!dateInput) return 'N/A';
   try {
-    const parts = String(dateInput).split('T')[0].split('-');
+    const str = String(dateInput).trim();
+    const datePart = str.includes('T') ? str.split('T')[0] : str.split(' ')[0];
+    const parts = datePart.split('-');
     if (parts.length === 3) {
-      const year = parts[0] || '2026';
+      const year = parseInt(parts[0], 10);
       const monthIdx = parseInt(parts[1], 10) - 1;
-      const monthName = MONTH_NAMES[monthIdx] || 'Sept';
       const day = parseInt(parts[2], 10);
-      return `${monthName} ${day}, ${year}`;
+      if (!isNaN(year) && !isNaN(monthIdx) && monthIdx >= 0 && monthIdx < 12 && !isNaN(day)) {
+        const monthName = MONTH_NAMES[monthIdx];
+        return `${monthName} ${day}, ${year}`;
+      }
     }
     const d = new Date(dateInput);
     if (!isNaN(d.getTime())) {
-      const monthName = MONTH_NAMES[d.getMonth()] || 'Sept';
+      const monthName = MONTH_NAMES[d.getMonth()] || 'Oct';
       const day = d.getDate();
-      const year = d.getFullYear() || 2026;
+      const year = d.getFullYear();
       return `${monthName} ${day}, ${year}`;
     }
   } catch {
     // fallback
   }
-  return 'Sept 01, 2026';
+  return 'N/A';
 }
 
 /**
@@ -347,7 +372,7 @@ export const sortStudentsByRegistrationDateDesc = (a, b) => {
 const initialStudents = [...defaultStudents].sort(sortStudentsByRegistrationDateDesc);
 
 export default function StudentsPage() {
-  const [studentsList, setStudentsList] = useState(initialStudents);
+  const [studentsList, setStudentsList] = useState(() => getCachedStudents() || initialStudents);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Search & Filter state
@@ -450,38 +475,13 @@ export default function StudentsPage() {
     };
   }, [editYearBlockDropdownOpen]);
 
-  // Fetch live students from Supabase
+  // Fetch live students from Supabase (single source of truth with central cache)
   const fetchStudents = async (showSpinner = false) => {
     if (showSpinner) setIsRefreshing(true);
     try {
-      const { data, error } = await supabase
-        .from('students')
-        .select('*')
-        .order('date_registered', { ascending: false })
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.warn('Could not fetch from Supabase students table, using cached data:', error.message);
-      } else if (data && data.length > 0) {
-        const mapped = data.map((st) => {
-          const fullName = formatStudentName(st) || st.name || `${st.first_name || ''} ${st.last_name || ''}`.trim();
-          const yearBlock = formatYearBlock(st.year_block);
-          const normStatus = st.status === 'active' ? 'active' : 'deactivated';
-          const cleanEmail = formatStudentEmail(st.email);
-          return {
-            ...st,
-            email: cleanEmail,
-            name: fullName,
-            year_block: yearBlock,
-            date_registered: st.date_registered || (st.created_at ? st.created_at.split('T')[0] : '2026-09-01'),
-            status: normStatus,
-          };
-        });
-
-        // Default sorting: actual registration timestamp descending, newest first
-        mapped.sort(sortStudentsByRegistrationDateDesc);
-
-        setStudentsList(mapped);
+      const data = await fetchStudentsData(true);
+      if (data && Array.isArray(data) && data.length > 0) {
+        setStudentsList(data);
       }
     } catch (err) {
       console.warn('Network sync note:', err.message);
@@ -508,7 +508,7 @@ export default function StudentsPage() {
     const handleStudentLiveUpdate = (payload) => {
       if (!payload) return;
       const targetId = payload.student_id || payload.id;
-      const eventType = payload.eventType || 'UPDATE';
+      const eventType = payload.eventType || (payload.new ? 'UPDATE' : 'INSERT');
 
       if (eventType === 'DELETE') {
         // DELETE: remove directly by ID
@@ -516,45 +516,47 @@ export default function StudentsPage() {
       } else if (eventType === 'INSERT') {
         // INSERT: add new student directly to top of list
         const raw = payload.student || payload.new || payload;
-        const fullName = formatStudentName(raw) || raw.name || `${raw.first_name || ''} ${raw.last_name || ''}`.trim();
-        const yearBlock = formatYearBlock(raw.year_block);
-        const normStatus = raw.status === 'active' ? 'active' : 'deactivated';
-        const newSt = {
-          ...raw,
-          email: formatStudentEmail(raw.email),
-          name: fullName,
-          year_block: yearBlock,
-          date_registered: raw.date_registered || (raw.created_at ? raw.created_at.split('T')[0] : '2026-09-01'),
-          status: normStatus,
-        };
+        const formatted = formatStudentListItem(raw);
+        if (!formatted) return;
+
         setStudentsList((prev) => {
-          const exists = prev.some((s) => s.id === newSt.id || s.student_id === newSt.student_id);
-          if (exists) return prev;
-          const updated = [newSt, ...prev];
+          const exists = prev.some((s) => s.id === formatted.id || s.student_id === formatted.student_id);
+          if (exists) {
+            return prev.map((s) =>
+              s.id === formatted.id || s.student_id === formatted.student_id ? { ...s, ...formatted } : s
+            );
+          }
+          const updated = [formatted, ...prev];
           updated.sort(sortStudentsByRegistrationDateDesc);
           return updated;
         });
       } else {
         // UPDATE: replace student by ID
-        setStudentsList((prev) =>
-          prev.map((s) => {
-            if (s.id === targetId || s.student_id === targetId) {
-              const raw = payload.student || payload.new || payload;
-              const updatedStatus = payload.status || (payload.new && payload.new.status) || s.status;
-              const normStatus = updatedStatus === 'active' ? 'active' : 'deactivated';
-              const fullName = formatStudentName(raw) || raw.name || s.name;
-              return {
-                ...s,
-                ...raw,
-                name: fullName,
-                status: normStatus,
-                email: formatStudentEmail(raw.email || s.email),
-                year_block: raw.year_block ? formatYearBlock(raw.year_block) : s.year_block,
-              };
+        const raw = payload.student || payload.new || payload;
+        const formatted = formatStudentListItem(raw);
+        if (!formatted) return;
+
+        setStudentsList((prev) => {
+          let matched = false;
+          const updated = prev.map((s) => {
+            if (
+              s.id === targetId ||
+              s.student_id === targetId ||
+              s.id === formatted.id ||
+              s.student_id === formatted.student_id
+            ) {
+              matched = true;
+              return { ...s, ...formatted };
             }
             return s;
-          })
-        );
+          });
+          if (!matched && formatted.status === 'active') {
+            const nextList = [formatted, ...prev];
+            nextList.sort(sortStudentsByRegistrationDateDesc);
+            return nextList;
+          }
+          return updated;
+        });
       }
     };
 
@@ -726,9 +728,12 @@ export default function StudentsPage() {
     const defaultPassword = generateDefaultStudentPassword();
     const password_hash = bcrypt.hashSync(defaultPassword, 10);
 
-    // Timestamp for real-time registration date so the student automatically appears at the top
+    // Automatically use the actual current date and timestamp (never hardcoded)
     const now = new Date();
-    const regDateStr = now.toISOString().split('T')[0];
+    const localYear = now.getFullYear();
+    const localMonth = String(now.getMonth() + 1).padStart(2, '0');
+    const localDay = String(now.getDate()).padStart(2, '0');
+    const regDateStr = `${localYear}-${localMonth}-${localDay}`;
     const createdIso = now.toISOString();
 
     const newStudent = {
@@ -741,6 +746,7 @@ export default function StudentsPage() {
       email: submittedEmail,
       date_registered: regDateStr,
       created_at: createdIso,
+      has_viewed_guides: false,
       status: 'active',
       password_hash,
       must_change_password: true,
@@ -807,6 +813,7 @@ export default function StudentsPage() {
         name: formatStudentName(insertedData[0]) || insertedData[0].name || fullName,
         year_block: formatYearBlock(insertedData[0].year_block),
         date_registered: insertedData[0].date_registered || regDateStr,
+        created_at: insertedData[0].created_at || createdIso,
         status: insertedData[0].status === 'active' ? 'active' : 'deactivated',
       } : newStudent;
 
@@ -825,10 +832,13 @@ export default function StudentsPage() {
         broadcastStudentChange(insertedRecord, 'insert');
       } catch {}
 
+      // Update central module cache
+      updateCachedStudent({ student: insertedRecord, eventType: 'INSERT' });
+
       // Prepend newly registered student to list at the top and maintain sort order
       setStudentsList((prev) => [
         insertedRecord,
-        ...prev.filter((s) => s.student_id !== insertedRecord.student_id),
+        ...prev.filter((s) => s.student_id !== insertedRecord.student_id && s.id !== insertedRecord.id),
       ].sort(sortStudentsByRegistrationDateDesc));
 
       // Automatically refresh the Students list from Supabase
@@ -1424,7 +1434,7 @@ export default function StudentsPage() {
               })
             ) : (
               <tr>
-                <td colSpan="7" className="empty-students-cell">
+                <td colSpan="7" className="empty-students-cell" style={{ padding: '36px 16px' }}>
                   <div className="empty-students-state">
                     <p>No students match your selected filter or search criteria.</p>
                   </div>

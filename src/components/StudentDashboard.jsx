@@ -293,7 +293,7 @@ export default function StudentDashboard({
         : (activeStudent?.student_id === '24-0041-147' ? '3rd year, BLK 2' : (DEFAULT_STUDENT.year_block || 'N/A')),
       student_id: activeStudent?.student_id || DEFAULT_STUDENT.student_id,
       email: activeStudent?.email || currentUser?.email || DEFAULT_STUDENT.email,
-      date_registered: activeStudent?.date_registered || activeStudent?.created_at || '2026-09-28',
+      date_registered: activeStudent?.date_registered || activeStudent?.created_at || null,
       email_last_updated: activeStudent?.email_last_updated || null,
       role: 'student',
       status: activeStudent?.status || 'active',

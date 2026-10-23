@@ -599,30 +599,12 @@ export default function StudentSubmittedReportsPage({
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" className="reports-empty-cell">
+                  <td colSpan="6" className="reports-empty-cell" style={{ padding: '36px 16px' }}>
                     <div className="reports-empty-state">
                       {reportsList.length === 0 ? (
-                        <>
-                          <p>You have not submitted any problem reports yet.</p>
-                          <button
-                            type="button"
-                            className="reset-filters-btn"
-                            onClick={handleReportProblemClick}
-                          >
-                            Report a problem
-                          </button>
-                        </>
+                        <p>You have not submitted any problem reports yet.</p>
                       ) : (
-                        <>
-                          <p>No reports match your current search query or filter selection.</p>
-                          <button
-                            type="button"
-                            className="reset-filters-btn"
-                            onClick={handleResetAllFilters}
-                          >
-                            Clear all filters
-                          </button>
-                        </>
+                        <p>No reports match your current search query or filter selection.</p>
                       )}
                     </div>
                   </td>

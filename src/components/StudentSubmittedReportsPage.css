@@ -749,13 +749,19 @@
 }
 
 /* Empty Table State */
-.student-reports-empty-cell {
+.student-submitted-reports-container .reports-data-table td.reports-empty-cell,
+.student-submitted-reports-container .reports-data-table td.student-reports-empty-cell,
+.student-reports-table td.student-reports-empty-cell,
+.student-reports-table td.reports-empty-cell,
+.student-reports-empty-cell,
+.reports-empty-cell {
   text-align: center;
-  padding: 40px 20px;
+  padding: 36px 16px !important;
   background-color: #ffffff;
 }
 
-.student-reports-empty-state {
+.student-reports-empty-state,
+.reports-empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;

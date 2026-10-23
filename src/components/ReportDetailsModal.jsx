@@ -1728,7 +1728,16 @@ export default function ReportDetailsModal({
                 placeholder="Enter remarks..."
               />
               {remarksError && (
-                <span className="text-xs text-red-500 font-semibold mt-1">
+                <span
+                  className="report-remarks-validation-error text-xs text-red-500 font-semibold mt-1"
+                  style={{
+                    color: '#EF4444',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    marginTop: '4px',
+                    display: 'block',
+                  }}
+                >
                   {remarksErrorMessage || 'Remarks are required before proceeding.'}
                 </span>
               )}
@@ -1982,7 +1991,16 @@ export default function ReportDetailsModal({
                 autoFocus
               />
               {resolutionError && (
-                <span className="text-xs text-red-500 font-semibold mt-1 block">
+                <span
+                  className="report-remarks-validation-error text-xs text-red-500 font-semibold mt-1 block"
+                  style={{
+                    color: '#EF4444',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    marginTop: '4px',
+                    display: 'block',
+                  }}
+                >
                   Valid remarks describing the repair outcome are required.
                 </span>
               )}

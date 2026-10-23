@@ -74,6 +74,12 @@ export default function RecentReportsList({
                   </td>
                 </tr>
               ))
+            ) : reports.length === 0 ? (
+              <tr className="reports-table-data-row">
+                <td colSpan={7} className="reports-empty-cell" style={{ textAlign: 'center', padding: '36px 16px', color: '#6b7280', fontSize: '13px' }}>
+                  No recent reports submitted yet.
+                </td>
+              </tr>
             ) : reports.slice(0, 5).map((report) => (
               <tr key={report.id || report.report_id} className="reports-table-data-row">
                 {/* Column 1: ID Badge */}

@@ -5645,9 +5645,10 @@ body,
   transform: translateY(0);
 }
 
+.students-data-table td.empty-students-cell,
 .empty-students-cell {
   text-align: center;
-  padding: 40px 20px;
+  padding: 36px 16px !important;
 }
 
 .empty-students-state {
@@ -7371,9 +7372,12 @@ body,
 }
 
 /* Empty State */
+.reports-data-table td.reports-empty-cell,
+.recent-reports-data-table td.reports-empty-cell,
+.student-reports-table td.reports-empty-cell,
 .reports-empty-cell {
   text-align: center;
-  padding: 40px 20px;
+  padding: 36px 16px !important;
 }
 
 .reports-empty-state {
@@ -11142,6 +11146,15 @@ body,
 .report-remarks-textarea.textarea-error {
   border-color: #EF4444 !important;
   box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.18) !important;
+}
+
+.report-remarks-validation-error {
+  color: #EF4444;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 4px;
+  display: block;
+  line-height: 1.4;
 }
 
 .report-on-hold-alert-banner {

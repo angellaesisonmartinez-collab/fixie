@@ -1,4 +1,5 @@
 import { supabase, safeRemoveChannel } from './supabase';
+import { updateCachedStudent } from './studentsService.js';
 
 const SYNC_CHANNEL_NAME = 'fixie-reports-sync';
 const BROADCAST_CHANNEL_NAME = 'fixie_sync_channel';
@@ -62,6 +63,11 @@ function notifyReportListeners(payload) {
 
 function notifyStudentListeners(payload) {
   if (!payload) return;
+  try {
+    updateCachedStudent(payload);
+  } catch (err) {
+    console.warn('Student cache update note:', err);
+  }
   studentUpdateListeners.forEach((listener) => {
     try {
       listener(payload);

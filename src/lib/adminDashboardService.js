@@ -2,6 +2,7 @@ import { supabase } from './supabase.js';
 import { formatStudentName, formatYearBlock } from './studentFormatUtils.js';
 import { getReportAttachment } from './reportAttachmentUtils.js';
 import { resolveAuthenticReportStudent } from './reportStudentMapping.js';
+import { fetchStudentsData } from './studentsService.js';
 import angelAvatar from '../assets/avatars/angel.png';
 import jennelynAvatar from '../assets/avatars/jennelyn.png';
 import reynAvatar from '../assets/avatars/reyn.png';
@@ -165,11 +166,11 @@ export async function fetchAdminDashboardData(forceRefresh = false) {
   inFlightDashboardPromise = (async () => {
     try {
       const [
-        studentRes,
+        studentsList,
         reportsRes,
         guideRes,
       ] = await Promise.all([
-        supabase.from('students').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+        fetchStudentsData(forceRefresh),
         supabase
           .from('reports')
           .select('*, students(*)')
@@ -181,7 +182,8 @@ export async function fetchAdminDashboardData(forceRefresh = false) {
       const rawReports = reportsRes?.data || [];
       const reports = rawReports.map(formatAdminDashboardReport).filter(Boolean);
 
-      const totalStudents = typeof studentRes?.count === 'number' ? studentRes.count : 0;
+      const activeStudentsCount = studentsList?.filter((s) => s.status === 'active').length ?? 0;
+      const totalStudents = activeStudentsCount;
       const totalGuides = typeof guideRes?.count === 'number' ? guideRes.count : 0;
       const totalReports = reports.length;
       const onHoldReports = reports.filter(isReportOnHold).length;
