@@ -227,10 +227,11 @@ export const cleanHtmlForStorage = (html) => {
   cleaned = cleaned.replace(/&#160;/gi, ' ');
   cleaned = cleaned.replace(/\u00a0/g, ' ');
 
-  // Clean leading spaces immediately after opening tags
-  cleaned = cleaned.replace(/(<(?:li|p|ol|ul|div|span|b|strong|i|em|u)[^>]*>)\s+/gi, '$1');
-  // Clean trailing spaces immediately before closing tags
-  cleaned = cleaned.replace(/\s+(<\/(?:li|p|ol|ul|div|span|b|strong|i|em|u)>)/gi, '$1');
+  // Clean leading spaces immediately after opening BLOCK tags only
+  // (inline tags like <b>/<i>/<span> must keep spaces, otherwise "turn off</b> equipment" loses its space)
+  cleaned = cleaned.replace(/(<(?:li|p|ol|ul|div)(?:\s[^>]*)?>)\s+/gi, '$1');
+  // Clean trailing spaces immediately before closing BLOCK tags only
+  cleaned = cleaned.replace(/\s+(<\/(?:li|p|ol|ul|div)>)/gi, '$1');
 
   // Collapse multiple spaces
   cleaned = cleaned.replace(/ {2,}/g, ' ');
