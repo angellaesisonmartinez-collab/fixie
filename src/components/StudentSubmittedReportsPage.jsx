@@ -783,7 +783,12 @@ export default function StudentSubmittedReportsPage({
             if (refetch) await refetch();
             setIsReportProblemModalOpen(false);
             if (viewDetails) {
-              setActiveReportModal(normalizeStudentReport(newRep));
+              const normalized = normalizeStudentReportItem(newRep, studentProfile);
+              if (onSelectReport) {
+                onSelectReport(normalized);
+              } else {
+                setActiveReportModal(normalized);
+              }
             }
           }}
         />

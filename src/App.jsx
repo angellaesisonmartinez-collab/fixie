@@ -419,12 +419,36 @@ function App() {
     }
 
     let sessionTech = null;
+    let sessionStudent = null;
     try {
       const stored = sessionStorage.getItem('fixie_authenticated_tech');
       if (stored) {
         sessionTech = JSON.parse(stored);
       }
+      const sStored = sessionStorage.getItem('fixie_authenticated_student');
+      if (sStored) {
+        sessionStudent = JSON.parse(sStored);
+      }
     } catch {}
+
+    // Safeguard: If authenticated session belongs to a student and not technical personnel,
+    // prevent hash routing from opening Technical Personnel AdminDashboard
+    if (sessionStudent && !sessionTech && (currentHash === '#reports' || currentHash === '#reports-management')) {
+      return (
+        <StudentDashboard
+          initialNav="My Reports"
+          currentUser={{ id: sessionStudent.id, email: sessionStudent.email }}
+          userProfile={sessionStudent}
+          onSignOut={() => {
+            try {
+              sessionStorage.removeItem('fixie_authenticated_student');
+              localStorage.removeItem('fixie_authenticated_student');
+            } catch {}
+            window.location.hash = '';
+          }}
+        />
+      );
+    }
 
     const effectiveTech = sessionTech || {
       id: 'preview-admin',

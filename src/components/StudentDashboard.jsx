@@ -56,7 +56,16 @@ export default function StudentDashboard({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [selectedReport, setSelectedReport] = useState(null);
+  const [selectedReport, setSelectedReport] = useState(() => {
+    try {
+      const stored = sessionStorage.getItem('fixie_student_selected_report');
+      if (stored) {
+        sessionStorage.removeItem('fixie_student_selected_report');
+        return JSON.parse(stored);
+      }
+    } catch {}
+    return null;
+  });
   const [isReportProblemModalOpen, setIsReportProblemModalOpen] = useState(false);
 
   const handleFinalSignOut = async () => {
@@ -558,9 +567,13 @@ export default function StudentDashboard({
             onReportSubmitted={(newRep, viewDetails) => {
               if (refetchReports) refetchReports();
               if (viewDetails) {
+                const normalized = normalizeStudentReportItem(newRep, studentProfile);
+                try {
+                  sessionStorage.setItem('fixie_student_selected_report', JSON.stringify(normalized));
+                } catch {}
                 setActiveNav('My Reports');
-                setSelectedReport(normalizeReportItem(newRep));
-                window.location.hash = '#reports';
+                setSelectedReport(normalized);
+                window.location.hash = '#my-reports';
               }
             }}
           />
@@ -836,7 +849,12 @@ export default function StudentDashboard({
           report={selectedReport}
           isStudent={true}
           studentProfile={activeStudent || userProfile || currentUser}
-          onClose={() => setSelectedReport(null)}
+          onClose={() => {
+            try {
+              sessionStorage.removeItem('fixie_student_selected_report');
+            } catch {}
+            setSelectedReport(null);
+          }}
           onUpdateStatus={async (reportId, newStatus, updatedHistory, newRemarks) => {
             const targetId = reportId || selectedReport.report_id || selectedReport.id;
 
@@ -888,8 +906,13 @@ export default function StudentDashboard({
         onReportSubmitted={(newRep, viewDetails) => {
           if (refetchReports) refetchReports();
           if (viewDetails) {
+            const normalized = normalizeStudentReportItem(newRep, studentProfile);
+            try {
+              sessionStorage.setItem('fixie_student_selected_report', JSON.stringify(normalized));
+            } catch {}
             setActiveNav('My Reports');
-            setSelectedReport(normalizeReportItem(newRep));
+            setSelectedReport(normalized);
+            window.location.hash = '#my-reports';
           }
         }}
       />
