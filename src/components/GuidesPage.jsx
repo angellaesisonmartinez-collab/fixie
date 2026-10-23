@@ -116,8 +116,12 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
 
+  // Tracks local/live changes so stale in-flight fetches can't overwrite fresher data
+  const mutationRef = useRef(0);
+
   // Fetch live guides from Supabase
   const fetchGuides = async () => {
+    const startedAt = mutationRef.current;
     try {
       const { data, error } = await supabase
         .from('guides')
@@ -125,6 +129,7 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      if (mutationRef.current !== startedAt) return; // stale response, a newer change arrived
       if (data && data.length > 0) {
         // Ensure newest published guides appear first
         const sorted = [...data].sort((a, b) => {
@@ -166,6 +171,7 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
 
     const handleGuideLiveUpdate = (payload) => {
       if (!payload) return;
+      mutationRef.current++;
       const targetId = payload.id || payload.guide?.id || payload.new?.id;
       const eventType = payload.eventType || (payload.action === 'publish' ? 'INSERT' : payload.action === 'delete' ? 'DELETE' : 'UPDATE');
 
@@ -421,6 +427,7 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
 
       const saved = data;
 
+      mutationRef.current++;
       setGuidesList((prev) => {
         const next = [saved, ...prev.filter((g) => g.id !== saved.id)].sort((a, b) => {
           const diff = getGuideSortTime(b) - getGuideSortTime(a);
@@ -500,6 +507,7 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
       };
 
       // Keep position based on original publication date, do not move to top
+      mutationRef.current++;
       setGuidesList((prev) => {
         const next = prev
           .map((g) => (g.id === viewingGuide.id ? updated : g))

@@ -155,7 +155,9 @@ export default function StudentGuidesPage({ studentProfile, currentUser }) {
   }, [savedStorageKey, studentNumber]);
 
   // Fetch live guides from Supabase (sorted strictly by created_at newest first)
+  const mutationRef = useRef(0);
   const fetchGuides = async () => {
+    const startedAt = mutationRef.current;
     try {
       const { data, error } = await supabase
         .from('guides')
@@ -163,6 +165,7 @@ export default function StudentGuidesPage({ studentProfile, currentUser }) {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      if (mutationRef.current !== startedAt) return; // stale response
       if (data && data.length > 0) {
         // Sort strictly by publication date (created_at) newest first
         const sorted = sortGuidesByPublicationDate(data);
@@ -235,6 +238,7 @@ export default function StudentGuidesPage({ studentProfile, currentUser }) {
 
     const handleGuideLiveUpdate = (payload) => {
       if (!payload) return;
+      mutationRef.current++;
       const targetId = payload.id || payload.guide?.id || payload.new?.id;
       const eventType = payload.eventType || (payload.action === 'publish' ? 'INSERT' : payload.action === 'delete' ? 'DELETE' : 'UPDATE');
 
