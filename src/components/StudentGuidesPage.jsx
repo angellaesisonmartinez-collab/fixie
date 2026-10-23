@@ -167,7 +167,11 @@ export default function StudentGuidesPage({ studentProfile, currentUser }) {
         // Sort strictly by publication date (created_at) newest first
         const sorted = sortGuidesByPublicationDate(data);
         cachedStudentGuides = sorted;
-        setGuidesList(sorted);
+        // Only re-render when something actually changed (prevents stat card flicker)
+        setGuidesList((prev) => {
+          const sig = (list) => list.map((g) => `${g.id}|${g.updated_at}|${g.category}|${g.title}`).join(';');
+          return sig(prev) === sig(sorted) ? prev : sorted;
+        });
       }
     } catch (err) {
       console.warn('Student guides live sync notice:', err.message);
@@ -294,9 +298,18 @@ export default function StudentGuidesPage({ studentProfile, currentUser }) {
       }
     });
 
+    // Polling safety net so changes appear automatically even if realtime events are missed
+    const pollId = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchGuides();
+        if (studentUuidRef.current) fetchSavedGuides(studentUuidRef.current);
+      }
+    }, 4000);
+
     return () => {
       unsubGuides();
       unsubVisibility();
+      clearInterval(pollId);
       window.removeEventListener('storage', handleStorageEvent);
     };
   }, [viewedTimesStorageKey, savedStorageKey]);

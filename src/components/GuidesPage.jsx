@@ -133,7 +133,11 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
           return (a.id || '').localeCompare(b.id || '');
         });
         cachedTechnicalGuides = sorted;
-        setGuidesList(sorted);
+        // Only re-render when something actually changed (prevents stat card flicker)
+        setGuidesList((prev) => {
+          const sig = (list) => list.map((g) => `${g.id}|${g.updated_at}|${g.category}|${g.title}`).join(';');
+          return sig(prev) === sig(sorted) ? prev : sorted;
+        });
       }
     } catch (err) {
       console.warn('Guides live sync notice:', err.message);
@@ -214,9 +218,15 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
       fetchGuides();
     });
 
+    // 3. Polling safety net so changes appear automatically even if realtime events are missed
+    const pollId = setInterval(() => {
+      if (document.visibilityState === 'visible') fetchGuides();
+    }, 4000);
+
     return () => {
       unsubGuides();
       unsubVisibility();
+      clearInterval(pollId);
     };
   }, []);
 

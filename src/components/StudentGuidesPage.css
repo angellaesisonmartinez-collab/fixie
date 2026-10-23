@@ -148,12 +148,15 @@
 
 .student-metric-value-wrap {
   margin: 4px 0 0 0;
+  min-height: 40px;
 }
 
 .student-metric-number {
   font-family: 'Barlow Semi Condensed', sans-serif !important;
   font-size: 40px !important;
   font-weight: 800 !important;
+  font-variant-numeric: tabular-nums;
+  display: inline-block;
   line-height: 1;
   color: #072617;
   letter-spacing: -0.02em;
