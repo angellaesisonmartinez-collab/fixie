@@ -407,7 +407,7 @@ export default function ForgotPasswordPage({ initialStep = 1, onReturnToLogin })
                       fontWeight: '600',
                       cursor: 'pointer',
                       padding: '2px 6px',
-                      textDecoration: 'underline',
+                      textDecoration: 'none',
                     }}
                   >
                     Resend Code
