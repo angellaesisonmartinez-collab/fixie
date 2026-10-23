@@ -37,13 +37,16 @@ export function normalizeStudentReportItem(item, studentContext = null) {
   let displayStatus = 'RESOLVED';
   let statusClass = 'status-resolved';
 
-  if (rawStatus === 'Submitted' || rawStatus === 'Under Review' || rawStatus === 'Reviewed') {
+  if (rawStatus === 'Submitted' || rawStatus === 'submitted') {
+    displayStatus = 'SUBMITTED';
+    statusClass = 'status-submitted';
+  } else if (rawStatus === 'Under Review' || rawStatus === 'Reviewed' || rawStatus === 'reviewed') {
     displayStatus = 'UNDER REVIEW';
     statusClass = 'status-under-review';
-  } else if (rawStatus === 'Under Repair' || rawStatus === 'Under repair') {
+  } else if (rawStatus === 'Under Repair' || rawStatus === 'Under repair' || rawStatus === 'under repair') {
     displayStatus = 'UNDER REPAIR';
     statusClass = 'status-under-repair';
-  } else if (rawStatus === 'On Hold' || rawStatus === 'on_hold') {
+  } else if (rawStatus === 'On Hold' || rawStatus === 'on_hold' || rawStatus === 'on hold') {
     displayStatus = 'ON HOLD';
     statusClass = 'status-on-hold';
   }
@@ -545,11 +548,9 @@ export async function fetchStudentReportsAndStats(student) {
         const st = r.status;
         const disp = r.displayStatus || r.display_status;
 
-        if (st === 'Submitted') {
+        if (st === 'Submitted' || disp === 'SUBMITTED') {
           submitted += 1;
-        }
-
-        if (st === 'Under Review' || st === 'Reviewed' || st === 'Submitted' || disp === 'UNDER REVIEW') {
+        } else if (st === 'Under Review' || st === 'Reviewed' || disp === 'UNDER REVIEW') {
           underReview += 1;
         } else if (st === 'Under Repair' || st === 'Under repair' || disp === 'UNDER REPAIR') {
           underRepair += 1;

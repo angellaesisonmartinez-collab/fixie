@@ -894,7 +894,10 @@ function TechnicalPersonnelReportsPage({
           // Status badges matching Dashboard definitions
           let displayStatus = 'RESOLVED';
           let statusClass = 'status-resolved';
-          if (r.status === 'Submitted' || r.status === 'Reviewed' || r.status === 'Under Review') {
+          if (r.status === 'Submitted') {
+            displayStatus = 'SUBMITTED';
+            statusClass = 'status-submitted';
+          } else if (r.status === 'Reviewed' || r.status === 'Under Review') {
             displayStatus = 'UNDER REVIEW';
             statusClass = 'status-under-review';
           } else if (r.status === 'Under Repair') {
@@ -1157,7 +1160,10 @@ function TechnicalPersonnelReportsPage({
 
               let displayStatus = 'RESOLVED';
               let statusClass = 'status-resolved';
-              if (effectiveStatus === 'Submitted' || effectiveStatus === 'Reviewed' || effectiveStatus === 'Under Review') {
+              if (effectiveStatus === 'Submitted') {
+                displayStatus = 'SUBMITTED';
+                statusClass = 'status-submitted';
+              } else if (effectiveStatus === 'Reviewed' || effectiveStatus === 'Under Review') {
                 displayStatus = 'UNDER REVIEW';
                 statusClass = 'status-under-review';
               } else if (effectiveStatus === 'Under Repair' || effectiveStatus === 'Under repair') {
@@ -1264,14 +1270,18 @@ function TechnicalPersonnelReportsPage({
 
         // Status filter applies only to Submitted, Under Review, Under Repair, Resolved
         if (selectedStatusFilter === 'SUBMITTED') {
-          if (r.status !== 'Submitted') return false;
+          const isSubmitted =
+            r.status === 'Submitted' ||
+            (r.display_status || '').toUpperCase() === 'SUBMITTED' ||
+            (r.displayStatus || '').toUpperCase() === 'SUBMITTED';
+          if (!isSubmitted) return false;
         } else if (selectedStatusFilter === 'UNDER_REVIEW') {
           const isUnderReview =
-            r.status === 'Reviewed' ||
-            r.status === 'Submitted' ||
-            r.status === 'Under Review' ||
-            (r.display_status || '').toUpperCase() === 'UNDER REVIEW' ||
-            (r.displayStatus || '').toUpperCase() === 'UNDER REVIEW';
+            (r.status === 'Reviewed' ||
+              r.status === 'Under Review' ||
+              (r.display_status || '').toUpperCase() === 'UNDER REVIEW' ||
+              (r.displayStatus || '').toUpperCase() === 'UNDER REVIEW') &&
+            r.status !== 'Submitted';
           if (!isUnderReview) return false;
         } else if (selectedStatusFilter === 'UNDER_REPAIR') {
           const isUnderRepair =
@@ -1360,7 +1370,10 @@ function TechnicalPersonnelReportsPage({
 
     let displayStatus = 'RESOLVED';
     let statusClass = 'status-resolved';
-    if (newStatus === 'Submitted' || newStatus === 'Reviewed' || newStatus === 'Under Review') {
+    if (newStatus === 'Submitted') {
+      displayStatus = 'SUBMITTED';
+      statusClass = 'status-submitted';
+    } else if (newStatus === 'Reviewed' || newStatus === 'Under Review') {
       displayStatus = 'UNDER REVIEW';
       statusClass = 'status-under-review';
     } else if (newStatus === 'Under Repair') {

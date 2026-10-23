@@ -21,12 +21,12 @@ function getStudentStatusPillInfo(status) {
     return { text: 'On Hold', className: 'pill-on-hold', phase: 3, isOnHold: true };
   }
   if (s.includes('repair')) {
-    return { text: 'Under repair', className: 'pill-repair', phase: 3, isOnHold: false };
+    return { text: 'Under repair', className: 'pill-repair', phase: 2, isOnHold: false };
   }
-  if (s === 'reviewed' || (s.includes('review') && !s.includes('under'))) {
-    return { text: 'Reviewed', className: 'pill-reviewed', phase: 2, isOnHold: false };
+  if (s === 'reviewed' || s === 'under review' || s === 'under_review') {
+    return { text: 'Under Review', className: 'pill-reviewed', phase: 1, isOnHold: false };
   }
-  return { text: 'Submitted', className: 'pill-submitted', phase: 1, isOnHold: false };
+  return { text: 'Submitted', className: 'pill-submitted', phase: 0, isOnHold: false };
 }
 
 function getCenterNumber(val) {
@@ -129,26 +129,34 @@ export function normalizeStatusLabel(st) {
   if (s.includes('resolve')) return 'Resolved';
   if (s === 'on hold' || s === 'on_hold' || s.includes('hold')) return 'On Hold';
   if (s.includes('repair')) return 'Under Repair';
-  if (s === 'reviewed') return 'Reviewed';
-  if (s === 'under review' || s === 'under_review') return 'Submitted';
-  if (s.includes('submit')) return 'Submitted';
-  if (s.includes('review')) return 'Reviewed';
+  if (s === 'reviewed' || s === 'under review' || s === 'under_review') return 'Under Review';
+  if (s === 'submitted' || s.includes('submit')) return 'Submitted';
+  return 'Submitted';
+}
+
+export function normalizeDbStatus(st) {
+  const s = String(st || '').toLowerCase().trim();
+  if (s.includes('resolve')) return 'Resolved';
+  if (s === 'on hold' || s === 'on_hold' || s.includes('hold')) return 'On Hold';
+  if (s.includes('repair')) return 'Under Repair';
+  if (s === 'reviewed' || s === 'under review' || s === 'under_review') return 'Reviewed';
+  if (s === 'submitted' || s.includes('submit')) return 'Submitted';
   return st || 'Submitted';
 }
 
 /**
- * Returns human-readable label for status history entries matching reference designs:
- * 'Submitted' -> 'Date Submitted', 'Reviewed' -> 'Reviewed', 'Under Repair' -> 'Under Repair',
- * 'On Hold' -> 'On Hold', 'Resolved' -> 'Resolved'.
+ * Returns human-readable label for status history entries:
+ * 'Submitted' -> 'Date Submitted', 'Under Review' -> 'Under Review',
+ * 'Under Repair' -> 'Under Repair', 'On Hold' -> 'On Hold', 'Resolved' -> 'Resolved'.
  */
 export function getStatusHistoryLabel(status) {
   const s = String(status || '').toLowerCase().trim();
   if (s === 'submitted' || s.includes('submit')) return 'Date Submitted';
+  if (s === 'under review' || s === 'under_review' || s === 'reviewed') return 'Under Review';
+  if (s === 'under repair' || s.includes('repair')) return 'Under Repair';
   if (s === 'on hold' || s === 'on_hold' || s.includes('hold')) return 'On Hold';
-  if (s.includes('repair')) return 'Under Repair';
-  if (s === 'reviewed' || (s.includes('review') && !s.includes('under'))) return 'Reviewed';
   if (s.includes('resolve')) return 'Resolved';
-  return status || 'Date Submitted';
+  return status || 'Under Review';
 }
 
 /**
@@ -171,8 +179,10 @@ export function formatStatusHistoryDisplayTime(timeInput) {
 /**
  * Builds unified status history list combining database audit rows and student history.
  * Displays history in true chronological order (oldest to newest):
- * Submitted -> Under Review -> Under Repair -> Resolved (with On Hold in between if applicable).
- * Strictly reflects actual database events without duplicate or mock entries.
+ * 1. Under Review: displays only "Date Submitted" (with original submission timestamp)
+ * 2. Under Repair: retains "Date Submitted" and adds "Under Review" (actual timestamp button was clicked)
+ * 3. On Hold: adds "On Hold" only if explicitly placed on hold
+ * 4. Resolved: adds "Resolved" (whether from Under Repair or On Hold)
  */
 export function buildUnifiedHistoryEntries({
   historyRows = [],
@@ -189,7 +199,7 @@ export function buildUnifiedHistoryEntries({
   for (const row of historyRows || []) {
     if (!row || !row.status) continue;
     rawList.push({
-      status: normalizeStatusLabel(row.status),
+      status: normalizeDbStatus(row.status),
       remarks: row.remarks || null,
       created_at: row.created_at,
     });
@@ -202,80 +212,148 @@ export function buildUnifiedHistoryEntries({
       const rawAction = h.action || h.status;
       if (!rawAction) continue;
       rawList.push({
-        status: normalizeStatusLabel(rawAction),
+        status: normalizeDbStatus(rawAction),
         remarks: h.remarksText || h.remarks || null,
         created_at: h.time || h.created_at,
       });
     }
   }
 
-  // 3. Ensure authentic "Submitted" entry exists as the baseline
-  const hasSubmitted = rawList.some((e) => e.status === 'Submitted');
-  if (!hasSubmitted) {
-    const subDate =
-      currentReport.created_at ||
-      currentReport.raw_created_at ||
-      currentReport.date_submitted ||
-      new Date().toISOString();
-    rawList.unshift({
-      status: 'Submitted',
-      remarks: null,
-      created_at: subDate,
-    });
-  }
+  // 3. Ensure authentic "Submitted" entry exists as baseline (Date Submitted)
+  // Date Submitted must strictly represent the original submission timestamp, not updated_at
+  const submissionTimestamp =
+    currentReport.created_at ||
+    currentReport.raw_created_at ||
+    currentReport.date_submitted ||
+    rawList.find((e) => e.status === 'Submitted')?.created_at ||
+    new Date().toISOString();
 
-  // Sort strictly in chronological order (oldest to newest)
-  rawList.sort((a, b) => {
-    const timeA = new Date(a.created_at || 0).getTime();
-    const timeB = new Date(b.created_at || 0).getTime();
-    return timeA - timeB;
+  const submittedRow = rawList.find((e) => e.status === 'Submitted');
+  const subTime = submittedRow?.created_at || submissionTimestamp;
+  const formattedSubTime = formatManilaHistoryTime(subTime);
+
+  entries.push({
+    status: 'Submitted',
+    remarks: null,
+    timeFormatted: formattedSubTime,
+    createdAt: subTime,
   });
+  timestamps.submitted = formattedSubTime;
 
-  // Deduplicate consecutive identical statuses (e.g. rapid repeat clicks within seconds)
-  for (const item of rawList) {
-    const prev = entries[entries.length - 1];
-    if (prev && prev.status === item.status) {
-      if (!prev.remarks && item.remarks) {
-        prev.remarks = item.remarks;
-      }
-      continue;
-    }
+  // Normalized current status of the report
+  const normCurrent = normalizeDbStatus(currentStatus || currentReport.status || 'Submitted');
 
-    const formattedTime = formatManilaHistoryTime(item.created_at);
-    const itemRemarks = item.remarks || (item.status === currentStatus ? currentRemarks : null);
+  // Check if an authentic review event has occurred or status is past review
+  const reviewedRow = rawList.find(
+    (e) => e.status === 'Reviewed' || e.status === 'Under Review'
+  );
+  const isReviewedOrBeyond =
+    Boolean(reviewedRow) ||
+    normCurrent === 'Reviewed' ||
+    normCurrent === 'Under Repair' ||
+    normCurrent === 'On Hold' ||
+    normCurrent === 'Resolved' ||
+    Boolean(currentReport.reviewed_at);
+
+  if (isReviewedOrBeyond && normCurrent !== 'Submitted') {
+    const reviewTime =
+      reviewedRow?.created_at ||
+      currentReport.reviewed_at ||
+      (normCurrent === 'Reviewed' ? currentReport.updated_at : null) ||
+      subTime;
+    const formattedRevTime = formatManilaHistoryTime(reviewTime);
 
     entries.push({
-      status: item.status,
-      remarks: itemRemarks,
-      timeFormatted: formattedTime,
-      createdAt: item.created_at,
+      status: 'Under Review',
+      remarks: null,
+      timeFormatted: formattedRevTime,
+      createdAt: reviewTime,
     });
-
-    if (item.status === 'Submitted') timestamps.submitted = formattedTime;
-    if (item.status === 'Reviewed' || item.status === 'Under Review') timestamps.reviewed = formattedTime;
-    if (item.status === 'Under Repair') timestamps.underRepair = formattedTime;
-    if (item.status === 'On Hold') timestamps.onHold = formattedTime;
-    if (item.status === 'Resolved') timestamps.resolved = formattedTime;
+    timestamps.reviewed = formattedRevTime;
   }
 
-  // Ensure current status matches the latest history entry if database has newer status
-  const normCurrent = normalizeStatusLabel(currentStatus);
-  if (normCurrent && entries.length > 0 && normCurrent !== 'Submitted' && normCurrent !== 'Under Review') {
-    const lastEntry = entries[entries.length - 1];
-    if (lastEntry.status !== normCurrent) {
-      const upTime = currentReport.updated_at || new Date().toISOString();
-      const formattedUpTime = formatManilaHistoryTime(upTime);
-      entries.push({
-        status: normCurrent,
-        remarks: currentRemarks || currentReport.remarks || null,
-        timeFormatted: formattedUpTime,
-        createdAt: upTime,
-      });
-      if (normCurrent === 'Reviewed' || normCurrent === 'Under Review') timestamps.reviewed = formattedUpTime;
-      if (normCurrent === 'Under Repair') timestamps.underRepair = formattedUpTime;
-      if (normCurrent === 'On Hold') timestamps.onHold = formattedUpTime;
-      if (normCurrent === 'Resolved') timestamps.resolved = formattedUpTime;
-    }
+  // Check if repair event has occurred or status is past repair
+  const underRepairRow = rawList.find((e) => e.status === 'Under Repair');
+  const isRepairOrBeyond =
+    Boolean(underRepairRow) ||
+    normCurrent === 'Under Repair' ||
+    normCurrent === 'On Hold' ||
+    normCurrent === 'Resolved' ||
+    Boolean(currentReport.under_repair_at);
+
+  if (
+    isRepairOrBeyond &&
+    normCurrent !== 'Submitted' &&
+    normCurrent !== 'Reviewed'
+  ) {
+    const repairTime =
+      underRepairRow?.created_at ||
+      currentReport.under_repair_at ||
+      (normCurrent === 'Under Repair' ? currentReport.updated_at : null) ||
+      subTime;
+    const formattedRepairTime = formatManilaHistoryTime(repairTime);
+
+    entries.push({
+      status: 'Under Repair',
+      remarks: null,
+      timeFormatted: formattedRepairTime,
+      createdAt: repairTime,
+    });
+    timestamps.underRepair = formattedRepairTime;
+  }
+
+  // On Hold entry: ONLY if Technical Personnel explicitly selected Mark On Hold
+  const onHoldRow = rawList.find((e) => e.status === 'On Hold');
+  const wasOrIsOnHold =
+    Boolean(onHoldRow) ||
+    normCurrent === 'On Hold' ||
+    Boolean(currentReport.has_been_on_hold) ||
+    Boolean(currentReport.on_hold_at);
+
+  if (wasOrIsOnHold) {
+    const onHoldTime =
+      onHoldRow?.created_at ||
+      currentReport.on_hold_at ||
+      (normCurrent === 'On Hold' ? currentReport.updated_at : null) ||
+      new Date().toISOString();
+    const formattedHoldTime = formatManilaHistoryTime(onHoldTime);
+    const holdRemarks =
+      onHoldRow?.remarks ||
+      currentReport.remarks ||
+      (normCurrent === 'On Hold' ? currentRemarks : null);
+
+    entries.push({
+      status: 'On Hold',
+      remarks: holdRemarks,
+      timeFormatted: formattedHoldTime,
+      createdAt: onHoldTime,
+    });
+    timestamps.onHold = formattedHoldTime;
+  }
+
+  // Resolved entry: when Technical Personnel clicked Mark as Resolved
+  const resolvedRow = rawList.find((e) => e.status === 'Resolved');
+  const isResolved = Boolean(resolvedRow) || normCurrent === 'Resolved';
+
+  if (isResolved) {
+    const resolvedTime =
+      resolvedRow?.created_at ||
+      currentReport.resolved_at ||
+      currentReport.updated_at ||
+      new Date().toISOString();
+    const formattedResTime = formatManilaHistoryTime(resolvedTime);
+    const resRemarks =
+      resolvedRow?.remarks ||
+      currentReport.remarks ||
+      (normCurrent === 'Resolved' ? currentRemarks : null);
+
+    entries.push({
+      status: 'Resolved',
+      remarks: resRemarks,
+      timeFormatted: formattedResTime,
+      createdAt: resolvedTime,
+    });
+    timestamps.resolved = formattedResTime;
   }
 
   return { entries, timestamps };
@@ -335,8 +413,12 @@ async function recordStatusHistory(rep, status, remarks = null, nowIso = new Dat
     return;
   }
 
+  // Database check constraint allows: 'Submitted', 'Reviewed', 'Under Repair', 'On Hold', 'Resolved'
+  const dbStatus = (status === 'Under Review' || status === 'Reviewed') ? 'Reviewed' : status;
+  const displayLabel = getStatusHistoryLabel(status);
+
   try {
-    // Check the latest history entry for this report
+    // Check latest history entry for this report
     const { data: latestRows } = await supabase
       .from('report_status_history')
       .select('id, status, remarks, created_at')
@@ -345,7 +427,7 @@ async function recordStatusHistory(rep, status, remarks = null, nowIso = new Dat
       .limit(1);
 
     const latest = latestRows?.[0];
-    if (latest && latest.status === status) {
+    if (latest && (latest.status === dbStatus || getStatusHistoryLabel(latest.status) === displayLabel)) {
       // Same status as current latest: update remarks if provided
       if (remarks !== undefined && remarks !== null && latest.remarks !== remarks) {
         await supabase
@@ -356,7 +438,7 @@ async function recordStatusHistory(rep, status, remarks = null, nowIso = new Dat
     } else {
       const insertPayload = {
         report_id: canonicalUuid,
-        status,
+        status: dbStatus,
         created_at: nowIso,
       };
       if (remarks) {
@@ -365,12 +447,10 @@ async function recordStatusHistory(rep, status, remarks = null, nowIso = new Dat
       const { error: insErr } = await supabase.from('report_status_history').insert(insertPayload);
       if (insErr) {
         console.error('Could not insert into report_status_history:', insErr);
-        throw new Error(insErr.message || 'Failed to record status history');
       }
     }
   } catch (insertErr) {
     console.warn('Could not insert into report_status_history:', insertErr);
-    throw insertErr;
   }
 
   // Also update reports_of_student history JSONB for cross-table integrity
@@ -386,7 +466,7 @@ async function recordStatusHistory(rep, status, remarks = null, nowIso = new Dat
         const currentHist = Array.isArray(sRep.history) ? sRep.history : [];
         const lastStep = currentHist[currentHist.length - 1];
         let updatedHist = [...currentHist];
-        if (lastStep && (lastStep.action === status || lastStep.status === status)) {
+        if (lastStep && (lastStep.action === displayLabel || lastStep.status === dbStatus)) {
           if (remarks) {
             updatedHist[updatedHist.length - 1] = {
               ...lastStep,
@@ -395,8 +475,8 @@ async function recordStatusHistory(rep, status, remarks = null, nowIso = new Dat
           }
         } else {
           updatedHist.push({
-            action: status,
-            status,
+            action: displayLabel,
+            status: dbStatus,
             time: nowIso,
             remarksText: remarks || undefined,
           });
@@ -420,11 +500,11 @@ async function recordStatusHistory(rep, status, remarks = null, nowIso = new Dat
     const formattedTime = formatManilaHistoryTime(nowIso);
     const updatedCached = [...existingCached];
     const lastCached = updatedCached[updatedCached.length - 1];
-    if (lastCached && lastCached.status === normalizeStatusLabel(status)) {
+    if (lastCached && getStatusHistoryLabel(lastCached.status) === displayLabel) {
       if (remarks) lastCached.remarks = remarks;
     } else {
       updatedCached.push({
-        status: normalizeStatusLabel(status),
+        status: displayLabel,
         remarks: remarks || null,
         timeFormatted: formattedTime,
         createdAt: nowIso,
@@ -460,47 +540,19 @@ function formatCurrentTimestamp() {
  */
 function getInitialReportStatus(report) {
   if (!report) return 'Submitted';
-  if (report.status === 'On Hold' || report.display_status === 'ON HOLD') return 'On Hold';
-  if (report.status === 'Resolved' || report.display_status === 'RESOLVED') return 'Resolved';
-  if (
-    report.status === 'Under Repair' ||
-    report.status === 'Under repair' ||
-    report.display_status === 'UNDER REPAIR'
-  ) {
-    return 'Under Repair';
-  }
-  if (report.status === 'Reviewed') {
-    return 'Reviewed';
-  }
-  if (report.status === 'Submitted') {
-    return 'Submitted';
-  }
-  if (report.status === 'Under Review' || report.display_status === 'UNDER REVIEW') {
-    return 'Submitted';
-  }
-
-  return normalizeStatusLabel(report.status) || 'Submitted';
+  return normalizeStatusLabel(report.status || report.display_status || report.displayStatus || 'Submitted');
 }
 
 /**
- * Normalize phase index 1 to 4 for Stepper
+ * Normalize phase index 0 to 4 for Stepper
  */
 function getPhaseIndex(status) {
-  switch (status) {
-    case 'Submitted':
-      return 1;
-    case 'Reviewed':
-      return 2;
-    case 'Under Review':
-      return 1;
-    case 'Under Repair':
-    case 'On Hold':
-      return 3;
-    case 'Resolved':
-      return 4;
-    default:
-      return 1;
-  }
+  const s = String(status || '').toLowerCase().trim();
+  if (s.includes('resolve')) return 4;
+  if (s === 'on hold' || s === 'on_hold' || s.includes('hold')) return 3;
+  if (s.includes('repair')) return 2;
+  if (s === 'reviewed' || s === 'under review' || s === 'under_review') return 1;
+  return 0; // Newly Submitted: 0 (No highlighted status step yet)
 }
 
 /**
@@ -510,29 +562,36 @@ function getInitialTimestamps(report) {
   const parsed = parseReportDateTime(report);
   let subTime = parsed.dateTimeDisplay || formatManilaHistoryTime(report?.created_at || new Date());
 
-  const status = report?.status || 'Submitted';
+  const status = normalizeDbStatus(report?.status || 'Submitted');
 
-  const reviewedHistoryItem = report?.history?.find((h) => (h.action || '').toLowerCase().includes('review'));
-  const repairHistoryItem = report?.history?.find((h) => (h.action || '').toLowerCase().includes('repair'));
-  const onHoldHistoryItem = report?.history?.find((h) => (h.action || '').toLowerCase().includes('hold'));
-  const resolvedHistoryItem = report?.history?.find((h) => (h.action || '').toLowerCase().includes('resolve'));
+  const reviewedHistoryItem = report?.history?.find((h) => {
+    const act = (h.action || h.status || '').toLowerCase();
+    return act.includes('review') || act === 'reviewed';
+  });
+  const repairHistoryItem = report?.history?.find((h) => (h.action || h.status || '').toLowerCase().includes('repair'));
+  const onHoldHistoryItem = report?.history?.find((h) => (h.action || h.status || '').toLowerCase().includes('hold'));
+  const resolvedHistoryItem = report?.history?.find((h) => (h.action || h.status || '').toLowerCase().includes('resolve'));
 
   const updatedAtFormatted = report?.updated_at ? formatManilaHistoryTime(report.updated_at) : null;
 
-  const reviewedTime = reviewedHistoryItem?.time
-    ? formatManilaHistoryTime(reviewedHistoryItem.time)
-    : (report?.timestamps?.reviewed || (status === 'Reviewed' ? updatedAtFormatted : null));
+  const reviewTimeVal = reviewedHistoryItem?.time || report?.reviewed_at;
+  const reviewedTime = reviewTimeVal
+    ? formatManilaHistoryTime(reviewTimeVal)
+    : (report?.timestamps?.reviewed || ((status === 'Reviewed' || status === 'Under Repair' || status === 'On Hold' || status === 'Resolved') ? updatedAtFormatted : null));
 
-  const underRepairTime = repairHistoryItem?.time
-    ? formatManilaHistoryTime(repairHistoryItem.time)
-    : (report?.timestamps?.underRepair || (status === 'Under Repair' ? updatedAtFormatted : null));
+  const repairTimeVal = repairHistoryItem?.time || report?.under_repair_at;
+  const underRepairTime = repairTimeVal
+    ? formatManilaHistoryTime(repairTimeVal)
+    : (report?.timestamps?.underRepair || ((status === 'Under Repair' || status === 'On Hold' || status === 'Resolved') ? updatedAtFormatted : null));
 
-  const onHoldTime = onHoldHistoryItem?.time
-    ? formatManilaHistoryTime(onHoldHistoryItem.time)
+  const onHoldTimeVal = onHoldHistoryItem?.time || report?.on_hold_at;
+  const onHoldTime = onHoldTimeVal
+    ? formatManilaHistoryTime(onHoldTimeVal)
     : (report?.timestamps?.onHold || (status === 'On Hold' ? updatedAtFormatted : null));
 
-  const resolvedTime = resolvedHistoryItem?.time
-    ? formatManilaHistoryTime(resolvedHistoryItem.time)
+  const resolvedTimeVal = resolvedHistoryItem?.time || report?.resolved_at;
+  const resolvedTime = resolvedTimeVal
+    ? formatManilaHistoryTime(resolvedTimeVal)
     : (report?.timestamps?.resolved || (status === 'Resolved' ? updatedAtFormatted : null));
 
   return {
@@ -563,14 +622,11 @@ function getInitialTimestamps(report) {
 export function getInitialStatusHistory(report) {
   if (!report) return [];
   const targetId = report.report_id || report.id;
-  const isUuid = (val) =>
-    typeof val === 'string' &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+  const curUuid = getReportUuid(report);
 
   if (targetId && reportHistoryCache.has(targetId)) {
     return reportHistoryCache.get(targetId);
   }
-  const curUuid = getReportUuid(report);
   if (curUuid && reportHistoryCache.has(curUuid)) {
     return reportHistoryCache.get(curUuid);
   }
@@ -592,7 +648,7 @@ export function getInitialStatusHistory(report) {
 
   // Synthesize immediate baseline history matching report's current status and timestamps
   const timestamps = getInitialTimestamps(report);
-  const status = normalizeStatusLabel(report.status || 'Submitted');
+  const status = normalizeDbStatus(report.status || 'Submitted');
   const entries = [];
 
   const subTime = timestamps.submitted || formatManilaHistoryTime(report.created_at || new Date());
@@ -604,22 +660,22 @@ export function getInitialStatusHistory(report) {
   });
 
   const revTime = timestamps.reviewed;
-  if (revTime && status !== 'Submitted') {
+  if (revTime && (status === 'Reviewed' || status === 'Under Repair' || status === 'On Hold' || status === 'Resolved')) {
     entries.push({
-      status: 'Reviewed',
+      status: 'Under Review',
       remarks: null,
       timeFormatted: revTime,
-      createdAt: report.updated_at || report.created_at || new Date().toISOString(),
+      createdAt: report.reviewed_at || report.updated_at || report.created_at || new Date().toISOString(),
     });
   }
 
-  const repTime = timestamps.underRepair;
-  if (repTime && (status === 'Under Repair' || status === 'On Hold' || status === 'Resolved')) {
+  const repairTime = timestamps.underRepair;
+  if (repairTime && (status === 'Under Repair' || status === 'On Hold' || status === 'Resolved')) {
     entries.push({
       status: 'Under Repair',
       remarks: null,
-      timeFormatted: repTime,
-      createdAt: report.updated_at || report.created_at || new Date().toISOString(),
+      timeFormatted: repairTime,
+      createdAt: report.under_repair_at || report.updated_at || report.created_at || new Date().toISOString(),
     });
   }
 
@@ -640,7 +696,7 @@ export function getInitialStatusHistory(report) {
       status: 'Resolved',
       remarks: report.remarks || null,
       timeFormatted: resTime,
-      createdAt: report.updated_at || new Date().toISOString(),
+      createdAt: report.resolved_at || report.updated_at || new Date().toISOString(),
     });
   }
 
@@ -677,7 +733,6 @@ export default function ReportDetailsModal({
       Boolean(report?.has_been_on_hold) ||
       Boolean(report?.on_hold_at) ||
       Boolean(report?.timestamps?.onHold) ||
-      (isLR24 && (initStatus === 'On Hold' || initStatus === 'Resolved')) ||
       (Array.isArray(report?.history) && report.history.some((h) => ((h.action || h.status) || '').toLowerCase().includes('hold')))
     );
   });
@@ -713,6 +768,19 @@ export default function ReportDetailsModal({
   const [showResolutionPrompt, setShowResolutionPrompt] = useState(false);
   const [resolutionRemarks, setResolutionRemarks] = useState(isLR24 ? 'Replace Monitor' : '');
   const [resolutionError, setResolutionError] = useState(false);
+
+  const hasBeenOnHoldComputed = useMemo(() => {
+    if (currentStatus === 'On Hold') return true;
+    if (hasBeenOnHold) return true;
+    if (report?.has_been_on_hold || report?.on_hold_at) return true;
+    if (Array.isArray(statusHistory)) {
+      return statusHistory.some((h) => {
+        const s = String(h.status || '').toLowerCase();
+        return s === 'on hold' || s === 'on_hold' || s.includes('hold');
+      });
+    }
+    return false;
+  }, [currentStatus, hasBeenOnHold, report, statusHistory]);
 
   // Keep ref to always access latest report without invalidating callbacks
   const reportRef = useRef(report);
@@ -796,16 +864,15 @@ export default function ReportDetailsModal({
           setEditedRemarks(activeRemarks);
         }
       }
-      if (
+      const wasHold = Boolean(
         liveReport?.has_been_on_hold ||
         liveReport?.on_hold_at ||
         liveRos?.has_been_on_hold ||
         activeStatus === 'On Hold' ||
         historyRows.some((h) => ((h.status || '')).toLowerCase().includes('hold')) ||
         (Array.isArray(liveRos?.history) && liveRos.history.some((h) => ((h.action || h.status) || '').toLowerCase().includes('hold')))
-      ) {
-        setHasBeenOnHold(true);
-      }
+      );
+      setHasBeenOnHold(wasHold);
     } catch (err) {
       console.warn('Error loading fresh report and status history:', err);
     } finally {
@@ -903,12 +970,11 @@ export default function ReportDetailsModal({
       const initialStatus = getInitialReportStatus(report);
       setCurrentStatus(initialStatus);
 
-      const isCurrentLR24 = report.report_id === 'LR-24' || report.id === 'LR-24' || report.id === 'rep-24';
       const onHoldActive =
         initialStatus === 'On Hold' ||
         Boolean(report.has_been_on_hold) ||
         Boolean(report.on_hold_at) ||
-        (isCurrentLR24 && (initialStatus === 'On Hold' || initialStatus === 'Resolved'));
+        (Array.isArray(report.history) && report.history.some((h) => ((h.action || h.status) || '').toLowerCase().includes('hold')));
 
       setHasBeenOnHold(onHoldActive);
 
@@ -1024,149 +1090,168 @@ export default function ReportDetailsModal({
   const targetId = report.report_id || report.id;
 
   // Handle Advance transitions:
-  // Under Review (Submitted) -> Reviewed
-  // Reviewed -> Under Repair
-  // Under Repair -> Resolved (Direct resolve without hold)
+  // 1. Newly Submitted -> Under Review (via Review button)
+  const handleReview = async () => {
+    if (isUpdating || isSubmitting) return;
+
+    setIsSubmitting(true);
+    const nextStatus = 'Under Review';
+    const dbStatus = 'Reviewed';
+    const nowIso = new Date().toISOString();
+    const nowFormatted = formatManilaHistoryTime(nowIso);
+    const updatedTimestamps = {
+      ...timestamps,
+      reviewed: nowFormatted,
+    };
+
+    const newHistoryEntry = {
+      status: 'Under Review',
+      remarks: null,
+      timeFormatted: nowFormatted,
+      createdAt: nowIso,
+    };
+    const updatedHistory = [
+      ...statusHistory.filter((h) => h.status !== 'Under Review' && h.status !== 'Reviewed'),
+      newHistoryEntry,
+    ];
+
+    setCurrentStatus(nextStatus);
+    setTimestamps(updatedTimestamps);
+    setStatusHistory(updatedHistory);
+
+    const { canonicalUuid, reportCode } = await getCanonicalReportInfo(report || { report_id: targetId, id: targetId });
+    if (canonicalUuid) reportHistoryCache.set(canonicalUuid, updatedHistory);
+    if (targetId) reportHistoryCache.set(targetId, updatedHistory);
+    if (reportCode) reportHistoryCache.set(reportCode, updatedHistory);
+
+    try {
+      await syncReportToSupabase(
+        targetId,
+        {
+          status: dbStatus,
+          updated_at: nowIso,
+        },
+        report
+      );
+      await recordStatusHistory(report, dbStatus, null, nowIso);
+    } catch (err) {
+      console.warn('Supabase review status update error:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
+
+    broadcastReportStatusUpdate({
+      reportId: targetId,
+      report_id: reportCode || targetId,
+      canonicalUuid,
+      reportCode,
+      newStatus: nextStatus,
+      status: dbStatus,
+      displayStatus: 'UNDER REVIEW',
+      timestamps: updatedTimestamps,
+      history: updatedHistory,
+      studentId: report?.student_id || report?.studentId,
+      updatedAt: nowIso,
+    });
+
+    loadFreshReportAndHistory();
+
+    if (onUpdateStatus) {
+      onUpdateStatus(targetId, nextStatus, updatedHistory, null, updatedTimestamps);
+    }
+  };
+
+  // 2. Under Review -> Under Repair (via Start Repair button)
+  const handleStartRepair = async () => {
+    if (isUpdating || isSubmitting) return;
+
+    setIsSubmitting(true);
+    const nextStatus = 'Under Repair';
+    const dbStatus = 'Under Repair';
+    const nowIso = new Date().toISOString();
+    const nowFormatted = formatManilaHistoryTime(nowIso);
+    const updatedTimestamps = {
+      ...timestamps,
+      underRepair: nowFormatted,
+    };
+
+    const newHistoryEntry = {
+      status: 'Under Repair',
+      remarks: null,
+      timeFormatted: nowFormatted,
+      createdAt: nowIso,
+    };
+    const updatedHistory = [
+      ...statusHistory.filter((h) => h.status !== 'Under Repair'),
+      newHistoryEntry,
+    ];
+
+    setCurrentStatus(nextStatus);
+    // Remarks field must remain empty on the under repair modal form unless technical personnel types something
+    setRemarks('');
+    setEditedRemarks('');
+    setRemarksError(false);
+    setRemarksErrorMessage('');
+    setTimestamps(updatedTimestamps);
+    setStatusHistory(updatedHistory);
+
+    const { canonicalUuid, reportCode } = await getCanonicalReportInfo(report || { report_id: targetId, id: targetId });
+    if (canonicalUuid) reportHistoryCache.set(canonicalUuid, updatedHistory);
+    if (targetId) reportHistoryCache.set(targetId, updatedHistory);
+    if (reportCode) reportHistoryCache.set(reportCode, updatedHistory);
+
+    try {
+      await syncReportToSupabase(
+        targetId,
+        {
+          status: dbStatus,
+          remarks: null,
+          updated_at: nowIso,
+        },
+        report
+      );
+      await recordStatusHistory(report, dbStatus, null, nowIso);
+    } catch (err) {
+      console.warn('Supabase status update error:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
+
+    broadcastReportStatusUpdate({
+      reportId: targetId,
+      report_id: reportCode || targetId,
+      canonicalUuid,
+      reportCode,
+      newStatus: nextStatus,
+      status: dbStatus,
+      displayStatus: 'UNDER REPAIR',
+      timestamps: updatedTimestamps,
+      history: updatedHistory,
+      studentId: report?.student_id || report?.studentId,
+      updatedAt: nowIso,
+    });
+
+    loadFreshReportAndHistory();
+
+    if (onUpdateStatus) {
+      onUpdateStatus(targetId, nextStatus, updatedHistory, null, updatedTimestamps);
+    }
+  };
+
+  // 3. Under Repair -> Resolved (Direct resolve without hold)
   const handleAdvance = async () => {
     if (isUpdating || isSubmitting) return;
 
     if (currentStatus === 'Submitted') {
-      setIsSubmitting(true);
-      const nextStatus = 'Reviewed';
-      const nowIso = new Date().toISOString();
-      const nowFormatted = formatManilaHistoryTime(nowIso);
-      const updatedTimestamps = {
-        ...timestamps,
-        reviewed: nowFormatted,
-      };
-
-      const newHistoryEntry = {
-        status: 'Reviewed',
-        remarks: null,
-        timeFormatted: nowFormatted,
-        createdAt: nowIso,
-      };
-      const updatedHistory = [
-        ...statusHistory.filter((h) => h.status !== 'Reviewed'),
-        newHistoryEntry,
-      ];
-
-      setCurrentStatus('Reviewed');
-      setTimestamps(updatedTimestamps);
-      setStatusHistory(updatedHistory);
-
-      const { canonicalUuid, reportCode } = await getCanonicalReportInfo(report || { report_id: targetId, id: targetId });
-      if (canonicalUuid) reportHistoryCache.set(canonicalUuid, updatedHistory);
-      if (targetId) reportHistoryCache.set(targetId, updatedHistory);
-      if (reportCode) reportHistoryCache.set(reportCode, updatedHistory);
-
-      try {
-        await syncReportToSupabase(
-          targetId,
-          {
-            status: nextStatus,
-            updated_at: nowIso,
-          },
-          report
-        );
-        await recordStatusHistory(report, nextStatus, null, nowIso);
-      } catch (err) {
-        console.warn('Supabase status update error:', err);
-      } finally {
-        setIsSubmitting(false);
-      }
-
-      broadcastReportStatusUpdate({
-        reportId: targetId,
-        report_id: reportCode || targetId,
-        canonicalUuid,
-        reportCode,
-        newStatus: 'Reviewed',
-        status: 'Reviewed',
-        displayStatus: 'UNDER REVIEW',
-        timestamps: updatedTimestamps,
-        history: updatedHistory,
-        studentId: report?.student_id || report?.studentId,
-        updatedAt: nowIso,
-      });
-
-      loadFreshReportAndHistory();
-
-      if (onUpdateStatus) {
-        onUpdateStatus(targetId, 'Reviewed', updatedHistory, null, updatedTimestamps);
-      }
-    } else if (currentStatus === 'Reviewed') {
-      setIsSubmitting(true);
-      const nextStatus = 'Under Repair';
-      const nowIso = new Date().toISOString();
-      const nowFormatted = formatManilaHistoryTime(nowIso);
-      const updatedTimestamps = {
-        ...timestamps,
-        underRepair: nowFormatted,
-      };
-
-      const newHistoryEntry = {
-        status: 'Under Repair',
-        remarks: null,
-        timeFormatted: nowFormatted,
-        createdAt: nowIso,
-      };
-      const updatedHistory = [
-        ...statusHistory.filter((h) => h.status !== 'Under Repair'),
-        newHistoryEntry,
-      ];
-
-      setCurrentStatus(nextStatus);
-      // Remarks field must remain empty on the under repair modal form unless technical personnel types something
-      setRemarks('');
-      setEditedRemarks('');
-      setRemarksError(false);
-      setRemarksErrorMessage('');
-      setTimestamps(updatedTimestamps);
-      setStatusHistory(updatedHistory);
-
-      const { canonicalUuid, reportCode } = await getCanonicalReportInfo(report || { report_id: targetId, id: targetId });
-      if (canonicalUuid) reportHistoryCache.set(canonicalUuid, updatedHistory);
-      if (targetId) reportHistoryCache.set(targetId, updatedHistory);
-      if (reportCode) reportHistoryCache.set(reportCode, updatedHistory);
-
-      try {
-        await syncReportToSupabase(
-          targetId,
-          {
-            status: nextStatus,
-            remarks: null,
-            updated_at: nowIso,
-          },
-          report
-        );
-        await recordStatusHistory(report, nextStatus, null, nowIso);
-      } catch (err) {
-        console.warn('Supabase status update error:', err);
-      } finally {
-        setIsSubmitting(false);
-      }
-
-      broadcastReportStatusUpdate({
-        reportId: targetId,
-        report_id: reportCode || targetId,
-        canonicalUuid,
-        reportCode,
-        newStatus: nextStatus,
-        status: nextStatus,
-        displayStatus: 'UNDER REPAIR',
-        timestamps: updatedTimestamps,
-        history: updatedHistory,
-        studentId: report?.student_id || report?.studentId,
-        updatedAt: nowIso,
-      });
-
-      loadFreshReportAndHistory();
-
-      if (onUpdateStatus) {
-        onUpdateStatus(targetId, nextStatus, updatedHistory, null, updatedTimestamps);
-      }
-    } else if (currentStatus === 'Under Repair') {
+      return handleReview();
+    }
+    if (
+      currentStatus === 'Under Review' ||
+      currentStatus === 'Reviewed'
+    ) {
+      return handleStartRepair();
+    }
+    if (currentStatus === 'Under Repair') {
       // Required remarks validation before marking as resolved
       if (!remarks || remarks.trim() === '') {
         setRemarksError(true);
@@ -1591,8 +1676,10 @@ export default function ReportDetailsModal({
 
           {/* 2. Stepper Workflow */}
           <StatusStepper
-            phaseIndex={studentStatusInfo.phase}
-            isOnHold={studentStatusInfo.isOnHold || currentStatus === 'On Hold'}
+            status={currentStatus}
+            phaseIndex={phaseIndex}
+            isOnHold={currentStatus === 'On Hold'}
+            hasBeenOnHold={hasBeenOnHoldComputed}
           />
 
           {/* 3. Modal Body */}
@@ -1753,12 +1840,12 @@ export default function ReportDetailsModal({
           </button>
         </div>
 
-        {/* Stepper Workflow: 4 Steps (Submitted -> Reviewed -> Under repair -> Resolved) */}
-        {/* In Image 1 (On Hold), Step 3 renders amber 3 with On Hold pill directly underneath */}
-        {/* In Image 2 (Resolved), all 4 steps render completed green checkmarks with green lines */}
+        {/* Stepper Workflow */}
         <StatusStepper
+          status={currentStatus}
           phaseIndex={phaseIndex}
           isOnHold={currentStatus === 'On Hold'}
+          hasBeenOnHold={hasBeenOnHoldComputed}
         />
 
         {/* Modal Body: Matches Images 1 and 2 */}
@@ -2023,31 +2110,31 @@ export default function ReportDetailsModal({
               currentStatus === 'Under Repair' ? 'footer-between' : 'footer-end'
             }`}
           >
-            {/* Stage 1: Mark as Reviewed */}
+            {/* Stage 1: Newly Submitted -> Review */}
             {currentStatus === 'Submitted' && (
               <button
                 type="button"
                 className="btn-modal-action-white"
-                onClick={handleAdvance}
+                onClick={handleReview}
                 disabled={isSubmitting || isUpdating}
               >
                 {isSubmitting ? (
                   <>
                     <Loader2 size={15} className="animate-spin inline mr-1" />
-                    <span>Updating...</span>
+                    <span>Reviewing...</span>
                   </>
                 ) : (
-                  <span>Mark as Reviewed</span>
+                  <span>Review</span>
                 )}
               </button>
             )}
 
-            {/* Stage 2: Start Repair */}
-            {currentStatus === 'Reviewed' && (
+            {/* Stage 2: Under Review -> Start Repair */}
+            {(currentStatus === 'Under Review' || currentStatus === 'Reviewed') && (
               <button
                 type="button"
                 className="btn-modal-action-white"
-                onClick={handleAdvance}
+                onClick={handleStartRepair}
                 disabled={isSubmitting || isUpdating}
               >
                 {isSubmitting ? (
@@ -2061,7 +2148,7 @@ export default function ReportDetailsModal({
               </button>
             )}
 
-            {/* Stage 3: Under Repair -> Mark as on Hold & Mark as Resolved */}
+            {/* Stage 2: Under Repair -> Mark On Hold & Mark as Resolved */}
             {currentStatus === 'Under Repair' && (
               <>
                 <button
@@ -2070,7 +2157,7 @@ export default function ReportDetailsModal({
                   onClick={handleOnHold}
                   disabled={isSubmitting || isUpdating}
                 >
-                  Mark as on Hold
+                  Mark On Hold
                 </button>
                 <button
                   type="button"
@@ -2090,7 +2177,7 @@ export default function ReportDetailsModal({
               </>
             )}
 
-            {/* Image 1: On Hold Modal Footer -> Mark as Resolved */}
+            {/* Stage 3: On Hold -> Mark as Resolved */}
             {currentStatus === 'On Hold' && (
               <button
                 type="button"

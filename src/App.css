@@ -2982,6 +2982,11 @@ body,
   white-space: nowrap;
 }
 
+.status-pill-capsule.status-submitted {
+  background-color: #FEF9C3;
+  color: #854D0E;
+}
+
 .status-pill-capsule.status-under-review {
   background-color: #F7F5D0;
   color: #8A6D1C;
