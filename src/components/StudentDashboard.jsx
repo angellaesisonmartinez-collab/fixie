@@ -34,7 +34,7 @@ import Banner from './Banner';
 import AppLayout from './AppLayout';
 import ErrorBoundary from './ErrorBoundary';
 import { formatStudentName, formatYearBlock } from '../lib/studentFormatUtils';
-import { parseReportDateTime } from '../lib/reportDateUtils';
+import { parseReportDateTime, formatManilaHistoryTime } from '../lib/reportDateUtils';
 import { AUTHENTIC_REPORT_STUDENTS } from '../lib/reportStudentMapping';
 import { getReportAttachment } from '../lib/reportAttachmentUtils';
 import {
@@ -316,6 +316,71 @@ export default function StudentDashboard({
   const activeReportsCount = stats.activeReportsCount ?? 0;
   const resolvedCount = stats.resolvedCount ?? 0;
   const savedGuidesCount = stats.savedGuidesCount ?? 0;
+
+  // Strict scope: For Angel Lae Martinez's account, align Date & Time Submitted column
+  // with the authentic Supabase submission timestamp from Status History
+  const isAngelAccount =
+    activeStudent?.student_id === '24-0041-147' ||
+    studentProfile?.student_id === '24-0041-147' ||
+    studentProfile?.email === 'martinezangellaewup@gmail.com' ||
+    (typeof studentProfile?.full_name === 'string' && studentProfile.full_name.toLowerCase().includes('angel'));
+
+  const getReportSubmittedDateTime = (report) => {
+    if (isAngelAccount) {
+      let historyList = report?.history;
+      if (typeof historyList === 'string') {
+        try {
+          historyList = JSON.parse(historyList);
+        } catch {}
+      }
+      if (Array.isArray(historyList) && historyList.length > 0) {
+        const subHistory = historyList.find(
+          (h) => (h.action || h.status || '').toLowerCase().includes('submit')
+        );
+        const subTimestamp = subHistory?.time || subHistory?.created_at;
+        if (subTimestamp) {
+          const formattedHistory = formatManilaHistoryTime(subTimestamp);
+          if (formattedHistory && formattedHistory.includes(' • ')) {
+            const [hDate, hTime] = formattedHistory.split(' • ');
+            return { date: hDate, time: hTime };
+          }
+        }
+      }
+    }
+    const d = report?.submittedDate || report?.submitted_date;
+    const t = report?.submittedTime || report?.submitted_time;
+    if (d && t) return { date: d, time: t };
+    if (typeof report?.date_time === 'string' && report.date_time.includes(',')) {
+      const match = report.date_time.trim().match(/^([A-Za-z]{3}\s+\d{1,2},\s+\d{4}),?\s*(.*)$/);
+      if (match) {
+        return { date: match[1], time: match[2] };
+      }
+    }
+    return {
+      date: d || '',
+      time: t || '',
+    };
+  };
+
+  // Strictly align Dashboard Recent Reports table with My Reports sorting for Angel Lae Martinez (Report ID descending)
+  const displayRecentReports = useMemo(() => {
+    if (isAngelAccount && Array.isArray(allReports) && allReports.length > 0) {
+      const parseReportIdNum = (r) => {
+        const idStr = String(r?.report_id || r?.id || '');
+        const match = idStr.match(/\d+/);
+        return match ? parseInt(match[0], 10) : 0;
+      };
+      return [...allReports]
+        .sort((a, b) => {
+          const numA = parseReportIdNum(a);
+          const numB = parseReportIdNum(b);
+          if (numB !== numA) return numB - numA;
+          return (b.report_id || b.id || '').localeCompare(a.report_id || a.id || '', undefined, { numeric: true });
+        })
+        .slice(0, 5);
+    }
+    return recentReports;
+  }, [isAngelAccount, allReports, recentReports]);
 
   // Instant Active Session Revocation (Phase 2 Section 3.5 & Acceptance Checklist #7)
   useEffect(() => {
@@ -655,7 +720,7 @@ export default function StudentDashboard({
                     </tr>
                   </thead>
                   <tbody>
-                    {studentReportsData.isLoading && recentReports.length === 0 ? (
+                    {studentReportsData.isLoading && displayRecentReports.length === 0 ? (
                       [1, 2, 3].map((idx) => (
                         <tr key={`loading-row-${idx}`} className="reports-table-data-row loading-skeleton-row">
                           <td className="cell-id">
@@ -687,14 +752,14 @@ export default function StudentDashboard({
                           </td>
                         </tr>
                       ))
-                    ) : recentReports.length === 0 ? (
+                    ) : displayRecentReports.length === 0 ? (
                       <tr className="reports-table-data-row">
                         <td colSpan={6} style={{ textAlign: 'center', padding: '36px 16px', color: '#6b7280', fontSize: '13px' }}>
                           No recent reports submitted yet.
                         </td>
                       </tr>
                     ) : (
-                      recentReports.map((report) => (
+                      displayRecentReports.map((report) => (
                         <tr key={report.id || report.report_id} className="reports-table-data-row">
                           {/* Column 1: ID Badge */}
                           <td className="cell-id">
@@ -719,10 +784,15 @@ export default function StudentDashboard({
 
                           {/* Column 4: Date & Time Submitted */}
                           <td className="cell-submitted">
-                            <div className="cell-stack-block">
-                              <span className="cell-main-text">{report.submittedDate || report.submitted_date}</span>
-                              <span className="cell-sub-text">{report.submittedTime || report.submitted_time}</span>
-                            </div>
+                            {(() => {
+                              const dt = getReportSubmittedDateTime(report);
+                              return (
+                                <div className="cell-stack-block">
+                                  <span className="cell-main-text">{dt.date}</span>
+                                  <span className="cell-sub-text">{dt.time}</span>
+                                </div>
+                              );
+                            })()}
                           </td>
 
                           {/* Column 5: Status Capsule Badge */}
@@ -752,7 +822,7 @@ export default function StudentDashboard({
               {/* Table Footer Banner */}
               <div className="reports-table-footer-banner">
                 <span className="reports-table-footer-mono">
-                  Showing <strong>{recentReports.length}</strong> recent reports
+                  Showing <strong>{displayRecentReports.length}</strong> recent reports
                 </span>
               </div>
             </section>

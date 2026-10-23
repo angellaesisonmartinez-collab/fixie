@@ -118,10 +118,18 @@ export function checkLaboratoryHours(dateInput = new Date()) {
  * Shared single source of truth formatter for status history on Student and Technical sides.
  */
 export function formatManilaHistoryTime(timeInput, fallbackTime = '') {
-  if (!timeInput) return fallbackTime;
+  if (!timeInput) {
+    if (fallbackTime && typeof fallbackTime === 'string') {
+      return fallbackTime.replace(/, (?=\d{1,2}:\d{2}\s*(?:AM|PM))/i, ' • ');
+    }
+    return fallbackTime;
+  }
 
   const rawD = toDate(timeInput);
-  if (!rawD) return fallbackTime || String(timeInput);
+  if (!rawD) {
+    const str = fallbackTime || String(timeInput);
+    return str ? String(str).replace(/, (?=\d{1,2}:\d{2}\s*(?:AM|PM))/i, ' • ') : '';
+  }
 
   // Enforce laboratory operating hours (7:00 AM to 9:00 PM Asia/Manila)
   const d = sanitizeLabHoursDate(rawD) || rawD;
@@ -145,7 +153,7 @@ export function formatManilaHistoryTime(timeInput, fallbackTime = '') {
     hour12: true,
   }).format(d);
 
-  return `${month} ${day}, ${year}, ${time}`;
+  return `${month} ${day}, ${year} • ${time}`;
 }
 
 /**

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase, safeRealtimeChannel, safeRemoveChannel } from './supabase.js';
-import { parseReportDateTime } from './reportDateUtils.js';
+import { parseReportDateTime, formatManilaHistoryTime } from './reportDateUtils.js';
 import { formatStudentName, formatYearBlock } from './studentFormatUtils.js';
 import { getReportAttachment } from './reportAttachmentUtils.js';
 import { resolveAuthenticReportStudent } from './reportStudentMapping.js';
@@ -45,8 +45,8 @@ export function normalizeStudentReportItem(item, studentContext = null) {
   }
 
   const parsedDT = parseReportDateTime(item);
-  const submittedDate = parsedDT.submittedDate;
-  const submittedTime = parsedDT.submittedTime;
+  let submittedDate = parsedDT.submittedDate;
+  let submittedTime = parsedDT.submittedTime;
 
   let locCenter = item.location_center || item.computer_center || item.locationCenter;
   let locRoom = item.location_room || item.room || item.locationRoom;
@@ -76,6 +76,41 @@ export function normalizeStudentReportItem(item, studentContext = null) {
     authStudent?.avatar ||
     getStudentAvatar(authStudent || studentContext) ||
     (reporterName.toLowerCase().includes('angel') ? angelAvatar : null);
+
+  // Strict scope: For Angel Lae Martinez's account, align Date & Time Submitted column
+  // with the authentic Supabase submission timestamp from Status History
+  const isAngelAccount =
+    item.student_id === '24-0041-147' ||
+    studentContext?.student_id === '24-0041-147' ||
+    studentContext?.id === '9002d8e6-bc03-4070-8aae-299147dead9a' ||
+    studentContext?.email === 'martinezangellaewup@gmail.com' ||
+    (typeof item.student_name === 'string' && item.student_name.toLowerCase().includes('angel')) ||
+    (typeof studentContext?.name === 'string' && studentContext.name.toLowerCase().includes('angel')) ||
+    (typeof studentContext?.full_name === 'string' && studentContext.full_name.toLowerCase().includes('angel')) ||
+    (typeof reporterName === 'string' && reporterName.toLowerCase().includes('angel'));
+
+  if (isAngelAccount) {
+    let historyList = item.history;
+    if (typeof historyList === 'string') {
+      try {
+        historyList = JSON.parse(historyList);
+      } catch {}
+    }
+    if (Array.isArray(historyList) && historyList.length > 0) {
+      const subHistory = historyList.find(
+        (h) => (h.action || h.status || '').toLowerCase().includes('submit')
+      );
+      const subTimestamp = subHistory?.time || subHistory?.created_at;
+      if (subTimestamp) {
+        const formattedHistory = formatManilaHistoryTime(subTimestamp);
+        if (formattedHistory && formattedHistory.includes(' • ')) {
+          const [hDate, hTime] = formattedHistory.split(' • ');
+          submittedDate = hDate;
+          submittedTime = hTime;
+        }
+      }
+    }
+  }
 
   const isUuid = (val) =>
     typeof val === 'string' &&
@@ -130,6 +165,7 @@ export function normalizeStudentReportItem(item, studentContext = null) {
     remarks: item.remarks || null,
     photo_url: item.photo_url || item.photoUrl || null,
     attachment: getReportAttachment(item),
+    date_time: item.date_time || parsedDT.dateTimeDisplay,
     history: Array.isArray(item.history) ? item.history : [],
     timestamps: item.timestamps || null,
     has_been_on_hold: Boolean(item.has_been_on_hold || item.on_hold_at || rawStatus === 'On Hold'),
@@ -195,6 +231,26 @@ export function getCachedStudentReports(studentKey) {
           parsed.stats.activeReportsCount = parsed.activeReports.length;
         }
       }
+    }
+
+    const isAngelKey =
+      studentKey === '24-0041-147' ||
+      studentKey === '9002d8e6-bc03-4070-8aae-299147dead9a' ||
+      studentKey === 'martinezangellaewup@gmail.com';
+
+    if (isAngelKey && Array.isArray(parsed.reports)) {
+      const parseReportIdNum = (r) => {
+        const idStr = String(r?.report_id || r?.id || '');
+        const match = idStr.match(/\d+/);
+        return match ? parseInt(match[0], 10) : 0;
+      };
+      parsed.reports = [...parsed.reports].sort((a, b) => {
+        const numA = parseReportIdNum(a);
+        const numB = parseReportIdNum(b);
+        if (numB !== numA) return numB - numA;
+        return (b.report_id || b.id || '').localeCompare(a.report_id || a.id || '', undefined, { numeric: true });
+      });
+      parsed.recentReports = parsed.reports.slice(0, 5);
     }
     return parsed;
   };
@@ -302,6 +358,12 @@ export async function fetchStudentReportsAndStats(student) {
         resolvedUuid === 'bbb5f955-b361-4929-8055-031d61dd4f58' ||
         resolvedEmail === 'lester@gmail.com';
 
+      const isAngel =
+        resolvedId === '24-0041-147' ||
+        resolvedUuid === '9002d8e6-bc03-4070-8aae-299147dead9a' ||
+        resolvedEmail === 'martinezangellaewup@gmail.com' ||
+        (typeof resolvedName === 'string' && resolvedName.toLowerCase().includes('angel'));
+
       const reportsMap = new Map();
 
       // Helper to add reports safely without duplication and with strict ownership verification
@@ -377,57 +439,72 @@ export async function fetchStudentReportsAndStats(student) {
       // Prepare parallel queries for Supabase (filtered strictly by student)
       const queryPromises = [];
 
-      // Query 1: `reports_of_student` table
-      if (resolvedId || resolvedUuid) {
-        let rosQuery = supabase.from('reports_of_student').select('*').order('date_submitted', { ascending: false });
-        if (resolvedId && resolvedUuid) {
-          rosQuery = rosQuery.or(`student_id.eq.${resolvedId},student_id.eq.${resolvedUuid}`);
-        } else if (resolvedId) {
-          rosQuery = rosQuery.eq('student_id', resolvedId);
-        } else {
-          rosQuery = rosQuery.eq('student_id', resolvedUuid);
-        }
-
-        queryPromises.push(
-          rosQuery
-            .then(({ data, error }) => {
-              if (!error && Array.isArray(data)) return { type: 'ros', data };
-              return { type: 'ros', data: [] };
-            })
-            .catch(() => ({ type: 'ros', data: [] }))
-        );
-      }
-
-      // Query 2: canonical `reports` table (single source of truth - strictly filtered by UUID)
-      if (resolvedUuid && isUuid(resolvedUuid)) {
+      if (isAngel) {
+        // Strict scope: For Angel Lae Martinez, query the authentic Supabase angel-reports data source directly
         queryPromises.push(
           supabase
-            .from('reports')
-            .select('*, students(*)')
-            .eq('student_id', resolvedUuid)
-            .order('created_at', { ascending: false })
-            .then(({ data, error }) => {
-              if (!error && Array.isArray(data)) return { type: 'rep', data };
-              if (error) console.warn('Supabase reports query notice:', error.message);
-              return { type: 'rep', data: [] };
-            })
-            .catch(() => ({ type: 'rep', data: [] }))
-        );
-      }
-
-      // Query 3: Candidate custom student table (e.g. phia-reports, jennelyn-reports, angel-reports)
-      if (resolvedName) {
-        const firstName = resolvedName.trim().split(/\s+/)[0].toLowerCase();
-        queryPromises.push(
-          supabase
-            .from(`${firstName}-reports`)
+            .from('angel-reports')
             .select('*')
             .then(({ data, error }) => {
-              if (!error && Array.isArray(data)) return { type: 'custom', data };
-              return { type: 'custom', data: [] };
+              if (!error && Array.isArray(data)) return { type: 'angel', data };
+              if (error) console.warn('Supabase angel-reports query error:', error.message);
+              return { type: 'angel', data: [] };
             })
-            .catch(() => ({ type: 'custom', data: [] }))
+            .catch(() => ({ type: 'angel', data: [] }))
         );
+      } else {
+        // Query 1: `reports_of_student` table
+        if (resolvedId || resolvedUuid) {
+          let rosQuery = supabase.from('reports_of_student').select('*').order('date_submitted', { ascending: false });
+          if (resolvedId && resolvedUuid) {
+            rosQuery = rosQuery.or(`student_id.eq.${resolvedId},student_id.eq.${resolvedUuid}`);
+          } else if (resolvedId) {
+            rosQuery = rosQuery.eq('student_id', resolvedId);
+          } else {
+            rosQuery = rosQuery.eq('student_id', resolvedUuid);
+          }
+
+          queryPromises.push(
+            rosQuery
+              .then(({ data, error }) => {
+                if (!error && Array.isArray(data)) return { type: 'ros', data };
+                return { type: 'ros', data: [] };
+              })
+              .catch(() => ({ type: 'ros', data: [] }))
+          );
+        }
+
+        // Query 2: canonical `reports` table (single source of truth - strictly filtered by UUID)
+        if (resolvedUuid && isUuid(resolvedUuid)) {
+          queryPromises.push(
+            supabase
+              .from('reports')
+              .select('*, students(*)')
+              .eq('student_id', resolvedUuid)
+              .order('created_at', { ascending: false })
+              .then(({ data, error }) => {
+                if (!error && Array.isArray(data)) return { type: 'rep', data };
+                if (error) console.warn('Supabase reports query notice:', error.message);
+                return { type: 'rep', data: [] };
+              })
+              .catch(() => ({ type: 'rep', data: [] }))
+          );
+        }
+
+        // Query 3: Candidate custom student table (e.g. phia-reports, jennelyn-reports)
+        if (resolvedName) {
+          const firstName = resolvedName.trim().split(/\s+/)[0].toLowerCase();
+          queryPromises.push(
+            supabase
+              .from(`${firstName}-reports`)
+              .select('*')
+              .then(({ data, error }) => {
+                if (!error && Array.isArray(data)) return { type: 'custom', data };
+                return { type: 'custom', data: [] };
+              })
+              .catch(() => ({ type: 'custom', data: [] }))
+          );
+        }
       }
 
       // Query 4: `saved_guides` for this student
@@ -462,8 +539,22 @@ export async function fetchStudentReportsAndStats(student) {
         }
       }
 
-      // All reports for this student sorted chronologically descending
+      // Helper function to extract numerical report ID (e.g., 'LR-17' -> 17)
+      const parseReportIdNum = (r) => {
+        const idStr = String(r?.report_id || r?.id || '');
+        const match = idStr.match(/\d+/);
+        return match ? parseInt(match[0], 10) : 0;
+      };
+
+      // All reports for this student sorted:
+      // For Angel Lae Martinez, strictly sort by Report ID descending (highest ID first, e.g. ID 17 down to ID 1)
       const allReports = Array.from(reportsMap.values()).sort((a, b) => {
+        if (isAngel) {
+          const numA = parseReportIdNum(a);
+          const numB = parseReportIdNum(b);
+          if (numB !== numA) return numB - numA;
+          return (b.report_id || b.id || '').localeCompare(a.report_id || a.id || '', undefined, { numeric: true });
+        }
         const timeA = new Date(a.date_submitted || a.created_at || 0).getTime();
         const timeB = new Date(b.date_submitted || b.created_at || 0).getTime();
         return timeB - timeA;
@@ -618,10 +709,31 @@ export function useStudentReports(studentProfile, { enabled = true } = {}) {
         (r) => r.status !== 'Resolved' && r.display_status !== 'RESOLVED'
       );
 
+      const isAngelAccount =
+        studentKey === '24-0041-147' ||
+        studentKey === '9002d8e6-bc03-4070-8aae-299147dead9a' ||
+        studentKey === 'martinezangellaewup@gmail.com' ||
+        (typeof studentProfile?.full_name === 'string' && studentProfile.full_name.toLowerCase().includes('angel'));
+
+      let finalReportsArr = reportsArr;
+      if (isAngelAccount) {
+        const parseReportIdNum = (r) => {
+          const idStr = String(r?.report_id || r?.id || '');
+          const match = idStr.match(/\d+/);
+          return match ? parseInt(match[0], 10) : 0;
+        };
+        finalReportsArr = [...reportsArr].sort((a, b) => {
+          const numA = parseReportIdNum(a);
+          const numB = parseReportIdNum(b);
+          if (numB !== numA) return numB - numA;
+          return (b.report_id || b.id || '').localeCompare(a.report_id || a.id || '', undefined, { numeric: true });
+        });
+      }
+
       return {
         stats: {
           ...prevStats,
-          total: reportsArr.length,
+          total: finalReportsArr.length,
           submitted,
           underReview,
           underRepair,
@@ -631,7 +743,7 @@ export function useStudentReports(studentProfile, { enabled = true } = {}) {
           resolvedCount: resolved,
         },
         activeReports: activeReportsList,
-        recentReports: reportsArr.slice(0, 3),
+        recentReports: finalReportsArr.slice(0, 5),
       };
     };
 

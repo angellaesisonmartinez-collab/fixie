@@ -137,6 +137,38 @@ export function normalizeStatusLabel(st) {
 }
 
 /**
+ * Returns human-readable label for status history entries matching reference designs:
+ * 'Submitted' -> 'Date Submitted', 'Reviewed' -> 'Reviewed', 'Under Repair' -> 'Under Repair',
+ * 'On Hold' -> 'On Hold', 'Resolved' -> 'Resolved'.
+ */
+export function getStatusHistoryLabel(status) {
+  const s = String(status || '').toLowerCase().trim();
+  if (s === 'submitted' || s.includes('submit')) return 'Date Submitted';
+  if (s === 'on hold' || s === 'on_hold' || s.includes('hold')) return 'On Hold';
+  if (s.includes('repair')) return 'Under Repair';
+  if (s === 'reviewed' || (s.includes('review') && !s.includes('under'))) return 'Reviewed';
+  if (s.includes('resolve')) return 'Resolved';
+  return status || 'Date Submitted';
+}
+
+/**
+ * Ensures timestamp display strictly adheres to 'MMM DD, YYYY • h:mm A' format.
+ */
+export function formatStatusHistoryDisplayTime(timeInput) {
+  if (!timeInput) return '';
+  if (timeInput instanceof Date) {
+    return formatManilaHistoryTime(timeInput);
+  }
+  const str = String(timeInput).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+    return formatManilaHistoryTime(str);
+  }
+  return str
+    .replace(/\s*•\s*/g, ' • ')
+    .replace(/, (?=\d{1,2}:\d{2}\s*(?:AM|PM))/i, ' • ');
+}
+
+/**
  * Builds unified status history list combining database audit rows and student history.
  * Displays history in true chronological order (oldest to newest):
  * Submitted -> Under Review -> Under Repair -> Resolved (with On Hold in between if applicable).
@@ -1396,9 +1428,14 @@ export default function ReportDetailsModal({
             <h2 id="student-report-modal-title" className="student-report-id-title">
               {report.report_id || report.id || 'LR-12'}
             </h2>
-            <span className={`student-status-header-pill ${studentStatusInfo.className}`}>
-              {studentStatusInfo.text}
-            </span>
+            <button
+              type="button"
+              className="report-modal-circle-close-btn"
+              onClick={onClose}
+              aria-label="Close dialog"
+            >
+              <X size={15} strokeWidth={2.8} />
+            </button>
           </div>
 
           {/* 2. Stepper Workflow */}
@@ -1500,55 +1537,37 @@ export default function ReportDetailsModal({
               )}
             </div>
 
-            {/* Row 6: Date Submitted */}
-            <div className="student-date-submitted-row">
-              <span className="student-date-submitted-label">Date Submitted</span>
-              <span className="student-date-submitted-value">{subDateDisplay}</span>
-            </div>
-
-            {/* Remarks on top of status for Student View */}
+            {/* Remarks for Student View */}
             {(remarks || report.remarks || resolvedHistoryItem?.remarksText) && (
-              <div className="student-remarks-top-block" style={{ padding: '6px 0 10px 0' }}>
-                <span className="student-field-label" style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#092618', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
-                  REMARKS
-                </span>
-                <span className="student-field-value" style={{ fontSize: '13px', fontWeight: 600, color: '#0A3420' }}>
-                  {remarks || report.remarks || resolvedHistoryItem?.remarksText}
-                </span>
+              <div className="report-resolved-remarks-line" style={{ padding: '10px 0 2px 0' }}>
+                Remarks: {remarks || report.remarks || resolvedHistoryItem?.remarksText}
               </div>
             )}
 
-            {/* Row 7: Status History */}
-            <div className="student-status-history-section">
-              <h4 className="student-status-history-heading">Status History</h4>
-
+            {/* Status History Timeline Block (Matches Reference UI) */}
+            <div className="report-status-timestamps-block">
               {statusHistory && statusHistory.length > 0 ? (
-                statusHistory.map((item, idx) => (
-                  <div key={`${item.status}-${idx}`} className="student-history-entry">
-                    <span className="student-history-status-name">{item.status}</span>
-                    <span className="student-history-dot-sep"> — </span>
-                    <span className="student-history-timestamp">{item.timeFormatted}</span>
-                  </div>
-                ))
+                statusHistory.map((item, idx) => {
+                  const label = getStatusHistoryLabel(item.status);
+                  const isHold = item.status === 'On Hold' || label === 'On Hold';
+                  const time = formatStatusHistoryDisplayTime(item.timeFormatted || item.time || item.createdAt);
+                  return (
+                    <div key={`${item.status}-${idx}`} className={`timestamp-row ${isHold ? 'row-on-hold' : ''}`}>
+                      <span className="timestamp-label">{label}</span>
+                      <span className="timestamp-value">{time}</span>
+                    </div>
+                  );
+                })
               ) : (
-                <div className="student-history-entry">
-                  <span className="student-history-status-name">Submitted</span>
-                  <span className="student-history-dot-sep"> — </span>
-                  <span className="student-history-timestamp">{subDateDisplay}</span>
+                <div className="timestamp-row">
+                  <span className="timestamp-label">Date Submitted</span>
+                  <span className="timestamp-value">
+                    {formatStatusHistoryDisplayTime(timestamps.submitted || subDateDisplay || formatCurrentTimestamp())}
+                  </span>
                 </div>
               )}
             </div>
 
-            {/* Footer Close Button */}
-            <div className="student-modal-action-footer">
-              <button
-                type="button"
-                className="student-btn-modal-close"
-                onClick={onClose}
-              >
-                Close
-              </button>
-            </div>
           </div>
         </div>
         {renderEnlargedLightbox()}
@@ -1823,20 +1842,23 @@ export default function ReportDetailsModal({
           {/* Status History Timestamps List */}
           <div className="report-status-timestamps-block">
             {statusHistory && statusHistory.length > 0 ? (
-              statusHistory.map((item, idx) => (
-                <div key={`${item.status}-${idx}`} className="tp-history-entry-wrap">
-                  <div className={`timestamp-row ${item.status === 'On Hold' ? 'row-on-hold' : ''}`}>
-                    <span className="timestamp-label">
-                      {item.status}
-                    </span>
-                    <span className="timestamp-value">{item.timeFormatted}</span>
+              statusHistory.map((item, idx) => {
+                const label = getStatusHistoryLabel(item.status);
+                const isHold = item.status === 'On Hold' || label === 'On Hold';
+                const time = formatStatusHistoryDisplayTime(item.timeFormatted || item.time || item.createdAt);
+                return (
+                  <div key={`${item.status}-${idx}`} className={`timestamp-row ${isHold ? 'row-on-hold' : ''}`}>
+                    <span className="timestamp-label">{label}</span>
+                    <span className="timestamp-value">{time}</span>
                   </div>
-                </div>
-              ))
+                );
+              })
             ) : (
               <div className="timestamp-row">
-                <span className="timestamp-label">Submitted</span>
-                <span className="timestamp-value">{timestamps.submitted || formatCurrentTimestamp()}</span>
+                <span className="timestamp-label">Date Submitted</span>
+                <span className="timestamp-value">
+                  {formatStatusHistoryDisplayTime(timestamps.submitted || formatCurrentTimestamp())}
+                </span>
               </div>
             )}
           </div>

@@ -16,7 +16,7 @@ import { getVisiblePages, getDisplayedCount } from '../lib/paginationUtils';
 import ReportDetailsModal from './ReportDetailsModal';
 import ReportProblemModal from './ReportProblemModal';
 import { formatStudentName, formatYearBlock } from '../lib/studentFormatUtils';
-import { parseReportDateTime } from '../lib/reportDateUtils';
+import { parseReportDateTime, formatManilaHistoryTime } from '../lib/reportDateUtils';
 import { AUTHENTIC_REPORT_STUDENTS } from '../lib/reportStudentMapping';
 import { getReportAttachment } from '../lib/reportAttachmentUtils';
 import Banner from './Banner';
@@ -43,6 +43,43 @@ export default function StudentSubmittedReportsPage({
     studentProfile?.username === '24-0041-147' ||
     studentProfile?.email === 'martinezangellaewup@gmail.com' ||
     studentProfile?.full_name?.toLowerCase().includes('angel');
+
+  const getReportSubmittedDateTime = (report) => {
+    if (isAngelAccount) {
+      let historyList = report?.history;
+      if (typeof historyList === 'string') {
+        try {
+          historyList = JSON.parse(historyList);
+        } catch {}
+      }
+      if (Array.isArray(historyList) && historyList.length > 0) {
+        const subHistory = historyList.find(
+          (h) => (h.action || h.status || '').toLowerCase().includes('submit')
+        );
+        const subTimestamp = subHistory?.time || subHistory?.created_at;
+        if (subTimestamp) {
+          const formattedHistory = formatManilaHistoryTime(subTimestamp);
+          if (formattedHistory && formattedHistory.includes(' • ')) {
+            const [hDate, hTime] = formattedHistory.split(' • ');
+            return { date: hDate, time: hTime };
+          }
+        }
+      }
+    }
+    const d = report?.submitted_date || report?.submittedDate;
+    const t = report?.submitted_time || report?.submittedTime;
+    if (d && t) return { date: d, time: t };
+    if (typeof report?.date_time === 'string' && report.date_time.includes(',')) {
+      const match = report.date_time.trim().match(/^([A-Za-z]{3}\s+\d{1,2},\s+\d{4}),?\s*(.*)$/);
+      if (match) {
+        return { date: match[1], time: match[2] };
+      }
+    }
+    return {
+      date: d || '',
+      time: t || '',
+    };
+  };
 
   // Shared reports data from parent or hook (only enable hook if no incoming data passed)
   const fallbackReportsData = useStudentReports(studentProfile, { enabled: !incomingReportsData });
@@ -158,7 +195,24 @@ export default function StudentSubmittedReportsPage({
 
       return true;
     });
-  }, [reportsList, selectedStatusFilter, searchQuery]);
+
+    // Strict scope: For Angel Lae Martinez, sort reports strictly by Report ID descending (e.g. ID 17 down to ID 1)
+    if (isAngelAccount) {
+      const parseReportIdNum = (r) => {
+        const idStr = String(r?.report_id || r?.id || '');
+        const match = idStr.match(/\d+/);
+        return match ? parseInt(match[0], 10) : 0;
+      };
+      return [...list].sort((a, b) => {
+        const numA = parseReportIdNum(a);
+        const numB = parseReportIdNum(b);
+        if (numB !== numA) return numB - numA;
+        return (b.report_id || b.id || '').localeCompare(a.report_id || a.id || '', undefined, { numeric: true });
+      });
+    }
+
+    return list;
+  }, [reportsList, selectedStatusFilter, searchQuery, isAngelAccount, isTargetJohnLester]);
 
   // Reset page when filters change
   useEffect(() => {
@@ -540,10 +594,15 @@ export default function StudentSubmittedReportsPage({
 
                     {/* Column 4: Date & Time Submitted */}
                     <td className="cell-submitted">
-                      <div className="submitted-col-wrap">
-                        <span className="submitted-date-title">{report.submitted_date || report.submittedDate}</span>
-                        <span className="submitted-time-sub">{report.submitted_time || report.submittedTime}</span>
-                      </div>
+                      {(() => {
+                        const dt = getReportSubmittedDateTime(report);
+                        return (
+                          <div className="submitted-col-wrap">
+                            <span className="submitted-date-title">{dt.date}</span>
+                            <span className="submitted-time-sub">{dt.time}</span>
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     {/* Column 5: Status Capsule Badge */}

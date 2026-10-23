@@ -26,6 +26,7 @@
     opacity: 0;
     transform: scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -64,6 +65,27 @@
   letter-spacing: 0.02em;
   margin: 0;
   line-height: 1;
+}
+
+.report-modal-circle-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #FFFFFF;
+  color: #111111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.15s ease, transform 0.08s ease;
+  flex-shrink: 0;
+}
+
+.report-modal-circle-close-btn:hover {
+  background-color: #F3F4F6;
+  transform: scale(1.04);
 }
 
 /* Header Status Badges (Submitted, Reviewed, Under repair, Resolved) */
@@ -334,47 +356,50 @@
 }
 
 /* Status History Block */
-.student-status-history-section {
-  padding-top: 14px;
+.student-status-history-section,
+.report-status-timestamps-block {
+  background-color: #E8EFEA;
+  border-radius: 10px;
+  padding: 12px 18px;
+  margin-top: 14px;
+  margin-bottom: 6px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
-.student-status-history-heading {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #374151;
-  margin: 0 0 4px 0;
-}
-
-.student-history-entry {
+.student-history-entry,
+.timestamp-row {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 6px;
+  width: 100%;
+}
+
+.student-history-status-name,
+.timestamp-label {
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 13px;
-  color: #4b5563;
+  font-weight: 500;
+  color: #4B5563;
   line-height: 1.4;
 }
 
-.student-history-status-name {
-  font-weight: 700;
-  color: #092618;
+.student-history-entry.row-on-hold .student-history-status-name,
+.timestamp-row.row-on-hold .timestamp-label {
+  color: #C2410C !important;
+  font-weight: 600;
 }
 
-.student-history-dot-sep {
-  color: #6b7280;
-}
-
-.student-history-timestamp {
-  color: #4b5563;
-}
-
-.student-history-remarks-line {
-  font-size: 12.5px;
-  color: #092618;
-  font-weight: 500;
-  margin: -2px 0 2px 0;
+.student-history-timestamp,
+.timestamp-value {
+  font-family: 'Inter', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
 }
 
 /* Footer Close Button */
@@ -750,13 +775,23 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes scaleUp {
-  from { transform: scale(0.96); opacity: 0.8; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.96);
+    opacity: 0.8;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
-
-
