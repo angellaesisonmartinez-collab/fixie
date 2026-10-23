@@ -22,35 +22,7 @@ export default function AppLayout({
   onSignOut,
   showTopActions = true,
   onSettingsClick,
-  notifications = [
-    {
-      id: '1',
-      reportId: 'LR-24',
-      status: 'is Under Review',
-      sub: 'PC-#14 • Monitor • Computer Center 3',
-      time: 'Today, 10:40 AM',
-      dotClass: 'dot-amber',
-      unread: true,
-    },
-    {
-      id: '2',
-      reportId: 'LR-22',
-      status: 'moved to Under Repair',
-      sub: 'PC-#23 • Network/Internet • Computer Center 3',
-      time: 'Oct 15, 2026',
-      dotClass: 'dot-blue',
-      unread: true,
-    },
-    {
-      id: '3',
-      reportId: 'LR-21',
-      status: 'marked as Resolved',
-      sub: 'PC-#03 • Computer Center 6',
-      time: 'Oct 14, 2026',
-      dotClass: 'dot-green',
-      unread: false,
-    },
-  ],
+  notifications = [],
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -99,6 +71,7 @@ export default function AppLayout({
           <TopBar
             activeNav={activeNav}
             onSettingsClick={onSettingsClick}
+            userProfile={userProfile}
             notifications={notifications}
           />
         )}

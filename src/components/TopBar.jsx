@@ -1,6 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { subscribeToReportUpdates } from '../lib/realtimeSyncService';
+import { supabase } from '../lib/supabase';
+
+const MAX_NOTIFICATIONS = 15;
+
+function formatNotifTime(iso) {
+  try {
+    const d = new Date(iso);
+    const tz = { timeZone: 'Asia/Manila' };
+    const time = d.toLocaleTimeString('en-US', { ...tz, hour: 'numeric', minute: '2-digit' });
+    const dayKey = (x) => x.toLocaleDateString('en-US', tz);
+    if (dayKey(d) === dayKey(new Date())) return `Today, ${time}`;
+    return `${d.toLocaleDateString('en-US', { ...tz, month: 'short', day: 'numeric', year: 'numeric' })}, ${time}`;
+  } catch {
+    return '';
+  }
+}
 
 /**
  * TopBar Component
@@ -13,81 +29,141 @@ import { subscribeToReportUpdates } from '../lib/realtimeSyncService';
 export default function TopBar({
   activeNav = 'Dashboard',
   onSettingsClick,
-  notifications = [
-    {
-      id: '1',
-      reportId: 'LR-24',
-      status: 'is Under Review',
-      sub: 'PC-#14 • Monitor • Computer Center 3',
-      time: 'Today, 10:40 AM',
-      dotClass: 'dot-amber',
-      unread: true,
-    },
-    {
-      id: '2',
-      reportId: 'LR-22',
-      status: 'moved to Under Repair',
-      sub: 'PC-#23 • Network/Internet • Computer Center 3',
-      time: 'Oct 15, 2026',
-      dotClass: 'dot-blue',
-      unread: true,
-    },
-    {
-      id: '3',
-      reportId: 'LR-21',
-      status: 'marked as Resolved',
-      sub: 'PC-#03 • Computer Center 6',
-      time: 'Oct 14, 2026',
-      dotClass: 'dot-green',
-      unread: false,
-    },
-  ],
+  userProfile = null,
+  notifications = [],
 }) {
-  const [notificationsList, setNotificationsList] = useState(notifications);
+  const isStudent = userProfile?.role === 'student';
+  const studentCode = isStudent ? userProfile?.student_id : null;
+  const storageKey = `fixie_notifications_${isStudent ? `student_${studentCode || ''}` : 'staff'}`;
+
+  const [notificationsList, setNotificationsList] = useState(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(storageKey) || 'null');
+      if (Array.isArray(stored)) return stored;
+    } catch {}
+    return notifications;
+  });
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const popoverRef = useRef(null);
+  const studentUuidRef = useRef(null);
+  const lastStatusRef = useRef(new Map());
+
+  // Reload stored notifications if the signed-in student changes
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(storageKey) || 'null');
+      setNotificationsList(Array.isArray(stored) ? stored : notifications);
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
+
+  // Persist notifications so they survive page refreshes
+  useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(notificationsList.slice(0, MAX_NOTIFICATIONS)));
+    } catch {}
+  }, [notificationsList, storageKey]);
+
+  // Resolve the student's database UUID so events keyed by UUID can be matched
+  useEffect(() => {
+    studentUuidRef.current = userProfile?.id || null;
+    if (!studentCode || studentUuidRef.current) return;
+    let cancelled = false;
+    supabase
+      .from('students')
+      .select('id')
+      .eq('student_id', studentCode)
+      .limit(1)
+      .then(({ data }) => {
+        if (!cancelled && data && data[0]?.id) studentUuidRef.current = data[0].id;
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [studentCode, userProfile?.id]);
 
   // Subscribe to real-time report activity
   useEffect(() => {
     const unsub = subscribeToReportUpdates((payload) => {
       if (!payload) return;
-      const targetId = payload.report_id || payload.id || payload.reportId;
-      const newStatus = payload.new_status || payload.newStatus || payload.status;
-      if (!targetId || !newStatus) return;
+      // Only report rows; ignore student/guide/history/bookmark noise and the duplicate student-side table
+      if (payload.isStudentChange || payload.isSavedGuidesUpdate || payload.isStatusHistoryChange) return;
+      if (payload.table && payload.table !== 'reports') return;
 
-      const dotClass =
-        newStatus === 'Resolved'
-          ? 'dot-green'
-          : newStatus === 'Under Repair'
-          ? 'dot-blue'
-          : 'dot-amber';
+      const eventType = payload.eventType || 'UPDATE';
+      if (eventType === 'DELETE') return;
 
-      const statusText =
-        newStatus === 'Resolved'
-          ? 'marked as Resolved'
-          : newStatus === 'Under Repair'
-          ? 'moved to Under Repair'
-          : newStatus === 'On Hold'
-          ? 'placed On Hold'
-          : 'is Under Review';
+      const reportCode = payload.reportCode || payload.report_id || payload.reportId || payload.id;
+      const newStatus = payload.newStatus || payload.status;
+      if (!reportCode || !newStatus) return;
 
-      const subText = `${payload.equipment || 'Equipment'} • ${payload.unit_number || payload.unitNumber || 'Workstation'} • ${payload.room || payload.computer_center || 'Computer Lab'}`;
+      const previousStatus = lastStatusRef.current.get(reportCode);
+      lastStatusRef.current.set(reportCode, newStatus);
 
-      const newNotif = {
-        id: String(Date.now()),
-        reportId: targetId,
-        status: statusText,
-        sub: subText,
-        time: 'Just now',
-        dotClass,
-        unread: true,
-      };
+      let statusText;
+      let dotClass;
+      if (isStudent) {
+        // Students: only status updates on their own reports
+        if (eventType !== 'UPDATE') return;
+        if (previousStatus === newStatus) return;
 
-      setNotificationsList((prev) => [newNotif, ...prev.slice(0, 9)]);
+        const mine = new Set([studentCode, studentUuidRef.current, userProfile?.id].filter(Boolean));
+        const candidates = [
+          payload.student_id,
+          payload.studentId,
+          payload.student_uuid,
+          payload.studentUuid,
+          payload.students?.student_id,
+          payload.new?.student_id,
+        ].filter(Boolean);
+        if (!candidates.some((c) => mine.has(c))) return;
+
+        const s = String(newStatus).toLowerCase();
+        if (s === 'resolved') { statusText = 'has been marked as Resolved'; dotClass = 'dot-green'; }
+        else if (s === 'under repair') { statusText = 'moved to Under Repair'; dotClass = 'dot-blue'; }
+        else if (s === 'on hold') { statusText = 'has been placed On Hold'; dotClass = 'dot-amber'; }
+        else if (s === 'under review') { statusText = 'is now Under Review'; dotClass = 'dot-amber'; }
+        else return;
+      } else {
+        // Technical personnel: only newly submitted reports
+        if (eventType !== 'INSERT') return;
+        const who = payload.student_name || payload.students?.name || payload.students?.full_name;
+        statusText = who ? `was submitted by ${who}` : 'was submitted by a student';
+        dotClass = 'dot-amber';
+      }
+
+      const subText = [
+        payload.equipment,
+        payload.unit_number || payload.unitNumber,
+        payload.room || payload.computer_center,
+      ]
+        .filter(Boolean)
+        .join(' • ');
+
+      const nowIso = new Date().toISOString();
+      setNotificationsList((prev) => {
+        // Skip duplicates arriving through multiple realtime paths
+        const dup = prev.some(
+          (n) => n.reportId === reportCode && n.status === statusText && Date.now() - new Date(n.createdAt || 0).getTime() < 15000
+        );
+        if (dup) return prev;
+        const newNotif = {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          reportId: reportCode,
+          status: statusText,
+          sub: subText,
+          createdAt: nowIso,
+          time: formatNotifTime(nowIso),
+          dotClass,
+          unread: true,
+        };
+        return [newNotif, ...prev].slice(0, MAX_NOTIFICATIONS);
+      });
     });
 
     return () => unsub();
-  }, []);
+  }, [isStudent, studentCode, userProfile?.id]);
 
   // Close notifications popover on click outside
   useEffect(() => {
@@ -192,6 +268,11 @@ export default function TopBar({
                 </button>
               </div>
               <div className="popover-body">
+                {notificationsList.length === 0 && (
+                  <p className="item-sub" style={{ padding: '16px', textAlign: 'center' }}>
+                    No notifications yet.
+                  </p>
+                )}
                 {notificationsList.map((item) => (
                   <div key={item.id} className={`popover-item ${item.unread ? 'unread' : ''}`}>
                     <div className={`item-dot ${item.dotClass}`} />
@@ -199,8 +280,8 @@ export default function TopBar({
                       <p className="item-headline">
                         <strong>{item.reportId}</strong> {item.status}
                       </p>
-                      <p className="item-sub">{item.sub}</p>
-                      <span className="item-time">{item.time}</span>
+                      {item.sub && <p className="item-sub">{item.sub}</p>}
+                      <span className="item-time">{item.createdAt ? formatNotifTime(item.createdAt) : item.time}</span>
                     </div>
                   </div>
                 ))}
