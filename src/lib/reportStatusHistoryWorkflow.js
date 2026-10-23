@@ -107,11 +107,11 @@ export function normalizeDbStatus(st) {
 export function getStatusHistoryLabel(status) {
   const s = String(status || '').toLowerCase().trim();
   if (s === 'submitted' || s.includes('submit')) return 'Date Submitted';
-  if (s === 'under review' || s === 'under_review' || s === 'reviewed') return 'Under Review';
+  if (s === 'under review' || s === 'under_review' || s === 'reviewed') return 'Reviewed';
   if (s === 'under repair' || s.includes('repair')) return 'Under Repair';
   if (s === 'on hold' || s === 'on_hold' || s.includes('hold')) return 'On Hold';
   if (s.includes('resolve')) return 'Resolved';
-  return status || 'Under Review';
+  return status || 'Reviewed';
 }
 
 /**
@@ -220,7 +220,7 @@ export function buildUnifiedHistoryEntries({
     const formattedRevTime = formatManilaHistoryTime(reviewTime);
 
     entries.push({
-      status: 'Under Review',
+      status: 'Reviewed',
       remarks: null,
       timeFormatted: formattedRevTime,
       createdAt: reviewTime,
@@ -421,7 +421,7 @@ export function getInitialStatusHistory(report) {
   const revTime = timestamps.reviewed;
   if (revTime && (status === 'Reviewed' || status === 'Under Repair' || status === 'On Hold' || status === 'Resolved')) {
     entries.push({
-      status: 'Under Review',
+      status: 'Reviewed',
       remarks: null,
       timeFormatted: revTime,
       createdAt: report.reviewed_at || report.updated_at || report.created_at || new Date().toISOString(),

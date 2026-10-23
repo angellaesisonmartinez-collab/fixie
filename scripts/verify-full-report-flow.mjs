@@ -53,8 +53,8 @@ console.assert(normalizeDbStatus('On Hold') === 'On Hold', 'On Hold -> DB On Hol
 console.assert(normalizeDbStatus('Resolved') === 'Resolved', 'Resolved -> DB Resolved');
 
 console.assert(getStatusHistoryLabel('Submitted') === 'Date Submitted', 'Submitted -> Date Submitted');
-console.assert(getStatusHistoryLabel('Under Review') === 'Under Review', 'Under Review -> Under Review');
-console.assert(getStatusHistoryLabel('Reviewed') === 'Under Review', 'Reviewed -> Under Review');
+console.assert(getStatusHistoryLabel('Under Review') === 'Reviewed', 'Under Review -> Reviewed');
+console.assert(getStatusHistoryLabel('Reviewed') === 'Reviewed', 'Reviewed -> Reviewed');
 console.assert(getStatusHistoryLabel('Under Repair') === 'Under Repair', 'Under Repair -> Under Repair');
 console.assert(getStatusHistoryLabel('On Hold') === 'On Hold', 'On Hold -> On Hold');
 console.assert(getStatusHistoryLabel('Resolved') === 'Resolved', 'Resolved -> Resolved');
@@ -103,7 +103,7 @@ console.log('\nStage 2 (Under Review) History entries count:', historyReviewed.l
 console.log('Entries:', historyReviewed.map(h => ({ status: h.status, label: getStatusHistoryLabel(h.status), time: h.timeFormatted })));
 console.assert(historyReviewed.length === 2, 'Should have exactly 2 entries');
 console.assert(historyReviewed[0].status === 'Submitted', 'Entry 1 should be Submitted');
-console.assert(historyReviewed[1].status === 'Under Review', 'Entry 2 should be Under Review');
+console.assert(getStatusHistoryLabel(historyReviewed[1].status) === 'Reviewed', 'Entry 2 should be Reviewed');
 
 // Stage 3: Under Repair
 const reportRepair = {

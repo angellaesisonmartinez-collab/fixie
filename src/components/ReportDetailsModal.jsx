@@ -152,11 +152,11 @@ export function normalizeDbStatus(st) {
 export function getStatusHistoryLabel(status) {
   const s = String(status || '').toLowerCase().trim();
   if (s === 'submitted' || s.includes('submit')) return 'Date Submitted';
-  if (s === 'under review' || s === 'under_review' || s === 'reviewed') return 'Under Review';
+  if (s === 'under review' || s === 'under_review' || s === 'reviewed') return 'Reviewed';
   if (s === 'under repair' || s.includes('repair')) return 'Under Repair';
   if (s === 'on hold' || s === 'on_hold' || s.includes('hold')) return 'On Hold';
   if (s.includes('resolve')) return 'Resolved';
-  return status || 'Under Review';
+  return status || 'Reviewed';
 }
 
 /**
@@ -264,7 +264,7 @@ export function buildUnifiedHistoryEntries({
     const formattedRevTime = formatManilaHistoryTime(reviewTime);
 
     entries.push({
-      status: 'Under Review',
+      status: 'Reviewed',
       remarks: null,
       timeFormatted: formattedRevTime,
       createdAt: reviewTime,
@@ -363,16 +363,41 @@ async function syncReportToSupabase(targetId, updatePayload, report = null) {
   const { canonicalUuid, reportCode } = await getCanonicalReportInfo(report || { report_id: targetId, id: targetId });
   const promises = [];
 
+  // Filter allowed columns for reports table to prevent PGRST204 column schema errors
+  const allowedReportsColumns = [
+    'id', 'report_id', 'student_id', 'room', 'equipment', 'unit_number',
+    'description', 'photo_url', 'status', 'remarks', 'created_at', 'updated_at'
+  ];
+  const reportsPayload = {};
+  for (const key of Object.keys(updatePayload)) {
+    if (allowedReportsColumns.includes(key)) {
+      reportsPayload[key] = updatePayload[key];
+    }
+  }
+
+  // Filter allowed columns for reports_of_student table
+  const allowedRosColumns = [
+    'id', 'report_id', 'student_id', 'student_name', 'year_block', 'unit_number',
+    'equipment', 'computer_center', 'room', 'date_submitted', 'date_time',
+    'status', 'description', 'remarks', 'history', 'created_at', 'updated_at'
+  ];
+  const rosPayload = {};
+  for (const key of Object.keys(updatePayload)) {
+    if (allowedRosColumns.includes(key)) {
+      rosPayload[key] = updatePayload[key];
+    }
+  }
+
   if (canonicalUuid) {
-    promises.push(supabase.from('reports').update(updatePayload).eq('id', canonicalUuid));
+    promises.push(supabase.from('reports').update(reportsPayload).eq('id', canonicalUuid));
   } else if (reportCode) {
-    promises.push(supabase.from('reports').update(updatePayload).eq('report_id', reportCode));
+    promises.push(supabase.from('reports').update(reportsPayload).eq('report_id', reportCode));
   }
 
   if (reportCode) {
-    promises.push(supabase.from('reports_of_student').update(updatePayload).eq('report_id', reportCode));
+    promises.push(supabase.from('reports_of_student').update(rosPayload).eq('report_id', reportCode));
   } else if (canonicalUuid) {
-    promises.push(supabase.from('reports_of_student').update(updatePayload).eq('id', canonicalUuid));
+    promises.push(supabase.from('reports_of_student').update(rosPayload).eq('id', canonicalUuid));
   }
 
   const studentName = report?.student_name || report?.reportedByName || report?.students?.name;
@@ -382,7 +407,7 @@ async function syncReportToSupabase(targetId, updatePayload, report = null) {
     const targetTables = new Set([`${firstName}-reports`, `${cleanFull}-reports`]);
     targetTables.forEach((tbl) => {
       promises.push(
-        supabase.from(tbl).update(updatePayload).eq('report_id', reportCode).catch(() => {})
+        supabase.from(tbl).update(reportsPayload).eq('report_id', reportCode).catch(() => {})
       );
     });
   }
@@ -662,7 +687,7 @@ export function getInitialStatusHistory(report) {
   const revTime = timestamps.reviewed;
   if (revTime && (status === 'Reviewed' || status === 'Under Repair' || status === 'On Hold' || status === 'Resolved')) {
     entries.push({
-      status: 'Under Review',
+      status: 'Reviewed',
       remarks: null,
       timeFormatted: revTime,
       createdAt: report.reviewed_at || report.updated_at || report.created_at || new Date().toISOString(),
@@ -931,14 +956,17 @@ export default function ReportDetailsModal({
             updateData.timestamps?.onHold ||
             updateData.timestamps?.resolved ||
             formatManilaHistoryTime(updateData.updatedAt || new Date());
+          const displayEntryStatus = (normSt === 'Under Review' || normSt === 'Reviewed') ? 'Reviewed' : normSt;
           setStatusHistory((prev) => {
             const entry = {
-              status: normSt,
+              status: displayEntryStatus,
               remarks: newRem || null,
               timeFormatted: nowFormatted,
               createdAt: updateData.updatedAt || new Date().toISOString(),
             };
-            const filtered = (prev || []).filter((h) => h.status !== normSt);
+            const filtered = (prev || []).filter(
+              (h) => h.status !== normSt && h.status !== 'Reviewed' && h.status !== 'Under Review'
+            );
             return [...filtered, entry];
           });
         }
@@ -1105,7 +1133,7 @@ export default function ReportDetailsModal({
     };
 
     const newHistoryEntry = {
-      status: 'Under Review',
+      status: 'Reviewed',
       remarks: null,
       timeFormatted: nowFormatted,
       createdAt: nowIso,

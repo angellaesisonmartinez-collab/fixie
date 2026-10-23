@@ -75,10 +75,13 @@ export function formatAdminDashboardReport(r) {
   // Map display status and badge style
   let displayStatus = 'RESOLVED';
   let statusClass = 'status-resolved';
-  if (r.status === 'Submitted' || r.status === 'Reviewed' || r.status === 'Under Review') {
+  if (r.status === 'Submitted' || r.status === 'submitted') {
+    displayStatus = 'SUBMITTED';
+    statusClass = 'status-submitted';
+  } else if (r.status === 'Reviewed' || r.status === 'reviewed' || r.status === 'Under Review' || r.status === 'under review') {
     displayStatus = 'UNDER REVIEW';
     statusClass = 'status-under-review';
-  } else if (r.status === 'Under Repair') {
+  } else if (r.status === 'Under Repair' || r.status === 'Under repair') {
     displayStatus = 'UNDER REPAIR';
     statusClass = 'status-under-repair';
   } else if (r.status === 'On Hold' || r.status === 'on_hold') {

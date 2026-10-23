@@ -231,24 +231,39 @@ export default function StudentGuidesPage({ studentProfile, currentUser }) {
 
     const handleGuideLiveUpdate = (payload) => {
       if (!payload) return;
-      const targetId = payload.id;
-      const eventType = payload.eventType || 'UPDATE';
+      const targetId = payload.id || payload.guide?.id || payload.new?.id;
+      const eventType = payload.eventType || (payload.action === 'publish' ? 'INSERT' : payload.action === 'delete' ? 'DELETE' : 'UPDATE');
 
       if (eventType === 'DELETE') {
-        setGuidesList((prev) => prev.filter((g) => g.id !== targetId));
+        setGuidesList((prev) => {
+          const next = prev.filter((g) => g.id !== targetId);
+          cachedStudentGuides = next;
+          return next;
+        });
       } else if (eventType === 'INSERT') {
         const newGuide = payload.guide || payload.new || payload;
         if (newGuide?.id) {
           setGuidesList((prev) => {
             const exists = prev.some((g) => g.id === newGuide.id);
             if (exists) return prev;
-            return sortGuidesByPublicationDate([newGuide, ...prev]);
+            const next = sortGuidesByPublicationDate([newGuide, ...prev]);
+            cachedStudentGuides = next;
+            return next;
           });
         }
       } else {
-        setGuidesList((prev) =>
-          prev.map((g) => (g.id === targetId ? { ...g, ...payload, ...(payload.new || {}) } : g))
-        );
+        const updatedGuide = payload.guide || payload.new || payload;
+        setGuidesList((prev) => {
+          const next = prev.map((g) => (g.id === targetId ? { ...g, ...updatedGuide } : g));
+          cachedStudentGuides = next;
+          return next;
+        });
+        setSelectedGuideModal((prevModal) => {
+          if (prevModal && prevModal.id === targetId) {
+            return { ...prevModal, ...updatedGuide };
+          }
+          return prevModal;
+        });
       }
     };
 

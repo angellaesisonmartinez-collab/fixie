@@ -312,7 +312,10 @@ export default function AdminDashboard({ currentUser, userProfile, onSignOut, in
 
             let displayStatus = 'RESOLVED';
             let statusClass = 'status-resolved';
-            if (effectiveStatus === 'Submitted' || effectiveStatus === 'Under Review' || effectiveStatus === 'Reviewed') {
+            if (effectiveStatus === 'Submitted' || effectiveStatus === 'submitted') {
+              displayStatus = 'SUBMITTED';
+              statusClass = 'status-submitted';
+            } else if (effectiveStatus === 'Under Review' || effectiveStatus === 'Reviewed' || effectiveStatus === 'reviewed') {
               displayStatus = 'UNDER REVIEW';
               statusClass = 'status-under-review';
             } else if (effectiveStatus === 'Under Repair' || effectiveStatus === 'Under repair') {
@@ -480,21 +483,25 @@ export default function AdminDashboard({ currentUser, userProfile, onSignOut, in
           onClose={() => setSelectedReport(null)}
           onUpdateStatus={(reportId, newStatus, updatedHistory, newRemarks) => {
             const displayStatus =
-              newStatus === 'Submitted' || newStatus === 'Reviewed' || newStatus === 'Under Review'
-                ? 'UNDER REVIEW'
-                : newStatus === 'Under Repair'
-                  ? 'UNDER REPAIR'
-                  : newStatus === 'On Hold'
-                    ? 'ON HOLD'
-                    : 'RESOLVED';
+              newStatus === 'Submitted' || newStatus === 'submitted'
+                ? 'SUBMITTED'
+                : newStatus === 'Reviewed' || newStatus === 'Under Review' || newStatus === 'reviewed'
+                  ? 'UNDER REVIEW'
+                  : newStatus === 'Under Repair' || newStatus === 'Under repair'
+                    ? 'UNDER REPAIR'
+                    : newStatus === 'On Hold' || newStatus === 'on_hold'
+                      ? 'ON HOLD'
+                      : 'RESOLVED';
             const statusClass =
-              newStatus === 'Submitted' || newStatus === 'Reviewed' || newStatus === 'Under Review'
-                ? 'status-under-review'
-                : newStatus === 'Under Repair'
-                  ? 'status-under-repair'
-                  : newStatus === 'On Hold'
-                    ? 'status-on-hold'
-                    : 'status-resolved';
+              newStatus === 'Submitted' || newStatus === 'submitted'
+                ? 'status-submitted'
+                : newStatus === 'Reviewed' || newStatus === 'Under Review' || newStatus === 'reviewed'
+                  ? 'status-under-review'
+                  : newStatus === 'Under Repair' || newStatus === 'Under repair'
+                    ? 'status-under-repair'
+                    : newStatus === 'On Hold' || newStatus === 'on_hold'
+                      ? 'status-on-hold'
+                      : 'status-resolved';
 
             setAllReports((prev) =>
               prev

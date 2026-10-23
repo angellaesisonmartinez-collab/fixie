@@ -38,22 +38,20 @@ export default function StatusStepper({
 
   // Determine normalized 1-based index (0 means no step highlighted yet)
   let phaseIndex = 0;
-  if (typeof propPhaseIndex === 'number') {
+  if (s.includes('resolve')) {
+    phaseIndex = steps.length;
+  } else if (isCurrentlyOnHold && wasOrIsOnHold) {
+    phaseIndex = 3;
+  } else if (s.includes('repair')) {
+    phaseIndex = 2;
+  } else if (s === 'reviewed' || s === 'under review' || s === 'under_review') {
+    phaseIndex = 1;
+  } else if (s === 'submitted' || s.includes('submit')) {
+    phaseIndex = 0;
+  } else if (typeof propPhaseIndex === 'number') {
     phaseIndex = Math.min(propPhaseIndex, steps.length);
   } else {
-    if (s.includes('resolve')) {
-      phaseIndex = steps.length;
-    } else if (isCurrentlyOnHold && wasOrIsOnHold) {
-      phaseIndex = 3;
-    } else if (s.includes('repair')) {
-      phaseIndex = 2;
-    } else if (s === 'reviewed' || s === 'under review' || s === 'under_review') {
-      phaseIndex = 1;
-    } else if (s === 'submitted' || s.includes('submit')) {
-      phaseIndex = 0;
-    } else {
-      phaseIndex = 0;
-    }
+    phaseIndex = 0;
   }
 
   return (

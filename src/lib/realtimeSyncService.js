@@ -558,6 +558,8 @@ export function broadcastGuideChange(guide, action = 'update') {
     title: guide.title,
     category: guide.category,
     content: guide.content,
+    created_at: guide.created_at,
+    updated_at: guide.updated_at,
     guide,
   };
 

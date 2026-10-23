@@ -82,12 +82,19 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
   const [editError, setEditError] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Sync edit editor content when entering edit mode
+  // Sync edit editor content ONLY when entering edit mode or switching the viewed guide
   useEffect(() => {
     if (isEditing && editEditorRef.current) {
       editEditorRef.current.innerHTML = editContent || '';
     }
-  }, [isEditing, editContent]);
+  }, [isEditing, viewingGuide?.id]);
+
+  // Clean add editor content when opening add modal
+  useEffect(() => {
+    if (isAddModalOpen && addEditorRef.current) {
+      addEditorRef.current.innerHTML = newContent || '';
+    }
+  }, [isAddModalOpen]);
 
   // Toast notification
   const [toastMessage, setToastMessage] = useState(null);
@@ -154,24 +161,47 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
 
     const handleGuideLiveUpdate = (payload) => {
       if (!payload) return;
-      const targetId = payload.id;
-      const eventType = payload.eventType || 'UPDATE';
+      const targetId = payload.id || payload.guide?.id || payload.new?.id;
+      const eventType = payload.eventType || (payload.action === 'publish' ? 'INSERT' : payload.action === 'delete' ? 'DELETE' : 'UPDATE');
 
       if (eventType === 'DELETE') {
-        setGuidesList((prev) => prev.filter((g) => g.id !== targetId));
+        setGuidesList((prev) => {
+          const next = prev.filter((g) => g.id !== targetId);
+          cachedTechnicalGuides = next;
+          return next;
+        });
       } else if (eventType === 'INSERT') {
         const newGuide = payload.guide || payload.new || payload;
         if (newGuide?.id) {
           setGuidesList((prev) => {
             const exists = prev.some((g) => g.id === newGuide.id);
             if (exists) return prev;
-            return [newGuide, ...prev];
+            const next = [newGuide, ...prev].sort((a, b) => {
+              const diff = getGuideSortTime(b) - getGuideSortTime(a);
+              if (diff !== 0) return diff;
+              return (a.id || '').localeCompare(b.id || '');
+            });
+            cachedTechnicalGuides = next;
+            return next;
           });
         }
       } else {
-        setGuidesList((prev) =>
-          prev.map((g) => (g.id === targetId ? { ...g, ...payload, ...(payload.new || {}) } : g))
-        );
+        const updatedGuide = payload.guide || payload.new || payload;
+        setGuidesList((prev) => {
+          const next = prev.map((g) => (g.id === targetId ? { ...g, ...updatedGuide } : g)).sort((a, b) => {
+            const diff = getGuideSortTime(b) - getGuideSortTime(a);
+            if (diff !== 0) return diff;
+            return (a.id || '').localeCompare(b.id || '');
+          });
+          cachedTechnicalGuides = next;
+          return next;
+        });
+        setViewingGuide((prevViewing) => {
+          if (prevViewing && prevViewing.id === targetId) {
+            return { ...prevViewing, ...updatedGuide };
+          }
+          return prevViewing;
+        });
       }
     };
 
@@ -338,6 +368,8 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
     if (e && e.preventDefault) e.preventDefault();
     setAddError('');
 
+    const selectedCat = newCategory || 'Rules';
+
     if (!newTitle.trim()) {
       setAddError('Please enter a guide title.');
       return;
@@ -353,7 +385,10 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
 
     setIsPublishing(true);
     const nowIso = new Date().toISOString();
-    const categoryToSave = newCategory === 'Reminders' ? 'Reminder' : (newCategory || 'Rules');
+    let categoryToSave = selectedCat === 'Reminders' ? 'Reminder' : selectedCat;
+    if (categoryToSave !== 'Rules' && categoryToSave !== 'How-to' && categoryToSave !== 'Reminder') {
+      categoryToSave = 'Rules';
+    }
 
     try {
       const { data, error } = await supabase
@@ -371,75 +406,41 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
         .single();
 
       if (error) throw error;
+      if (!data) throw new Error('No data returned from database.');
 
-      const saved = data || {
-        id: 'guide-' + Date.now(),
-        category: categoryToSave,
-        title: newTitle.trim(),
-        content: cleanedHtml.trim(),
-        created_at: nowIso,
-        updated_at: nowIso,
-      };
+      const saved = data;
 
-      setGuidesList((prev) =>
-        [saved, ...prev.filter((g) => g.id !== saved.id)].sort((a, b) => {
+      setGuidesList((prev) => {
+        const next = [saved, ...prev.filter((g) => g.id !== saved.id)].sort((a, b) => {
           const diff = getGuideSortTime(b) - getGuideSortTime(a);
           if (diff !== 0) return diff;
           return (a.id || '').localeCompare(b.id || '');
-        })
-      );
+        });
+        cachedTechnicalGuides = next;
+        return next;
+      });
+
       setIsAddModalOpen(false);
       setNewTitle('');
       setNewContent('');
       if (addEditorRef.current) addEditorRef.current.innerHTML = '';
-      setNewCategory('');
+      setNewCategory('Rules');
       setSuccessModalType('published');
 
-      // Dispatch cross-component synchronization event for dashboard
-      window.dispatchEvent(
-        new CustomEvent('fixie_guide_updated', {
-          detail: { action: 'publish', guide: saved },
-        })
-      );
+      // Dispatch cross-tab, remote realtime, and local window synchronization
+      broadcastGuideChange(saved, 'insert');
       try {
         localStorage.setItem('fixie_guides_last_updated', Date.now().toString());
       } catch {}
     } catch (err) {
-      console.warn('Fallback local guide publishing:', err.message);
-      const mockId = 'local-' + Date.now();
-      const localGuide = {
-        id: mockId,
-        category: categoryToSave,
-        title: newTitle.trim(),
-        content: cleanedHtml.trim(),
-        created_at: nowIso,
-        updated_at: nowIso,
-      };
-      setGuidesList((prev) =>
-        [localGuide, ...prev].sort((a, b) => {
-          const diff = getGuideSortTime(b) - getGuideSortTime(a);
-          if (diff !== 0) return diff;
-          return (a.id || '').localeCompare(b.id || '');
-        })
-      );
-      setIsAddModalOpen(false);
-      setNewTitle('');
-      setNewContent('');
-      if (addEditorRef.current) addEditorRef.current.innerHTML = '';
-      setNewCategory('');
-      setSuccessModalType('published');
-
-      window.dispatchEvent(
-        new CustomEvent('fixie_guide_updated', {
-          detail: { action: 'publish', guide: localGuide },
-        })
-      );
+      console.error('Error publishing guide to Supabase:', err);
+      setAddError(err.message || 'Failed to publish guide. Please try again.');
     } finally {
       setIsPublishing(false);
     }
   };
 
-  // Handle Update Guide Submit (category changes dynamically adjust both old and new counts)
+  // Handle Update Guide Submit
   const handleUpdateGuide = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     setEditError('');
@@ -459,10 +460,13 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
 
     setIsUpdating(true);
     const nowIso = new Date().toISOString();
-    const categoryToSave = editCategory === 'Reminders' ? 'Reminder' : editCategory;
+    let categoryToSave = editCategory === 'Reminders' ? 'Reminder' : editCategory;
+    if (categoryToSave !== 'Rules' && categoryToSave !== 'How-to' && categoryToSave !== 'Reminder') {
+      categoryToSave = 'Rules';
+    }
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('guides')
         .update({
           category: categoryToSave,
@@ -470,11 +474,13 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
           content: cleanedHtml.trim(),
           updated_at: nowIso,
         })
-        .eq('id', viewingGuide.id);
+        .eq('id', viewingGuide.id)
+        .select()
+        .single();
 
       if (error) throw error;
 
-      const updated = {
+      const updated = data || {
         ...viewingGuide,
         category: categoryToSave,
         title: editTitle.trim(),
@@ -483,59 +489,30 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
       };
 
       // Keep position based on original publication date, do not move to top
-      setGuidesList((prev) =>
-        prev
+      setGuidesList((prev) => {
+        const next = prev
           .map((g) => (g.id === viewingGuide.id ? updated : g))
           .sort((a, b) => {
             const diff = getGuideSortTime(b) - getGuideSortTime(a);
             if (diff !== 0) return diff;
             return (a.id || '').localeCompare(b.id || '');
-          })
-      );
-      setViewingGuide(null);
+          });
+        cachedTechnicalGuides = next;
+        return next;
+      });
+
+      setViewingGuide(updated);
       setIsEditing(false);
       setSuccessModalType('updated');
       showToast('Guide Updated!');
 
-      window.dispatchEvent(
-        new CustomEvent('fixie_guide_updated', {
-          detail: { action: 'update', guide: updated },
-        })
-      );
+      broadcastGuideChange(updated, 'update');
       try {
         localStorage.setItem('fixie_guides_last_updated', Date.now().toString());
       } catch {}
     } catch (err) {
-      console.warn('Fallback local update:', err.message);
-      const updated = {
-        ...viewingGuide,
-        category: categoryToSave,
-        title: editTitle.trim(),
-        content: cleanedHtml.trim(),
-        updated_at: nowIso,
-      };
-      setGuidesList((prev) =>
-        prev
-          .map((g) => (g.id === viewingGuide.id ? updated : g))
-          .sort((a, b) => {
-            const diff = getGuideSortTime(b) - getGuideSortTime(a);
-            if (diff !== 0) return diff;
-            return (a.id || '').localeCompare(b.id || '');
-          })
-      );
-      setViewingGuide(null);
-      setIsEditing(false);
-      setSuccessModalType('updated');
-      showToast('Guide Updated!');
-
-      window.dispatchEvent(
-        new CustomEvent('fixie_guide_updated', {
-          detail: { action: 'update', guide: updated },
-        })
-      );
-      try {
-        localStorage.setItem('fixie_guides_last_updated', Date.now().toString());
-      } catch {}
+      console.error('Error updating guide in Supabase:', err);
+      setEditError(err.message || 'Failed to update guide. Please try again.');
     } finally {
       setIsUpdating(false);
     }
@@ -579,7 +556,7 @@ export default function GuidesPage({ isStudent = false, studentProfile = null, c
           type="button"
           className="tech-guides-btn-add"
           onClick={() => {
-            setNewCategory('');
+            setNewCategory('Rules');
             setNewTitle('');
             setNewContent('');
             setAddError('');

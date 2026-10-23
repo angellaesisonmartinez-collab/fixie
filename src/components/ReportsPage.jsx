@@ -1052,17 +1052,20 @@ function TechnicalPersonnelReportsPage({
           const submittedDate = parsedDT.submittedDate;
           const submittedTime = parsedDT.submittedTime;
 
-          let displayStatus = 'UNDER REVIEW';
-          let statusClass = 'status-under-review';
-          if (rawReport.status === 'Under Repair') {
+          let displayStatus = 'RESOLVED';
+          let statusClass = 'status-resolved';
+          if (rawReport.status === 'Submitted' || rawReport.status === 'submitted') {
+            displayStatus = 'SUBMITTED';
+            statusClass = 'status-submitted';
+          } else if (rawReport.status === 'Reviewed' || rawReport.status === 'Under Review' || rawReport.status === 'reviewed') {
+            displayStatus = 'UNDER REVIEW';
+            statusClass = 'status-under-review';
+          } else if (rawReport.status === 'Under Repair' || rawReport.status === 'Under repair') {
             displayStatus = 'UNDER REPAIR';
             statusClass = 'status-under-repair';
           } else if (rawReport.status === 'On Hold' || rawReport.status === 'on_hold') {
             displayStatus = 'ON HOLD';
             statusClass = 'status-on-hold';
-          } else if (rawReport.status === 'Resolved') {
-            displayStatus = 'RESOLVED';
-            statusClass = 'status-resolved';
           }
 
           const newMapped = {

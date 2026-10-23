@@ -7,39 +7,31 @@ Goal: Implement the exact report status flow for Student and Technical Personnel
 ---
 
 ## The Required Flow
-1. **Student submits a report**
-   - Technical personnel receives it instantly (real time, no refresh).
-   - Initial status in list: **"Under Review"**.
-2. **Technical personnel taps "View" button -> report modal opens**
-   - Stepper: **SUBMITTED**
-   - List status: **Under Review**
-   - Button shown: **"Mark as Reviewed"**
-3. **Technical clicks "Mark as Reviewed"**
-   - Stepper: **REVIEWED**
-   - List status: **still Under Review**
-   - Button shown: **"Start Repair"**
-   - History entry added: **Reviewed**
-4. **Technical clicks "Start Repair"**
-   - Stepper: **UNDER REPAIR**
-   - List status: **Under Repair**
-   - Two buttons shown: **"Mark as On Hold"** and **"Mark as Resolved"**
-   - History entry added: **Under Repair**
-5a. **Technical clicks "Mark as Resolved"**
-   - Stepper: **RESOLVED**
-   - List status: **Resolved**
-   - History entry added: **Resolved** (with remarks)
-5b. **Technical clicks "Mark as On Hold"**
-   - List status: **ON HOLD** (report appears in On Hold tab; Stat cards: On Hold +1, Under Repair -1).
-   - Inside modal: Stepper shows **UNDER REPAIR**, with **"On Hold" badge** directly below it.
-   - Button shown: **"Mark as Resolved"**
-   - History entry added: **On Hold** (with remarks)
-   - When **"Mark as Resolved"** is clicked afterwards: stepper and list become **RESOLVED**, and the **On Hold** entry stays visible in status history.
+1. **Newly Submitted**
+   - No highlighted step in the status stepper yet (phase 0).
+   - Status History displays `Date Submitted` with the actual submission date and time.
+   - Available button: `Review`.
+2. **Under Review**
+   - When Technical Personnel clicks `Review`, highlight `Under Review` in the stepper.
+   - Status History adds `Reviewed` with the actual date and time the report was reviewed.
+   - Available button: `Start Repair`.
+3. **Under Repair**
+   - When Technical Personnel clicks `Start Repair`, highlight `Under Repair` in the stepper.
+   - Status History adds `Under Repair` with the actual date and time the repair started.
+   - Available buttons: `Mark On Hold` and `Mark as Resolved`.
+4. **On Hold**
+   - Only when Technical Personnel clicks `Mark On Hold`, highlight `On Hold` in the stepper.
+   - Status History adds `On Hold` with the actual date and time the report was placed on hold.
+   - Available button: `Mark as Resolved`.
+5. **Resolved**
+   - When Technical Personnel clicks `Mark as Resolved`, highlight `Resolved` in the stepper.
+   - Status History adds `Resolved` with the actual date and time the report was resolved, whether the previous status was `Under Repair` or `On Hold`.
 
 ---
 
 ## Status History Format
-Same on both Student and Technical sides, chronological, Asia/Manila (PHT) timezone:
-`Submitted -> Reviewed -> Under Repair -> On Hold (only if clicked) -> Resolved`
+Same on both Student and Technical sides, strictly chronological, Asia/Manila (PHT) timezone:
+`Date Submitted -> Reviewed -> Under Repair -> [On Hold only if explicitly clicked] -> Resolved`
 
 ---
 
@@ -201,21 +193,67 @@ Same on both Student and Technical sides, chronological, Asia/Manila (PHT) timez
 - **Student List View Modal Live Sync**:
   - In [StudentsPage.jsx](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/components/StudentsPage.jsx), synchronized `viewingStudent` with incoming realtime updates so viewed profile cards update live without closing or flickering.
 
-### [x] Phase 14: Student Report Submission, Storage & Multi-Account Synchronization Flow
-- **Audit & Safe Data Migration**:
-  - Audited all 17 student accounts, 30 canonical reports, and 7 student-specific custom tables in Supabase.
-  - Safely backfilled missing report LR-30 into `angel-reports` preserving authentic status (`Reviewed`), timestamps, and details with 0 duplicate records.
-- **Student Custom Table Mapping & Submission Fix**:
-  - Implemented `resolveStudentReportsTableName()` replacing broken snake_case table generation with authentic kebab-case student tables (`angel-reports`, etc.).
-  - Updated `SubmitReportPage.jsx` and `ReportProblemModal.jsx` to reliably populate the student's individual table, `reports`, and `reports_of_student` simultaneously upon submission.
-- **Unified Student Query Architecture**:
-  - Eliminated query isolation in `studentReportsService.js` so that Angel Lae Martinez queries both canonical `reports`, `reports_of_student`, and `angel-reports` in parallel, deduplicated by Report ID.
-  - Ensured all newly submitted reports appear immediately in the student's Dashboard and My Reports table.
-- **Complete Real-time CDC Synchronization**:
-  - Added PostgreSQL CDC listener for `angel-reports` in `realtimeSyncService.js`.
-  - Verified live status transitions (Reviewed -> Under Repair -> Resolved) synchronize seamlessly between Technical Personnel and Student side with zero page refreshes.
-- **Multi-Account Verification**:
-  - Verified with Angel Lae Martinez (`24-0041-147`), students with individual tables (e.g. Alyssa, Phia), and newly registered students (e.g. Margaret Subong).
+### [x] Phase 15: Status Stepper, Status History Alignment & Real-Time Synchronization
+- **Report Status Stepper (Technical Personnel & Student Views)**:
+  - Aligned stepper state normalization in `StatusStepper.jsx`:
+    - `Newly Submitted`: `phaseIndex = 0` (no highlighted step yet, all node circles and connector lines inactive).
+    - `Under Review`: `phaseIndex = 1` (Step 1 `Under Review` active/highlighted, future steps inactive).
+    - `Under Repair`: `phaseIndex = 2` (Step 1 completed with green check, Step 2 `Under Repair` active/highlighted).
+    - `On Hold`: `phaseIndex = 3` (Step 1 & 2 completed with green checks, Step 3 `On Hold` highlighted amber, 4-step workflow).
+    - `Resolved`: `phaseIndex = steps.length` (all steps completed with green checks; 3 steps if never on hold, 4 steps if on hold was triggered).
+- **Status History Label Standardisation**:
+  - In `ReportDetailsModal.jsx` and `reportStatusHistoryWorkflow.js`, updated `getStatusHistoryLabel()`:
+    - `Submitted` -> `Date Submitted`
+    - `Under Review` / `Reviewed` -> `Reviewed` (displays exact review timestamp)
+    - `Under Repair` -> `Under Repair`
+    - `On Hold` -> `On Hold`
+    - `Resolved` -> `Resolved`
+  - Preserved original `Date Submitted` timestamp across all stages without overwrite.
+- **Database Schema Protection & Column Sanitization**:
+  - Filtered payloads in `syncReportToSupabase` against valid table columns for `reports` and `reports_of_student`, eliminating PostgreSQL `PGRST204` schema errors on non-existent columns (`has_been_on_hold`, `on_hold_at`).
+- **Button Workflow Verification**:
+  - `Newly Submitted`: Available button is `Review`.
+  - `Under Review`: Available button is `Start Repair`.
+  - `Under Repair`: Available buttons are `Mark On Hold` and `Mark as Resolved`.
+  - `On Hold`: Available button is `Mark as Resolved`.
+  - `Resolved`: Modal footer action bar is hidden.
+- **Real-time Synchronization Across Both Sides**:
+  - Live broadcast and Supabase Realtime updates propagate without page refresh.
+  - Report list status badges, modal stepper, and Status History timeline remain completely synchronized between Technical Personnel and Student sides.
+
+### [x] Phase 16: Laboratory Guide Publishing, Editing, Date Formatting & Real-Time Synchronization
+- **1. Technical Personnel — Add and Publish Guide**:
+  - [x] Add Guide modal form opens cleanly with reset fields (title, category, content) and clear errors.
+  - [x] Category selection properly mapped to Supabase database constraints (`Rules`, `How-to`, `Reminder`).
+  - [x] Resolved root cause of publishing error so guides save reliably to Supabase `guides` table.
+  - [x] Newly published guides immediately placed at top of list (sorted strictly by `created_at` descending).
+  - [x] Eliminated duplicate guide records upon publish by removing local mock ID generation and deduplicating against incoming CDC/broadcast payloads.
+  - [x] Newly published guide renders immediately without requiring page refresh.
+  - [x] Module-level memory cache (`cachedTechnicalGuides`) updated in tandem with state to prevent layout shift on tab navigation.
+- **2. Technical Personnel — Edit Published Guide & Cursor Jumping Fix**:
+  - [x] Eliminated cursor jumping to beginning of text in `contentEditable` editor by removing disruptive `useEffect` re-injection of `innerHTML` on state change during active typing.
+  - [x] Retained native DOM caret selection and cursor position across typing, insertions, linebreaks, and deletions.
+  - [x] Edit guide saves updates (`category`, `title`, `content`, `updated_at`) directly to Supabase `guides` table.
+  - [x] Update reflects in guide details modal and guide cards with zero layout changes or UI disruption.
+  - [x] Guide keeps its chronological list position anchored by its original publication date (`created_at`).
+- **3. Published and Updated Date Formatting Compliance**:
+  - [x] Exact format for newly published guide: `Published (date)` (e.g., `Published Oct 23, 2026`).
+  - [x] Exact format for edited guide: `Published (original publication date) • Update (latest update date)` (e.g., `Published Sep 01, 2026 • Update Oct 23, 2026`).
+  - [x] Original publication date (`created_at`) strictly preserved upon edit.
+  - [x] Latest update date (`updated_at`) automatically updated upon save and stored in Supabase.
+  - [x] Both timestamps retrieved dynamically from Supabase `guides` records (never hardcoded).
+  - [x] Uniform date display across both Technical Personnel (`GuidesPage.jsx`) and Student (`StudentGuidesPage.jsx`) list cards and detail modals.
+  - [x] Timestamps remain persistent and accurate across page refresh, logout, and re-login.
+- **4. Student Side — Real-Time Automatic Synchronization**:
+  - [x] Newly published guides appear instantly on the Student Laboratory Guide page at the top without requiring a page refresh.
+  - [x] Edits made by Technical Personnel immediately reflect on the Student side (updated title, content, and `Update (date)`).
+  - [x] Full synchronization across tabs, windows, and remote devices using unified `realtimeSyncService` broadcast (`broadcastGuideChange`) and Supabase Realtime CDC (`postgres_changes` on `guides` table).
+  - [x] Module cache (`cachedStudentGuides`) kept in sync so tab switches never revert to stale data.
+- **5. Supabase Data Integrity & Non-Regressions**:
+  - [x] Preserved existing 27 guide records, categories, student bookmarks (`saved_guides`), and guide views (`guide_views`).
+  - [x] Strict category constraint compliance (`Rules`, `How-to`, `Reminder`).
+  - [x] Maintained 5 items per page pagination flow, search filtering, and existing UI design styles.
+
 
 
 

@@ -79,8 +79,8 @@ export const formatGuideDateDisplay = (guide) => {
     const pubTime = new Date(pubRaw).getTime();
     const updTime = new Date(updRaw).getTime();
     if (!isNaN(pubTime) && !isNaN(updTime)) {
-      // Must be later by more than a minute (60,000ms)
-      if (updTime - pubTime > 60000) {
+      // Show update if updated_at is at least 1 second after created_at
+      if (updTime - pubTime >= 1000) {
         showUpdated = true;
         updDateStr = formatDate(updRaw);
       }
@@ -88,13 +88,13 @@ export const formatGuideDateDisplay = (guide) => {
   }
 
   if (pubDateStr && showUpdated && updDateStr) {
-    return `Published ${pubDateStr}    •    Updated ${updDateStr}`;
+    return `Published ${pubDateStr} • Update ${updDateStr}`;
   }
   if (pubDateStr) {
     return `Published ${pubDateStr}`;
   }
   if (updRaw) {
-    return `Updated ${formatDate(updRaw)}`;
+    return `Update ${formatDate(updRaw)}`;
   }
   return '';
 };
