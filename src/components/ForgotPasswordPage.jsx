@@ -226,22 +226,38 @@ export default function ForgotPasswordPage({ initialStep = 1, onReturnToLogin })
       let updatedAnyRecord = false;
 
       // 1. Student accounts: login verifies students.password_hash (bcrypt).
-      //    Match clean email or plus-addressed variants (user+tag@domain).
+      //    SAFETY: only update when the email identifies exactly ONE student,
+      //    so one reset can never overwrite other students' passwords.
+      let sharedEmailConflict = false;
       try {
         const [userPart, domainPart] = trimmedEmail.split('@');
-        const { data: stRows, error: stErr } = await supabase
+        const { data: matches, error: findErr } = await supabase
           .from('students')
-          .update({
-            password_hash: passwordHash,
-            must_change_password: false,
-            updated_at: nowIso,
-          })
-          .or(`email.ilike.${trimmedEmail},email.ilike.${userPart}+%@${domainPart}`)
-          .select('id');
-        if (stErr) console.warn('Student password update note:', stErr.message);
-        if (stRows && stRows.length > 0) updatedAnyRecord = true;
+          .select('id')
+          .or(`email.ilike.${trimmedEmail},email.ilike.${userPart}+%@${domainPart}`);
+        if (findErr) console.warn('Student lookup note:', findErr.message);
+
+        if (matches && matches.length > 1) {
+          sharedEmailConflict = true;
+        } else if (matches && matches.length === 1) {
+          const { data: stRows, error: stErr } = await supabase
+            .from('students')
+            .update({
+              password_hash: passwordHash,
+              must_change_password: false,
+              updated_at: nowIso,
+            })
+            .eq('id', matches[0].id)
+            .select('id');
+          if (stErr) console.warn('Student password update note:', stErr.message);
+          if (stRows && stRows.length > 0) updatedAnyRecord = true;
+        }
       } catch (stErr) {
         console.warn('Student table password sync note:', stErr);
+      }
+
+      if (sharedEmailConflict) {
+        throw new Error('Several accounts share this email address, so the password cannot be reset automatically. Please contact the ICT Office.');
       }
 
       // 2. Technical personnel accounts: fallback login verifies technical_personnel.password_hash
