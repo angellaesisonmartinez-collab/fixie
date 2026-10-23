@@ -13,6 +13,7 @@ import Footer from './Footer';
 import fixieMascotSuccess from '../assets/fixie-mascot-success.png';
 import { supabase } from '../lib/supabase';
 import { sendPasswordResetEmail, verifyOtpCode } from '../lib/emailService';
+import bcrypt from 'bcryptjs';
 
 export default function ForgotPasswordPage({ initialStep = 1, onReturnToLogin }) {
   // Step 1: Email Identification, Step 2: Code Verification, Step 3: New Password, Step 4: Password Reset Confirmation
@@ -219,25 +220,57 @@ export default function ForgotPasswordPage({ initialStep = 1, onReturnToLogin })
 
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
+      const trimmedEmail = email.trim();
+      const nowIso = new Date().toISOString();
+      const passwordHash = bcrypt.hashSync(newPassword, 10);
+      let updatedAnyRecord = false;
 
-      if (error) {
-        console.warn('Supabase auth update notice:', error);
-      }
-
-      // Also update student record if it exists in students directory
+      // 1. Student accounts: login verifies students.password_hash (bcrypt).
+      //    Match clean email or plus-addressed variants (user+tag@domain).
       try {
-        await supabase
+        const [userPart, domainPart] = trimmedEmail.split('@');
+        const { data: stRows, error: stErr } = await supabase
           .from('students')
           .update({
+            password_hash: passwordHash,
             must_change_password: false,
-            updated_at: new Date().toISOString(),
+            updated_at: nowIso,
           })
-          .eq('email', email.trim());
+          .or(`email.eq.${trimmedEmail},email.ilike.${userPart}+%@${domainPart}`)
+          .select('id');
+        if (stErr) console.warn('Student password update note:', stErr.message);
+        if (stRows && stRows.length > 0) updatedAnyRecord = true;
       } catch (stErr) {
         console.warn('Student table password sync note:', stErr);
+      }
+
+      // 2. Technical personnel accounts: fallback login verifies technical_personnel.password_hash
+      try {
+        const { data: tpRows, error: tpErr } = await supabase
+          .from('technical_personnel')
+          .update({
+            password_hash: passwordHash,
+            updated_at: nowIso,
+          })
+          .eq('registered_email', trimmedEmail)
+          .select('id');
+        if (tpErr) console.warn('Technical personnel password update note:', tpErr.message);
+        if (tpRows && tpRows.length > 0) updatedAnyRecord = true;
+      } catch (tpErr) {
+        console.warn('Technical personnel password sync note:', tpErr);
+      }
+
+      // 3. Supabase Auth (only succeeds when a session exists; harmless otherwise)
+      try {
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
+        if (error) console.warn('Supabase auth update notice:', error.message);
+        else updatedAnyRecord = true;
+      } catch (authErr) {
+        console.warn('Supabase auth update note:', authErr);
+      }
+
+      if (!updatedAnyRecord) {
+        throw new Error('We could not update the password for this email. Please try again or contact the ICT Office.');
       }
 
       // Transition to Step 4: Confirmation Modal
@@ -266,8 +299,8 @@ export default function ForgotPasswordPage({ initialStep = 1, onReturnToLogin })
 
   const handleCancel = async () => {
     try {
-      await supabase.auth.signOut().catch(() => {});
-    } catch {}
+      await supabase.auth.signOut().catch(() => { });
+    } catch { }
 
     if (onReturnToLogin) {
       onReturnToLogin();
