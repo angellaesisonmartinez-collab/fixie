@@ -227,48 +227,6 @@ export function getGlobalRealtimeChannel() {
             remarks: item.remarks,
           });
         })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'angel-reports' }, (e) => {
-          const item = e.new || e.old || {};
-          notifyReportListeners({
-            ...item,
-            eventType: e.eventType,
-            new: e.new,
-            old: e.old,
-            table: 'angel-reports',
-            id: item.id || item.report_id,
-            report_id: item.report_id || item.id,
-            status: item.status,
-            remarks: item.remarks,
-          });
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'phia-reports' }, (e) => {
-          const item = e.new || e.old || {};
-          notifyReportListeners({
-            ...item,
-            eventType: e.eventType,
-            new: e.new,
-            old: e.old,
-            table: 'phia-reports',
-            id: item.id || item.report_id,
-            report_id: item.report_id || item.id,
-            status: item.status,
-            remarks: item.remarks,
-          });
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'jennelyn-reports' }, (e) => {
-          const item = e.new || e.old || {};
-          notifyReportListeners({
-            ...item,
-            eventType: e.eventType,
-            new: e.new,
-            old: e.old,
-            table: 'jennelyn-reports',
-            id: item.id || item.report_id,
-            report_id: item.report_id || item.id,
-            status: item.status,
-            remarks: item.remarks,
-          });
-        })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'report_status_history' }, (e) => {
           const item = e?.new || e?.old;
           if (item) {

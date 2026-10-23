@@ -8,78 +8,21 @@ import { getStudentAvatar } from './studentAvatarUtils.js';
 import { subscribeToReportUpdates, registerVisibilityAndOnlineSync } from './realtimeSyncService.js';
 import angelAvatar from '../assets/avatars/angel.png';
 
-export const KNOWN_STUDENT_CUSTOM_TABLES = {
-  '24-0041-147': 'angel-reports',
-  '9002d8e6-bc03-4070-8aae-299147dead9a': 'angel-reports',
-  '22-0941-301': 'alyssa-reports',
-  '81ccc938-0114-4894-8034-50b71a7aca74': 'alyssa-reports',
-  '24-4011-088': 'phia-reports',
-  '43516fd4-6370-409e-96c0-5acc8d56d9c6': 'phia-reports',
-  '24-8521-063': 'maria-reports',
-  '21877a55-8600-4a5d-88ce-4e0746c23898': 'maria-reports',
-  '24-0031-267': 'juan-reports',
-  '82f230ea-abdb-4bc2-8fea-e87eb897299c': 'juan-reports',
-  '24-7345-853': 'reyn-reports',
-  'a9974b97-4eb0-4876-8a62-cdc86023bbd4': 'reyn-reports',
-  '24-2026-340': 'jennelyn-reports',
-  '51664213-275b-4e67-9024-d92d7e0a8022': 'jennelyn-reports',
-  '24-0132-062': 'emmanuel-reports',
-  'd0a857f1-87a1-49a4-b0c7-5c3d61e78ecd': 'emmanuel-reports',
-  '24-2745-132': 'jazmin-reports',
-  'd907e0ff-fe9c-4d19-aac5-f826e311b5ef': 'jazmin-reports',
-};
+export const KNOWN_STUDENT_CUSTOM_TABLES = {};
 
 /**
- * Resolve authentic custom table name for student if one exists.
- * Returns null for newly registered students who rely on canonical reports.
+ * Legacy resolver kept for backward compatibility.
+ * All student reports now exclusively use the canonical shared `reports` table.
  */
-export function resolveStudentReportsTableName(studentOrIdentifier) {
-  if (!studentOrIdentifier) return null;
-  if (typeof studentOrIdentifier === 'string') {
-    const trimmed = studentOrIdentifier.trim();
-    if (KNOWN_STUDENT_CUSTOM_TABLES[trimmed]) {
-      return KNOWN_STUDENT_CUSTOM_TABLES[trimmed];
-    }
-    const lower = trimmed.toLowerCase();
-    if (lower.includes('angel')) return 'angel-reports';
-    if (lower.includes('alyssa')) return 'alyssa-reports';
-    if (lower.includes('phia')) return 'phia-reports';
-    if (lower.includes('jennelyn')) return 'jennelyn-reports';
-    if (lower.includes('reyn')) return 'reyn-reports';
-    if (lower.includes('juan')) return 'juan-reports';
-    if (lower.includes('jazmin')) return 'jazmin-reports';
-    if (lower.includes('emmanuel')) return 'emmanuel-reports';
-    if (lower === 'maria' || lower.includes('maria reyes')) return 'maria-reports';
-    return null;
-  }
-  const sId = studentOrIdentifier.student_id || studentOrIdentifier.id;
-  if (sId && KNOWN_STUDENT_CUSTOM_TABLES[sId]) {
-    return KNOWN_STUDENT_CUSTOM_TABLES[sId];
-  }
-  const name =
-    studentOrIdentifier.name ||
-    studentOrIdentifier.full_name ||
-    `${studentOrIdentifier.first_name || ''} ${studentOrIdentifier.last_name || ''}`.trim();
-  return resolveStudentReportsTableName(name);
+export function resolveStudentReportsTableName() {
+  return null;
 }
 
 /**
- * Generate authentic kebab-case table name for a student
- * Example: 'Angel Lae Martinez' -> 'angel-reports'
+ * Legacy generator kept for backward compatibility.
  */
-export function getStudentReportsTableName(nameOrStudent) {
-  const resolved = resolveStudentReportsTableName(nameOrStudent);
-  if (resolved) return resolved;
-  if (!nameOrStudent) return 'student_reports';
-  const nameStr =
-    typeof nameOrStudent === 'string'
-      ? nameOrStudent
-      : nameOrStudent.name || nameOrStudent.full_name || '';
-  const clean = nameStr
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-  return `${clean}-reports`;
+export function getStudentReportsTableName() {
+  return null;
 }
 
 /**
@@ -538,28 +481,7 @@ export async function fetchStudentReportsAndStats(student) {
         );
       }
 
-      // Query 3: Student-specific custom table (e.g. angel-reports, phia-reports, jennelyn-reports, alyssa-reports)
-      const studentCustomTable =
-        resolveStudentReportsTableName(student) ||
-        resolveStudentReportsTableName(resolvedId) ||
-        resolveStudentReportsTableName(resolvedUuid) ||
-        resolveStudentReportsTableName(resolvedName);
-
-      if (studentCustomTable) {
-        queryPromises.push(
-          supabase
-            .from(studentCustomTable)
-            .select('*')
-            .then(({ data, error }) => {
-              if (!error && Array.isArray(data)) return { type: 'custom', data };
-              if (error) console.warn(`Supabase ${studentCustomTable} notice:`, error.message);
-              return { type: 'custom', data: [] };
-            })
-            .catch(() => ({ type: 'custom', data: [] }))
-        );
-      }
-
-      // Query 4: `saved_guides` for this student
+      // Query 3: `saved_guides` for this student
       if (resolvedUuid && isUuid(resolvedUuid)) {
         queryPromises.push(
           supabase

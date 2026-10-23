@@ -24,7 +24,6 @@ import {
   formatManilaTime,
   formatManilaLiveClock,
 } from '../lib/reportDateUtils';
-import { getStudentReportsTableName, resolveStudentReportsTableName } from '../lib/studentReportsService';
 import { broadcastReportSubmission } from '../lib/realtimeSyncService';
 import Banner from './Banner';
 import './SubmitReportPage.css';
@@ -564,41 +563,6 @@ export default function SubmitReportPage({
         }
       } catch (err) {
         console.warn('Supabase reports_of_student insert catch:', err);
-      }
-
-      const studentTableName = resolveStudentReportsTableName(studentProfile || studentId || studentName);
-      if (studentTableName) {
-        try {
-          await supabase.from(studentTableName).insert([
-            {
-              report_id: generatedId,
-              student_id: studentId,
-              student_uuid: studentDbUuid,
-              student_name: studentName,
-              year_block: studentYearBlock,
-              unit_number: dataToSave.unitNumber,
-              equipment: dataToSave.equipment,
-              computer_center: dataToSave.computerCenter,
-              room: dataToSave.room,
-              description: dataToSave.description,
-              status: 'Submitted',
-              date_submitted: nowIso,
-              date_time: `${submittedDate}, ${submittedTime}`,
-              remarks: null,
-              photo_url: uploadedPhotoUrl,
-              history: [
-                {
-                  action: 'Submitted',
-                  status: 'Submitted',
-                  time: nowIso,
-                  remarksText: null,
-                },
-              ],
-            },
-          ]);
-        } catch (tblErr) {
-          console.warn(`Note on saving student table (${studentTableName}):`, tblErr);
-        }
       }
 
       // Persist locally for this student so reports survive refreshes even when backend tables are unavailable

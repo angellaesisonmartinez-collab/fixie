@@ -79,6 +79,43 @@ const avatarMap = {
   'Emmanuel Gaspar': emmanuelAvatar,
 };
 
+/**
+ * Extracts the numeric portion of a Report ID (e.g., "LR-30" -> 30, "LR-09" -> 9, "LR-01" -> 1).
+ * Returns -1 if no numeric digits are found.
+ */
+export function parseReportIdNumber(reportOrId) {
+  if (!reportOrId) return -1;
+  const rawId = typeof reportOrId === 'string'
+    ? reportOrId
+    : (reportOrId.report_id || reportOrId.reportId || reportOrId.id || '');
+  const match = String(rawId).match(/\d+/);
+  return match ? parseInt(match[0], 10) : -1;
+}
+
+/**
+ * Sorts reports strictly by Report ID in descending order (highest ID first, e.g. LR-30, LR-29 ... LR-01).
+ * Correctly compares the numeric portion so LR-30 appears before LR-09 and LR-01.
+ */
+export function compareReportsByReportIdDesc(a, b) {
+  const numA = parseReportIdNumber(a);
+  const numB = parseReportIdNumber(b);
+
+  if (numA !== numB) {
+    return numB - numA; // Higher numeric ID first (e.g. 30 > 9 > 1)
+  }
+
+  // Tie-breaker: natural locale comparison descending
+  const idA = String(a?.report_id || a?.reportId || a?.id || '');
+  const idB = String(b?.report_id || b?.reportId || b?.id || '');
+  const idComp = idB.localeCompare(idA, undefined, { numeric: true, sensitivity: 'base' });
+  if (idComp !== 0) return idComp;
+
+  // Fallback tie-breaker: created_at / raw_created_at descending
+  const dateA = new Date(a?.raw_created_at || a?.created_at || 0).getTime();
+  const dateB = new Date(b?.raw_created_at || b?.created_at || 0).getTime();
+  return dateB - dateA;
+}
+
 // Initial 24 reports matching Supabase database & reference mockups exactly
 const defaultReports = [
   // --- Page 1 (7 reports as seen in reference screenshot) ---
@@ -590,7 +627,7 @@ const defaultReports = [
       photo_url: r.photo_url || (r.report_id === 'LR-24' ? 'https://ieznsbzddanjwmnpvncs.supabase.co/storage/v1/object/public/avatars/reports/pc014_monitor_display.jpg' : null)
     }),
   };
-});
+}).sort(compareReportsByReportIdDesc);
 
 export default function ReportsPage({ initialFilter = 'ALL', ...props }) {
   if (props.isStudent) {
@@ -614,7 +651,7 @@ function getInitialTechnicalReports() {
     const hasBroken = cachedTechnicalReports.some(
       (r) => r.student_name === 'Student' || r.reportedByName === 'Student' || (!r.avatar && !r.profile_photo)
     );
-    if (!hasBroken) return cachedTechnicalReports;
+    if (!hasBroken) return [...cachedTechnicalReports].sort(compareReportsByReportIdDesc);
   }
   try {
     if (typeof window !== 'undefined' && window.sessionStorage) {
@@ -626,14 +663,15 @@ function getInitialTechnicalReports() {
             (r) => r.student_name === 'Student' || r.reportedByName === 'Student' || (!r.avatar && !r.profile_photo)
           );
           if (!hasBroken) {
-            cachedTechnicalReports = parsed;
-            return parsed;
+            const sorted = [...parsed].sort(compareReportsByReportIdDesc);
+            cachedTechnicalReports = sorted;
+            return sorted;
           }
         }
       }
     }
   } catch {}
-  return defaultReports;
+  return [...defaultReports].sort(compareReportsByReportIdDesc);
 }
 
 // Helper to determine if a report has "On Hold" status
@@ -799,7 +837,6 @@ function TechnicalPersonnelReportsPage({
         supabase
           .from('reports')
           .select('*, students(*)')
-          .order('created_at', { ascending: false })
           .order('report_id', { ascending: false }),
         supabase
           .from('report_status_history')
@@ -921,6 +958,7 @@ function TechnicalPersonnelReportsPage({
           };
         });
 
+        mapped.sort(compareReportsByReportIdDesc);
         cachedTechnicalReports = mapped;
         try {
           if (typeof window !== 'undefined' && window.sessionStorage) {
@@ -967,6 +1005,7 @@ function TechnicalPersonnelReportsPage({
             (r) => r.report_id !== targetId && r.id !== targetId && r.canonicalUuid !== targetId
           );
           if (updated.length === prevList.length) return prevList;
+          updated.sort(compareReportsByReportIdDesc);
           cachedTechnicalReports = updated;
           try {
             if (typeof window !== 'undefined' && window.sessionStorage) {
@@ -1067,15 +1106,18 @@ function TechnicalPersonnelReportsPage({
                 r.id === newMapped.id ||
                 (rawReport.id && (r.id === rawReport.id || r.canonicalUuid === rawReport.id))
             );
+            let updated;
             if (exists) {
               // Update in place if already present
-              return prevList.map((r) =>
+              updated = prevList.map((r) =>
                 r.report_id === reportId || r.id === newMapped.id || (rawReport.id && r.id === rawReport.id)
                   ? { ...r, ...newMapped }
                   : r
               );
+            } else {
+              updated = [newMapped, ...prevList];
             }
-            const updated = [newMapped, ...prevList];
+            updated.sort(compareReportsByReportIdDesc);
             cachedTechnicalReports = updated;
             try {
               if (typeof window !== 'undefined' && window.sessionStorage) {
@@ -1143,6 +1185,7 @@ function TechnicalPersonnelReportsPage({
           });
 
           if (!hasMatch) return prevList;
+          updated.sort(compareReportsByReportIdDesc);
           cachedTechnicalReports = updated;
           try {
             if (typeof window !== 'undefined' && window.sessionStorage) {
@@ -1210,7 +1253,7 @@ function TechnicalPersonnelReportsPage({
 
   // Filtered and searched reports
   const filteredReports = useMemo(() => {
-    return reportsList.filter((r) => {
+    const list = reportsList.filter((r) => {
       // 1. Tab & Status Filtering
       if (activeTab === 'ON_HOLD') {
         // "On Hold" is its own tab: show only On Hold reports
@@ -1254,6 +1297,8 @@ function TechnicalPersonnelReportsPage({
 
       return true;
     });
+
+    return list.sort(compareReportsByReportIdDesc);
   }, [reportsList, activeTab, selectedStatusFilter, searchQuery]);
 
   // Reset page when filters change
@@ -1356,6 +1401,7 @@ function TechnicalPersonnelReportsPage({
         }
         return r;
       });
+      updated.sort(compareReportsByReportIdDesc);
       cachedTechnicalReports = updated;
       try {
         if (typeof window !== 'undefined' && window.sessionStorage) {
