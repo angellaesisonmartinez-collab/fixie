@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
-import { X, Image as ImageIcon, Loader2, Pause, ZoomIn, ShieldAlert } from 'lucide-react';
+import { X, Image as ImageIcon, Loader2, Pause, ZoomIn, ShieldAlert, AlertCircle } from 'lucide-react';
 import StatusStepper from './StatusStepper';
 import { supabase, safeRealtimeChannel, safeRemoveChannel } from '../lib/supabase';
 import { formatStudentName, formatYearBlock } from '../lib/studentFormatUtils';
-import { parseReportDateTime, formatManilaDateTime, formatManilaHistoryTime, getManilaSubmissionDate } from '../lib/reportDateUtils';
+import { parseReportDateTime, formatManilaDateTime, formatManilaHistoryTime, getManilaSubmissionDate, getServerTime, checkLaboratoryHours } from '../lib/reportDateUtils';
 import { resolveAuthenticReportStudent } from '../lib/reportStudentMapping';
 import { getReportAttachment } from '../lib/reportAttachmentUtils';
 import { broadcastReportStatusUpdate, subscribeToReportUpdates, registerVisibilityAndOnlineSync } from '../lib/realtimeSyncService';
@@ -785,6 +785,24 @@ export default function ReportDetailsModal({
   const [enlargedImage, setEnlargedImage] = useState(null);
   const [imageError, setImageError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [labHoursError, setLabHoursError] = useState('');
+
+  // Enforce laboratory operating hours (7:00 AM - 9:00 PM Asia/Manila) using authentic server time
+  const ensureLabHours = async () => {
+    let serverTime;
+    try {
+      serverTime = await getServerTime();
+    } catch {
+      serverTime = new Date();
+    }
+    const check = checkLaboratoryHours(serverTime);
+    if (!check.isAllowed) {
+      setLabHoursError(check.errorMessage);
+      return false;
+    }
+    setLabHoursError('');
+    return true;
+  };
   const [timestamps, setTimestamps] = useState(() => getInitialTimestamps(report));
   const [statusHistory, setStatusHistory] = useState(() => getInitialStatusHistory(report));
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -1121,6 +1139,10 @@ export default function ReportDetailsModal({
   // 1. Newly Submitted -> Under Review (via Review button)
   const handleReview = async () => {
     if (isUpdating || isSubmitting) return;
+    if (!(await ensureLabHours())) {
+      setShowResolutionPrompt(false);
+      return;
+    }
 
     setIsSubmitting(true);
     const nextStatus = 'Under Review';
@@ -1192,6 +1214,7 @@ export default function ReportDetailsModal({
   // 2. Under Review -> Under Repair (via Start Repair button)
   const handleStartRepair = async () => {
     if (isUpdating || isSubmitting) return;
+    if (!(await ensureLabHours())) return;
 
     setIsSubmitting(true);
     const nextStatus = 'Under Repair';
@@ -1280,6 +1303,7 @@ export default function ReportDetailsModal({
       return handleStartRepair();
     }
     if (currentStatus === 'Under Repair') {
+      if (!(await ensureLabHours())) return;
       // Required remarks validation before marking as resolved
       if (!remarks || remarks.trim() === '') {
         setRemarksError(true);
@@ -1364,6 +1388,7 @@ export default function ReportDetailsModal({
   // Requirement: Require Technical Personnel to enter remarks explaining why the report is placed on hold.
   const handleOnHold = async () => {
     if (isUpdating || isSubmitting) return;
+    if (!(await ensureLabHours())) return;
 
     if (!remarks || remarks.trim() === '') {
       setRemarksError(true);
@@ -1510,7 +1535,8 @@ export default function ReportDetailsModal({
   };
 
   // Section 3: Open Resolution Prompt dialog (while in On Hold state)
-  const handleOpenResolutionPrompt = () => {
+  const handleOpenResolutionPrompt = async () => {
+    if (!(await ensureLabHours())) return;
     setResolutionRemarks(isLR24 ? 'Replace Monitor' : (remarks || ''));
     setResolutionError(false);
     setShowResolutionPrompt(true);
@@ -1519,6 +1545,10 @@ export default function ReportDetailsModal({
   // Section 3: Confirm Resolution from On Hold -> Transitions to Image 2
   const handleConfirmResolution = async () => {
     if (isUpdating || isSubmitting) return;
+    if (!(await ensureLabHours())) {
+      setShowResolutionPrompt(false);
+      return;
+    }
     const finalRemarks = (resolutionRemarks || '').trim();
     if (!finalRemarks) {
       setResolutionError(true);
@@ -2036,17 +2066,6 @@ export default function ReportDetailsModal({
                 <label className="report-remarks-label" style={{ margin: 0 }}>
                   REMARKS <span className="text-red-500">*</span>
                 </label>
-                <button
-                  type="button"
-                  className="btn-remarks-edit-pill"
-                  onClick={() => {
-                    setEditedRemarks(remarks || 'Awaiting replacement parts.');
-                    setIsEditingRemarks(!isEditingRemarks);
-                  }}
-                  aria-label="Edit remarks"
-                >
-                  EDIT
-                </button>
               </div>
 
               {!isEditingRemarks ? (
@@ -2132,6 +2151,27 @@ export default function ReportDetailsModal({
 
         {/* Modal Footer Action Bar */}
         {/* Images 1 & 3: Solid Dark Forest Green bar. Image 2: NO FOOTER BAR AT ALL! */}
+        {!isStudentView && currentStatus !== 'Resolved' && labHoursError && (
+          <div
+            role="alert"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              margin: '0 20px 12px',
+              padding: '10px 14px',
+              background: '#FEF2F2',
+              border: '1px solid #FECACA',
+              borderRadius: '8px',
+              color: '#B91C1C',
+              fontSize: '13px',
+              fontWeight: 600,
+            }}
+          >
+            <AlertCircle size={16} />
+            <span>{labHoursError}</span>
+          </div>
+        )}
         {!isStudentView && currentStatus !== 'Resolved' && (
           <div
             className={`report-modal-footer-green ${
