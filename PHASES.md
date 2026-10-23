@@ -201,4 +201,21 @@ Same on both Student and Technical sides, chronological, Asia/Manila (PHT) timez
 - **Student List View Modal Live Sync**:
   - In [StudentsPage.jsx](file:///c:/Users/Angel%20Lae%20Martinez/Downloads/itsme-fixie1-final/itsme-fixie/src/components/StudentsPage.jsx), synchronized `viewingStudent` with incoming realtime updates so viewed profile cards update live without closing or flickering.
 
+### [x] Phase 14: Student Report Submission, Storage & Multi-Account Synchronization Flow
+- **Audit & Safe Data Migration**:
+  - Audited all 17 student accounts, 30 canonical reports, and 7 student-specific custom tables in Supabase.
+  - Safely backfilled missing report LR-30 into `angel-reports` preserving authentic status (`Reviewed`), timestamps, and details with 0 duplicate records.
+- **Student Custom Table Mapping & Submission Fix**:
+  - Implemented `resolveStudentReportsTableName()` replacing broken snake_case table generation with authentic kebab-case student tables (`angel-reports`, etc.).
+  - Updated `SubmitReportPage.jsx` and `ReportProblemModal.jsx` to reliably populate the student's individual table, `reports`, and `reports_of_student` simultaneously upon submission.
+- **Unified Student Query Architecture**:
+  - Eliminated query isolation in `studentReportsService.js` so that Angel Lae Martinez queries both canonical `reports`, `reports_of_student`, and `angel-reports` in parallel, deduplicated by Report ID.
+  - Ensured all newly submitted reports appear immediately in the student's Dashboard and My Reports table.
+- **Complete Real-time CDC Synchronization**:
+  - Added PostgreSQL CDC listener for `angel-reports` in `realtimeSyncService.js`.
+  - Verified live status transitions (Reviewed -> Under Repair -> Resolved) synchronize seamlessly between Technical Personnel and Student side with zero page refreshes.
+- **Multi-Account Verification**:
+  - Verified with Angel Lae Martinez (`24-0041-147`), students with individual tables (e.g. Alyssa, Phia), and newly registered students (e.g. Margaret Subong).
+
+
 

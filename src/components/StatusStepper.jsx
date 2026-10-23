@@ -39,15 +39,13 @@ export default function StatusStepper({
   return (
     <div className={`fixie-workflow-stepper-wrap ${className}`} role="region" aria-label="Report Status Workflow">
       {steps.map((step, idx) => {
-        const isCompleted = phaseIndex > step.index || (phaseIndex === 4 && step.index === 4);
+        const isCompleted = phaseIndex > step.index || (phaseIndex === 4 && step.index <= 4);
         const isActive = phaseIndex === step.index && phaseIndex !== 4;
         const isStepOnHold = isOnHold && step.index === 3 && phaseIndex !== 4;
 
         let circleClass = 'node-inactive';
         if (isStepOnHold) {
           circleClass = 'node-on-hold-amber';
-        } else if (phaseIndex === 4 && step.index === 4) {
-          circleClass = 'node-active-blue-check';
         } else if (isCompleted) {
           circleClass = 'node-completed-green';
         } else if (isActive) {
@@ -61,9 +59,7 @@ export default function StatusStepper({
                 className={`stepper-node-circle ${circleClass}`}
                 aria-current={isActive || isStepOnHold ? 'step' : undefined}
               >
-                {phaseIndex === 4 && step.index === 4 ? (
-                  <Check size={14} strokeWidth={2.8} color="#2563EB" />
-                ) : isCompleted && !isStepOnHold ? (
+                {isCompleted && !isStepOnHold ? (
                   <Check size={14} strokeWidth={3} color="#15803D" />
                 ) : (
                   step.index

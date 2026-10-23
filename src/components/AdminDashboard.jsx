@@ -480,36 +480,45 @@ export default function AdminDashboard({ currentUser, userProfile, onSignOut, in
           onClose={() => setSelectedReport(null)}
           onUpdateStatus={(reportId, newStatus, updatedHistory, newRemarks) => {
             const displayStatus =
-              newStatus === 'Submitted'
+              newStatus === 'Submitted' || newStatus === 'Reviewed' || newStatus === 'Under Review'
                 ? 'UNDER REVIEW'
-                : newStatus === 'Reviewed'
-                  ? 'REVIEWED'
-                  : newStatus === 'Under Repair'
-                    ? 'UNDER REPAIR'
-                    : newStatus === 'On Hold'
-                      ? 'ON HOLD'
-                      : 'RESOLVED';
+                : newStatus === 'Under Repair'
+                  ? 'UNDER REPAIR'
+                  : newStatus === 'On Hold'
+                    ? 'ON HOLD'
+                    : 'RESOLVED';
             const statusClass =
-              newStatus === 'Submitted'
+              newStatus === 'Submitted' || newStatus === 'Reviewed' || newStatus === 'Under Review'
                 ? 'status-under-review'
-                : newStatus === 'Reviewed'
-                  ? 'status-reviewed'
-                  : newStatus === 'Under Repair'
-                    ? 'status-under-repair'
-                    : newStatus === 'On Hold'
-                      ? 'status-on-hold'
-                      : 'status-resolved';
+                : newStatus === 'Under Repair'
+                  ? 'status-under-repair'
+                  : newStatus === 'On Hold'
+                    ? 'status-on-hold'
+                    : 'status-resolved';
 
             setAllReports((prev) =>
               prev
                 ? prev.map((r) => {
-                    if (r.id === reportId || r.report_id === reportId) {
+                    const isMatch =
+                      r.id === reportId ||
+                      r.report_id === reportId ||
+                      r.canonicalUuid === reportId ||
+                      r.canonical_uuid === reportId ||
+                      (selectedReport &&
+                        (r.id === selectedReport.id ||
+                          r.report_id === selectedReport.report_id ||
+                          r.canonicalUuid === selectedReport.canonicalUuid ||
+                          r.canonical_uuid === selectedReport.canonical_uuid));
+
+                    if (isMatch) {
                       return {
                         ...r,
                         status: newStatus,
                         displayStatus,
+                        display_status: displayStatus,
                         statusClass,
-                        history: updatedHistory,
+                        status_class: statusClass,
+                        history: updatedHistory || r.history,
                         remarks: newRemarks !== undefined ? newRemarks : r.remarks,
                       };
                     }
@@ -524,8 +533,10 @@ export default function AdminDashboard({ currentUser, userProfile, onSignOut, in
                 ...prev,
                 status: newStatus,
                 displayStatus,
+                display_status: displayStatus,
                 statusClass,
-                history: updatedHistory,
+                status_class: statusClass,
+                history: updatedHistory || prev.history,
                 remarks: newRemarks !== undefined ? newRemarks : prev.remarks,
               };
             });

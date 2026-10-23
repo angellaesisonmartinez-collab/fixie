@@ -130,9 +130,9 @@ export function normalizeStatusLabel(st) {
   if (s === 'on hold' || s === 'on_hold' || s.includes('hold')) return 'On Hold';
   if (s.includes('repair')) return 'Under Repair';
   if (s === 'reviewed') return 'Reviewed';
-  if (s === 'under review' || s === 'under_review') return 'Reviewed';
-  if (s.includes('review')) return 'Reviewed';
+  if (s === 'under review' || s === 'under_review') return 'Submitted';
   if (s.includes('submit')) return 'Submitted';
+  if (s.includes('review')) return 'Reviewed';
   return st || 'Submitted';
 }
 
@@ -855,6 +855,27 @@ export default function ReportDetailsModal({
           setTimestamps((prev) => ({ ...prev, ...updateData.timestamps }));
         }
 
+        if (Array.isArray(updateData.history) && updateData.history.length > 0) {
+          setStatusHistory(updateData.history);
+        } else if (normSt && normSt !== 'Submitted') {
+          const nowFormatted =
+            updateData.timestamps?.reviewed ||
+            updateData.timestamps?.underRepair ||
+            updateData.timestamps?.onHold ||
+            updateData.timestamps?.resolved ||
+            formatManilaHistoryTime(updateData.updatedAt || new Date());
+          setStatusHistory((prev) => {
+            const entry = {
+              status: normSt,
+              remarks: newRem || null,
+              timeFormatted: nowFormatted,
+              createdAt: updateData.updatedAt || new Date().toISOString(),
+            };
+            const filtered = (prev || []).filter((h) => h.status !== normSt);
+            return [...filtered, entry];
+          });
+        }
+
         // Seamless background audit history refresh without flickering
         loadFreshReportAndHistory(false);
       }
@@ -1019,8 +1040,25 @@ export default function ReportDetailsModal({
         reviewed: nowFormatted,
       };
 
+      const newHistoryEntry = {
+        status: 'Reviewed',
+        remarks: null,
+        timeFormatted: nowFormatted,
+        createdAt: nowIso,
+      };
+      const updatedHistory = [
+        ...statusHistory.filter((h) => h.status !== 'Reviewed'),
+        newHistoryEntry,
+      ];
+
       setCurrentStatus('Reviewed');
       setTimestamps(updatedTimestamps);
+      setStatusHistory(updatedHistory);
+
+      const { canonicalUuid, reportCode } = await getCanonicalReportInfo(report || { report_id: targetId, id: targetId });
+      if (canonicalUuid) reportHistoryCache.set(canonicalUuid, updatedHistory);
+      if (targetId) reportHistoryCache.set(targetId, updatedHistory);
+      if (reportCode) reportHistoryCache.set(reportCode, updatedHistory);
 
       try {
         await syncReportToSupabase(
@@ -1040,17 +1078,22 @@ export default function ReportDetailsModal({
 
       broadcastReportStatusUpdate({
         reportId: targetId,
+        report_id: reportCode || targetId,
+        canonicalUuid,
+        reportCode,
         newStatus: 'Reviewed',
         status: 'Reviewed',
         displayStatus: 'UNDER REVIEW',
         timestamps: updatedTimestamps,
+        history: updatedHistory,
+        studentId: report?.student_id || report?.studentId,
         updatedAt: nowIso,
       });
 
       loadFreshReportAndHistory();
 
       if (onUpdateStatus) {
-        onUpdateStatus(targetId, 'Reviewed', updatedTimestamps);
+        onUpdateStatus(targetId, 'Reviewed', updatedHistory, null, updatedTimestamps);
       }
     } else if (currentStatus === 'Reviewed') {
       setIsSubmitting(true);
@@ -1062,6 +1105,17 @@ export default function ReportDetailsModal({
         underRepair: nowFormatted,
       };
 
+      const newHistoryEntry = {
+        status: 'Under Repair',
+        remarks: null,
+        timeFormatted: nowFormatted,
+        createdAt: nowIso,
+      };
+      const updatedHistory = [
+        ...statusHistory.filter((h) => h.status !== 'Under Repair'),
+        newHistoryEntry,
+      ];
+
       setCurrentStatus(nextStatus);
       // Remarks field must remain empty on the under repair modal form unless technical personnel types something
       setRemarks('');
@@ -1069,6 +1123,12 @@ export default function ReportDetailsModal({
       setRemarksError(false);
       setRemarksErrorMessage('');
       setTimestamps(updatedTimestamps);
+      setStatusHistory(updatedHistory);
+
+      const { canonicalUuid, reportCode } = await getCanonicalReportInfo(report || { report_id: targetId, id: targetId });
+      if (canonicalUuid) reportHistoryCache.set(canonicalUuid, updatedHistory);
+      if (targetId) reportHistoryCache.set(targetId, updatedHistory);
+      if (reportCode) reportHistoryCache.set(reportCode, updatedHistory);
 
       try {
         await syncReportToSupabase(
@@ -1089,16 +1149,22 @@ export default function ReportDetailsModal({
 
       broadcastReportStatusUpdate({
         reportId: targetId,
+        report_id: reportCode || targetId,
+        canonicalUuid,
+        reportCode,
         newStatus: nextStatus,
         status: nextStatus,
+        displayStatus: 'UNDER REPAIR',
         timestamps: updatedTimestamps,
+        history: updatedHistory,
+        studentId: report?.student_id || report?.studentId,
         updatedAt: nowIso,
       });
 
       loadFreshReportAndHistory();
 
       if (onUpdateStatus) {
-        onUpdateStatus(targetId, nextStatus, updatedTimestamps);
+        onUpdateStatus(targetId, nextStatus, updatedHistory, null, updatedTimestamps);
       }
     } else if (currentStatus === 'Under Repair') {
       // Required remarks validation before marking as resolved
@@ -1121,8 +1187,25 @@ export default function ReportDetailsModal({
         resolved: nowFormatted,
       };
 
+      const newHistoryEntry = {
+        status: 'Resolved',
+        remarks: trimmedRemarks,
+        timeFormatted: nowFormatted,
+        createdAt: nowIso,
+      };
+      const updatedHistory = [
+        ...statusHistory.filter((h) => h.status !== 'Resolved'),
+        newHistoryEntry,
+      ];
+
       setCurrentStatus(nextStatus);
       setTimestamps(updatedTimestamps);
+      setStatusHistory(updatedHistory);
+
+      const { canonicalUuid, reportCode } = await getCanonicalReportInfo(report || { report_id: targetId, id: targetId });
+      if (canonicalUuid) reportHistoryCache.set(canonicalUuid, updatedHistory);
+      if (targetId) reportHistoryCache.set(targetId, updatedHistory);
+      if (reportCode) reportHistoryCache.set(reportCode, updatedHistory);
 
       try {
         await syncReportToSupabase(
@@ -1143,17 +1226,23 @@ export default function ReportDetailsModal({
 
       broadcastReportStatusUpdate({
         reportId: targetId,
+        report_id: reportCode || targetId,
+        canonicalUuid,
+        reportCode,
         newStatus: nextStatus,
         status: nextStatus,
+        displayStatus: 'RESOLVED',
         remarks: trimmedRemarks,
         timestamps: updatedTimestamps,
+        history: updatedHistory,
+        studentId: report?.student_id || report?.studentId,
         updatedAt: nowIso,
       });
 
       loadFreshReportAndHistory();
 
       if (onUpdateStatus) {
-        onUpdateStatus(targetId, nextStatus, updatedTimestamps, trimmedRemarks);
+        onUpdateStatus(targetId, nextStatus, updatedHistory, trimmedRemarks, updatedTimestamps);
       }
     }
   };
@@ -1182,10 +1271,27 @@ export default function ReportDetailsModal({
       onHold: nowFormatted,
     };
 
+    const newHistoryEntry = {
+      status: 'On Hold',
+      remarks: trimmedRemarks,
+      timeFormatted: nowFormatted,
+      createdAt: nowIso,
+    };
+    const updatedHistory = [
+      ...statusHistory.filter((h) => h.status !== 'On Hold'),
+      newHistoryEntry,
+    ];
+
     setCurrentStatus(nextStatus);
     setTimestamps(updatedTimestamps);
     setHasBeenOnHold(true);
     setEditedRemarks(trimmedRemarks);
+    setStatusHistory(updatedHistory);
+
+    const { canonicalUuid, reportCode } = await getCanonicalReportInfo(report || { report_id: targetId, id: targetId });
+    if (canonicalUuid) reportHistoryCache.set(canonicalUuid, updatedHistory);
+    if (targetId) reportHistoryCache.set(targetId, updatedHistory);
+    if (reportCode) reportHistoryCache.set(reportCode, updatedHistory);
 
     try {
       await syncReportToSupabase(
@@ -1208,10 +1314,16 @@ export default function ReportDetailsModal({
 
     broadcastReportStatusUpdate({
       reportId: targetId,
+      report_id: reportCode || targetId,
+      canonicalUuid,
+      reportCode,
       newStatus: nextStatus,
       status: nextStatus,
+      displayStatus: 'ON HOLD',
       remarks: trimmedRemarks,
       timestamps: updatedTimestamps,
+      history: updatedHistory,
+      studentId: report?.student_id || report?.studentId,
       updatedAt: nowIso,
       has_been_on_hold: true,
     });
@@ -1219,7 +1331,7 @@ export default function ReportDetailsModal({
     loadFreshReportAndHistory();
 
     if (onUpdateStatus) {
-      onUpdateStatus(targetId, nextStatus, updatedTimestamps, trimmedRemarks);
+      onUpdateStatus(targetId, nextStatus, updatedHistory, trimmedRemarks, updatedTimestamps);
     }
   };
 
@@ -1235,6 +1347,16 @@ export default function ReportDetailsModal({
     setRemarks(trimmed);
     setIsEditingRemarks(false);
     const nowIso = new Date().toISOString();
+
+    const updatedHistory = statusHistory.map((h) =>
+      h.status === 'On Hold' ? { ...h, remarks: trimmed } : h
+    );
+    setStatusHistory(updatedHistory);
+
+    const { canonicalUuid, reportCode } = await getCanonicalReportInfo(report || { report_id: targetId, id: targetId });
+    if (canonicalUuid) reportHistoryCache.set(canonicalUuid, updatedHistory);
+    if (targetId) reportHistoryCache.set(targetId, updatedHistory);
+    if (reportCode) reportHistoryCache.set(reportCode, updatedHistory);
 
     try {
       await syncReportToSupabase(
@@ -1254,17 +1376,23 @@ export default function ReportDetailsModal({
 
     broadcastReportStatusUpdate({
       reportId: targetId,
+      report_id: reportCode || targetId,
+      canonicalUuid,
+      reportCode,
       newStatus: currentStatus,
       status: currentStatus,
+      displayStatus: 'ON HOLD',
       remarks: trimmed,
       timestamps,
+      history: updatedHistory,
+      studentId: report?.student_id || report?.studentId,
       updatedAt: nowIso,
     });
 
     loadFreshReportAndHistory();
 
     if (onUpdateStatus) {
-      onUpdateStatus(targetId, currentStatus, timestamps, trimmed);
+      onUpdateStatus(targetId, currentStatus, updatedHistory, trimmed, timestamps);
     }
   };
 
@@ -1294,11 +1422,28 @@ export default function ReportDetailsModal({
       resolved: nowFormatted,
     };
 
+    const newHistoryEntry = {
+      status: 'Resolved',
+      remarks: finalRemarks,
+      timeFormatted: nowFormatted,
+      createdAt: nowIso,
+    };
+    const updatedHistory = [
+      ...statusHistory.filter((h) => h.status !== 'Resolved'),
+      newHistoryEntry,
+    ];
+
     setCurrentStatus(nextStatus);
     setRemarks(finalRemarks);
     setTimestamps(updatedTimestamps);
     setHasBeenOnHold(true);
+    setStatusHistory(updatedHistory);
     setShowResolutionPrompt(false);
+
+    const { canonicalUuid, reportCode } = await getCanonicalReportInfo(report || { report_id: targetId, id: targetId });
+    if (canonicalUuid) reportHistoryCache.set(canonicalUuid, updatedHistory);
+    if (targetId) reportHistoryCache.set(targetId, updatedHistory);
+    if (reportCode) reportHistoryCache.set(reportCode, updatedHistory);
 
     try {
       await syncReportToSupabase(
@@ -1319,17 +1464,23 @@ export default function ReportDetailsModal({
 
     broadcastReportStatusUpdate({
       reportId: targetId,
+      report_id: reportCode || targetId,
+      canonicalUuid,
+      reportCode,
       newStatus: nextStatus,
       status: nextStatus,
+      displayStatus: 'RESOLVED',
       remarks: finalRemarks,
       timestamps: updatedTimestamps,
+      history: updatedHistory,
+      studentId: report?.student_id || report?.studentId,
       updatedAt: nowIso,
     });
 
     loadFreshReportAndHistory();
 
     if (onUpdateStatus) {
-      onUpdateStatus(targetId, nextStatus, updatedTimestamps, finalRemarks);
+      onUpdateStatus(targetId, nextStatus, updatedHistory, finalRemarks, updatedTimestamps);
     }
   };
 
@@ -1539,7 +1690,7 @@ export default function ReportDetailsModal({
 
             {/* Remarks for Student View */}
             {(remarks || report.remarks || resolvedHistoryItem?.remarksText) && (
-              <div className="report-resolved-remarks-line" style={{ padding: '10px 0 2px 0' }}>
+              <div className="report-resolved-remarks-line student-remarks-top-block" style={{ padding: '10px 0 2px 0' }}>
                 Remarks: {remarks || report.remarks || resolvedHistoryItem?.remarksText}
               </div>
             )}

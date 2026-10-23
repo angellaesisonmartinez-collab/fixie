@@ -8,17 +8,78 @@ import { getStudentAvatar } from './studentAvatarUtils.js';
 import { subscribeToReportUpdates, registerVisibilityAndOnlineSync } from './realtimeSyncService.js';
 import angelAvatar from '../assets/avatars/angel.png';
 
+export const KNOWN_STUDENT_CUSTOM_TABLES = {
+  '24-0041-147': 'angel-reports',
+  '9002d8e6-bc03-4070-8aae-299147dead9a': 'angel-reports',
+  '22-0941-301': 'alyssa-reports',
+  '81ccc938-0114-4894-8034-50b71a7aca74': 'alyssa-reports',
+  '24-4011-088': 'phia-reports',
+  '43516fd4-6370-409e-96c0-5acc8d56d9c6': 'phia-reports',
+  '24-8521-063': 'maria-reports',
+  '21877a55-8600-4a5d-88ce-4e0746c23898': 'maria-reports',
+  '24-0031-267': 'juan-reports',
+  '82f230ea-abdb-4bc2-8fea-e87eb897299c': 'juan-reports',
+  '24-7345-853': 'reyn-reports',
+  'a9974b97-4eb0-4876-8a62-cdc86023bbd4': 'reyn-reports',
+  '24-2026-340': 'jennelyn-reports',
+  '51664213-275b-4e67-9024-d92d7e0a8022': 'jennelyn-reports',
+  '24-0132-062': 'emmanuel-reports',
+  'd0a857f1-87a1-49a4-b0c7-5c3d61e78ecd': 'emmanuel-reports',
+  '24-2745-132': 'jazmin-reports',
+  'd907e0ff-fe9c-4d19-aac5-f826e311b5ef': 'jazmin-reports',
+};
+
 /**
- * Generate safe snake_case table name for a student
- * Example: 'Angel Lae Martinez' -> 'angel_lae_martinez_reports'
+ * Resolve authentic custom table name for student if one exists.
+ * Returns null for newly registered students who rely on canonical reports.
  */
-export function getStudentReportsTableName(name) {
-  if (!name) return 'student_reports';
-  const clean = name
+export function resolveStudentReportsTableName(studentOrIdentifier) {
+  if (!studentOrIdentifier) return null;
+  if (typeof studentOrIdentifier === 'string') {
+    const trimmed = studentOrIdentifier.trim();
+    if (KNOWN_STUDENT_CUSTOM_TABLES[trimmed]) {
+      return KNOWN_STUDENT_CUSTOM_TABLES[trimmed];
+    }
+    const lower = trimmed.toLowerCase();
+    if (lower.includes('angel')) return 'angel-reports';
+    if (lower.includes('alyssa')) return 'alyssa-reports';
+    if (lower.includes('phia')) return 'phia-reports';
+    if (lower.includes('jennelyn')) return 'jennelyn-reports';
+    if (lower.includes('reyn')) return 'reyn-reports';
+    if (lower.includes('juan')) return 'juan-reports';
+    if (lower.includes('jazmin')) return 'jazmin-reports';
+    if (lower.includes('emmanuel')) return 'emmanuel-reports';
+    if (lower === 'maria' || lower.includes('maria reyes')) return 'maria-reports';
+    return null;
+  }
+  const sId = studentOrIdentifier.student_id || studentOrIdentifier.id;
+  if (sId && KNOWN_STUDENT_CUSTOM_TABLES[sId]) {
+    return KNOWN_STUDENT_CUSTOM_TABLES[sId];
+  }
+  const name =
+    studentOrIdentifier.name ||
+    studentOrIdentifier.full_name ||
+    `${studentOrIdentifier.first_name || ''} ${studentOrIdentifier.last_name || ''}`.trim();
+  return resolveStudentReportsTableName(name);
+}
+
+/**
+ * Generate authentic kebab-case table name for a student
+ * Example: 'Angel Lae Martinez' -> 'angel-reports'
+ */
+export function getStudentReportsTableName(nameOrStudent) {
+  const resolved = resolveStudentReportsTableName(nameOrStudent);
+  if (resolved) return resolved;
+  if (!nameOrStudent) return 'student_reports';
+  const nameStr =
+    typeof nameOrStudent === 'string'
+      ? nameOrStudent
+      : nameOrStudent.name || nameOrStudent.full_name || '';
+  const clean = nameStr
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '');
-  return `${clean}_reports`;
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return `${clean}-reports`;
 }
 
 /**
@@ -439,72 +500,63 @@ export async function fetchStudentReportsAndStats(student) {
       // Prepare parallel queries for Supabase (filtered strictly by student)
       const queryPromises = [];
 
-      if (isAngel) {
-        // Strict scope: For Angel Lae Martinez, query the authentic Supabase angel-reports data source directly
+      // Query 1: `reports_of_student` table (queried for all students)
+      if (resolvedId || resolvedUuid) {
+        let rosQuery = supabase.from('reports_of_student').select('*').order('date_submitted', { ascending: false });
+        if (resolvedId && resolvedUuid) {
+          rosQuery = rosQuery.or(`student_id.eq.${resolvedId},student_id.eq.${resolvedUuid}`);
+        } else if (resolvedId) {
+          rosQuery = rosQuery.eq('student_id', resolvedId);
+        } else {
+          rosQuery = rosQuery.eq('student_id', resolvedUuid);
+        }
+
+        queryPromises.push(
+          rosQuery
+            .then(({ data, error }) => {
+              if (!error && Array.isArray(data)) return { type: 'ros', data };
+              return { type: 'ros', data: [] };
+            })
+            .catch(() => ({ type: 'ros', data: [] }))
+        );
+      }
+
+      // Query 2: canonical `reports` table (single source of truth - strictly filtered by UUID)
+      if (resolvedUuid && isUuid(resolvedUuid)) {
         queryPromises.push(
           supabase
-            .from('angel-reports')
+            .from('reports')
+            .select('*, students(*)')
+            .eq('student_id', resolvedUuid)
+            .order('created_at', { ascending: false })
+            .then(({ data, error }) => {
+              if (!error && Array.isArray(data)) return { type: 'rep', data };
+              if (error) console.warn('Supabase reports query notice:', error.message);
+              return { type: 'rep', data: [] };
+            })
+            .catch(() => ({ type: 'rep', data: [] }))
+        );
+      }
+
+      // Query 3: Student-specific custom table (e.g. angel-reports, phia-reports, jennelyn-reports, alyssa-reports)
+      const studentCustomTable =
+        resolveStudentReportsTableName(student) ||
+        resolveStudentReportsTableName(resolvedId) ||
+        resolveStudentReportsTableName(resolvedUuid) ||
+        resolveStudentReportsTableName(resolvedName);
+
+      if (studentCustomTable) {
+        queryPromises.push(
+          supabase
+            .from(studentCustomTable)
             .select('*')
             .then(({ data, error }) => {
-              if (!error && Array.isArray(data)) return { type: 'angel', data };
-              if (error) console.warn('Supabase angel-reports query error:', error.message);
-              return { type: 'angel', data: [] };
+              if (!error && Array.isArray(data)) return { type: 'custom', data };
+              if (error) console.warn(`Supabase ${studentCustomTable} notice:`, error.message);
+              return { type: 'custom', data: [] };
             })
-            .catch(() => ({ type: 'angel', data: [] }))
+            .catch(() => ({ type: 'custom', data: [] }))
         );
-      } else {
-        // Query 1: `reports_of_student` table
-        if (resolvedId || resolvedUuid) {
-          let rosQuery = supabase.from('reports_of_student').select('*').order('date_submitted', { ascending: false });
-          if (resolvedId && resolvedUuid) {
-            rosQuery = rosQuery.or(`student_id.eq.${resolvedId},student_id.eq.${resolvedUuid}`);
-          } else if (resolvedId) {
-            rosQuery = rosQuery.eq('student_id', resolvedId);
-          } else {
-            rosQuery = rosQuery.eq('student_id', resolvedUuid);
-          }
-
-          queryPromises.push(
-            rosQuery
-              .then(({ data, error }) => {
-                if (!error && Array.isArray(data)) return { type: 'ros', data };
-                return { type: 'ros', data: [] };
-              })
-              .catch(() => ({ type: 'ros', data: [] }))
-          );
-        }
-
-        // Query 2: canonical `reports` table (single source of truth - strictly filtered by UUID)
-        if (resolvedUuid && isUuid(resolvedUuid)) {
-          queryPromises.push(
-            supabase
-              .from('reports')
-              .select('*, students(*)')
-              .eq('student_id', resolvedUuid)
-              .order('created_at', { ascending: false })
-              .then(({ data, error }) => {
-                if (!error && Array.isArray(data)) return { type: 'rep', data };
-                if (error) console.warn('Supabase reports query notice:', error.message);
-                return { type: 'rep', data: [] };
-              })
-              .catch(() => ({ type: 'rep', data: [] }))
-          );
-        }
-
-        // Query 3: Candidate custom student table (e.g. phia-reports, jennelyn-reports)
-        if (resolvedName) {
-          const firstName = resolvedName.trim().split(/\s+/)[0].toLowerCase();
-          queryPromises.push(
-            supabase
-              .from(`${firstName}-reports`)
-              .select('*')
-              .then(({ data, error }) => {
-                if (!error && Array.isArray(data)) return { type: 'custom', data };
-                return { type: 'custom', data: [] };
-              })
-              .catch(() => ({ type: 'custom', data: [] }))
-          );
-        }
       }
 
       // Query 4: `saved_guides` for this student
@@ -792,13 +844,16 @@ export function useStudentReports(studentProfile, { enabled = true } = {}) {
           rawReport.studentId ||
           rawReport.student_uuid ||
           payload.student_id ||
-          payload.studentId;
+          payload.studentId ||
+          (rawReport.students?.student_id) ||
+          (rawReport.students?.id);
 
         const belongsToThisStudent =
-          !payloadStudent ||
-          payloadStudent === studentProfile?.id ||
-          payloadStudent === studentProfile?.student_id ||
-          payloadStudent === studentKey;
+          Boolean(payloadStudent) &&
+          (payloadStudent === studentProfile?.id ||
+            payloadStudent === studentProfile?.student_id ||
+            payloadStudent === studentKey ||
+            (rawReport.students && (rawReport.students.id === studentProfile?.id || rawReport.students.student_id === studentProfile?.student_id)));
 
         if (belongsToThisStudent) {
           const normalized = normalizeStudentReportItem(rawReport, studentProfile);
@@ -812,7 +867,28 @@ export function useStudentReports(studentProfile, { enabled = true } = {}) {
                   (normalized.canonicalUuid && (r.canonicalUuid === normalized.canonicalUuid || r.id === normalized.canonicalUuid))
               );
               if (exists) return prev;
-              const updatedReports = [normalized, ...prev.reports];
+              let updatedReports = [normalized, ...prev.reports];
+
+              const isAngelAccount =
+                studentKey === '24-0041-147' ||
+                studentKey === '9002d8e6-bc03-4070-8aae-299147dead9a' ||
+                studentKey === 'martinezangellaewup@gmail.com' ||
+                (typeof studentProfile?.name === 'string' && studentProfile.name.toLowerCase().includes('angel'));
+
+              if (isAngelAccount) {
+                const parseReportIdNum = (r) => {
+                  const idStr = String(r?.report_id || r?.id || '');
+                  const match = idStr.match(/\d+/);
+                  return match ? parseInt(match[0], 10) : 0;
+                };
+                updatedReports = [...updatedReports].sort((a, b) => {
+                  const numA = parseReportIdNum(a);
+                  const numB = parseReportIdNum(b);
+                  if (numB !== numA) return numB - numA;
+                  return (b.report_id || b.id || '').localeCompare(a.report_id || a.id || '', undefined, { numeric: true });
+                });
+              }
+
               const computed = recomputeStudentStats(updatedReports, prev.stats);
               const updated = {
                 ...prev,
@@ -837,6 +913,7 @@ export function useStudentReports(studentProfile, { enabled = true } = {}) {
               r.id === targetId ||
               r.canonicalUuid === targetId ||
               r.report_uuid === targetId ||
+              (payload.reportId && (r.report_id === payload.reportId || r.id === payload.reportId || r.canonicalUuid === payload.reportId)) ||
               (payload.canonicalUuid && (r.canonicalUuid === payload.canonicalUuid || r.report_uuid === payload.canonicalUuid || r.id === payload.canonicalUuid)) ||
               (payload.reportCode && (r.report_id === payload.reportCode || r.id === payload.reportCode));
 
@@ -850,8 +927,8 @@ export function useStudentReports(studentProfile, { enabled = true } = {}) {
                 return r;
               }
 
-              // Check out-of-order timestamp
-              if (payload.updated_at && r.updated_at && new Date(payload.updated_at) < new Date(r.updated_at)) {
+              // Check out-of-order timestamp only when status has not changed
+              if (r.status === effectiveStatus && payload.updated_at && r.updated_at && new Date(payload.updated_at) < new Date(r.updated_at)) {
                 return r;
               }
 
@@ -860,6 +937,8 @@ export function useStudentReports(studentProfile, { enabled = true } = {}) {
                 ...r,
                 status: effectiveStatus,
                 remarks: effectiveRemarks,
+                timestamps: payload.timestamps || r.timestamps,
+                history: payload.history || r.history,
                 updated_at: payload.updated_at || new Date().toISOString(),
               });
             }

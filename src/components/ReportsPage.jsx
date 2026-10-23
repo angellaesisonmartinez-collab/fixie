@@ -1331,12 +1331,25 @@ function TechnicalPersonnelReportsPage({
 
     setReportsList((prevList) => {
       const updated = prevList.map((r) => {
-        if (r.report_id === targetId || r.id === targetId) {
+        const isMatch =
+          r.report_id === targetId ||
+          r.id === targetId ||
+          r.canonicalUuid === targetId ||
+          r.canonical_uuid === targetId ||
+          (activeReportModal &&
+            (r.report_id === activeReportModal.report_id ||
+              r.id === activeReportModal.id ||
+              r.canonicalUuid === activeReportModal.canonicalUuid ||
+              r.canonical_uuid === activeReportModal.canonical_uuid));
+
+        if (isMatch) {
           return {
             ...r,
             status: newStatus,
             display_status: displayStatus,
+            displayStatus: displayStatus,
             status_class: statusClass,
+            statusClass: statusClass,
             history: updatedHistory || r.history,
             remarks: newRemarks !== undefined ? newRemarks : r.remarks,
           };
@@ -1358,7 +1371,9 @@ function TechnicalPersonnelReportsPage({
         ...prev,
         status: newStatus,
         display_status: displayStatus,
+        displayStatus: displayStatus,
         status_class: statusClass,
+        statusClass: statusClass,
         history: updatedHistory || prev.history,
         remarks: newRemarks !== undefined ? newRemarks : prev.remarks,
       };
