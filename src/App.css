@@ -2698,9 +2698,10 @@ body,
   line-height: 1;
 }
 
-.stat-number-serif.stat-number-loading {
+.stat-number-serif.stat-number-loading,
+.metric-number-loading {
   display: inline-block;
-  color: #718096;
+  color: #718096 !important;
   opacity: 0.6;
   letter-spacing: 2px;
   animation: fixie-skeleton-pulse 1.4s ease-in-out infinite;

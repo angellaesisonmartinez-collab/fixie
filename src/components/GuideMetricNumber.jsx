@@ -1,32 +1,50 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * Stat card number that mirrors the Dashboard loading behaviour:
- * when the count changes, show the "..." loading placeholder briefly and then
- * reveal the new count, so the old value never visibly flips to the new one.
+ * Stat card number that mirrors the Dashboard loading behaviour.
+ * - While `loading` is true it shows the pulsing "..." placeholder.
+ * - When the count changes afterwards, it briefly shows "..." and then reveals
+ *   the new count, so the old value never visibly flips to the new one.
  */
-export default function GuideMetricNumber({ value, delay = 450 }) {
+export default function GuideMetricNumber({
+  value,
+  loading = false,
+  className = 'student-metric-number',
+  delay = 450,
+}) {
   const [shown, setShown] = useState(value);
-  const [loading, setLoading] = useState(false);
-  const prevRef = useRef(value);
+  const [changing, setChanging] = useState(false);
+  const prevValueRef = useRef(value);
+  const prevLoadingRef = useRef(loading);
 
   useEffect(() => {
-    if (prevRef.current === value) return undefined;
-    prevRef.current = value;
-    setLoading(true);
+    const wasLoading = prevLoadingRef.current;
+    prevLoadingRef.current = loading;
+
+    // Initial / explicit loading: just track the value silently
+    if (loading || wasLoading) {
+      prevValueRef.current = value;
+      setShown(value);
+      setChanging(false);
+      return undefined;
+    }
+
+    if (prevValueRef.current === value) return undefined;
+    prevValueRef.current = value;
+    setChanging(true);
     const t = setTimeout(() => {
       setShown(value);
-      setLoading(false);
+      setChanging(false);
     }, delay);
     return () => clearTimeout(t);
-  }, [value, delay]);
+  }, [value, loading, delay]);
 
-  if (loading) {
+  if (loading || changing) {
     return (
-      <span className="student-metric-number guide-metric-loading" aria-label="Loading metric">
+      <span className={`${className} metric-number-loading`} aria-label="Loading metric">
         ...
       </span>
     );
   }
-  return <span className="student-metric-number">{shown}</span>;
+  return <span className={className}>{shown}</span>;
 }

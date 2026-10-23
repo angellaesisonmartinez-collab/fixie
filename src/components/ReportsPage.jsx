@@ -15,6 +15,7 @@ import {
 import { supabase, safeRealtimeChannel, safeRemoveChannel } from '../lib/supabase';
 import { getVisiblePages, getDisplayedCount } from '../lib/paginationUtils';
 import Banner from './Banner';
+import GuideMetricNumber from './GuideMetricNumber';
 import ReportDetailsModal, { reportHistoryCache, canonicalUuidCache, buildUnifiedHistoryEntries } from './ReportDetailsModal';
 import StudentSubmittedReportsPage from './StudentSubmittedReportsPage';
 import { formatStudentName, formatYearBlock } from '../lib/studentFormatUtils';
@@ -1505,7 +1506,7 @@ function TechnicalPersonnelReportsPage({
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <span className="student-metric-number">{isLoading && (!reportsList || reportsList.length === 0) ? '...' : stats.total}</span>
+            <GuideMetricNumber value={stats.total} loading={isLoading && (!reportsList || reportsList.length === 0)} />
           </div>
           <p className="student-metric-caption">All submitted laboratory tickets.</p>
         </div>
@@ -1529,7 +1530,7 @@ function TechnicalPersonnelReportsPage({
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <span className="student-metric-number font-serif">{isLoading && (!reportsList || reportsList.length === 0) ? '...' : stats.underReview}</span>
+            <GuideMetricNumber className="student-metric-number font-serif" value={stats.underReview} loading={isLoading && (!reportsList || reportsList.length === 0)} />
           </div>
           <p className="student-metric-caption">Awaiting triage & technician review.</p>
         </div>
@@ -1553,7 +1554,7 @@ function TechnicalPersonnelReportsPage({
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <span className="student-metric-number font-serif">{isLoading && (!reportsList || reportsList.length === 0) ? '...' : stats.underRepair}</span>
+            <GuideMetricNumber className="student-metric-number font-serif" value={stats.underRepair} loading={isLoading && (!reportsList || reportsList.length === 0)} />
           </div>
           <p className="student-metric-caption">Currently being serviced & fixed.</p>
         </div>
@@ -1577,7 +1578,7 @@ function TechnicalPersonnelReportsPage({
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <span className="student-metric-number font-serif">{isLoading && (!reportsList || reportsList.length === 0) ? '...' : stats.resolved}</span>
+            <GuideMetricNumber className="student-metric-number font-serif" value={stats.resolved} loading={isLoading && (!reportsList || reportsList.length === 0)} />
           </div>
           <p className="student-metric-caption">Issues successfully fixed & closed.</p>
         </div>

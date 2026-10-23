@@ -20,6 +20,7 @@ import { parseReportDateTime, formatManilaHistoryTime } from '../lib/reportDateU
 import { AUTHENTIC_REPORT_STUDENTS } from '../lib/reportStudentMapping';
 import { getReportAttachment } from '../lib/reportAttachmentUtils';
 import Banner from './Banner';
+import GuideMetricNumber from './GuideMetricNumber';
 import {
   useStudentReports,
   normalizeStudentReportItem,
@@ -311,9 +312,7 @@ export default function StudentSubmittedReportsPage({
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <span className="student-metric-number font-serif">
-              {reportsData.isLoading && reportsList.length === 0 ? '...' : (stats.total ?? 0)}
-            </span>
+            <GuideMetricNumber className="student-metric-number font-serif" value={stats.total ?? 0} loading={reportsData.isLoading && reportsList.length === 0} />
           </div>
           <p className="student-metric-caption">All submitted laboratory tickets.</p>
         </div>
@@ -336,9 +335,7 @@ export default function StudentSubmittedReportsPage({
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <span className="student-metric-number font-serif">
-              {reportsData.isLoading && reportsList.length === 0 ? '...' : (stats.underReview ?? 0)}
-            </span>
+            <GuideMetricNumber className="student-metric-number font-serif" value={stats.underReview ?? 0} loading={reportsData.isLoading && reportsList.length === 0} />
           </div>
           <p className="student-metric-caption">Awaiting triage & technician review.</p>
         </div>
@@ -361,9 +358,7 @@ export default function StudentSubmittedReportsPage({
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <span className="student-metric-number font-serif">
-              {reportsData.isLoading && reportsList.length === 0 ? '...' : (stats.underRepair ?? 0)}
-            </span>
+            <GuideMetricNumber className="student-metric-number font-serif" value={stats.underRepair ?? 0} loading={reportsData.isLoading && reportsList.length === 0} />
           </div>
           <p className="student-metric-caption">Currently being serviced & fixed.</p>
         </div>
@@ -386,9 +381,7 @@ export default function StudentSubmittedReportsPage({
             </div>
           </div>
           <div className="student-metric-value-wrap">
-            <span className="student-metric-number font-serif">
-              {reportsData.isLoading && reportsList.length === 0 ? '...' : (stats.resolved ?? 0)}
-            </span>
+            <GuideMetricNumber className="student-metric-number font-serif" value={stats.resolved ?? 0} loading={reportsData.isLoading && reportsList.length === 0} />
           </div>
           <p className="student-metric-caption">Issues successfully fixed & closed.</p>
         </div>

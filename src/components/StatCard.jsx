@@ -1,4 +1,5 @@
 import React from 'react';
+import GuideMetricNumber from './GuideMetricNumber';
 
 /**
  * Reusable StatCard Component (Image 4 Reference)
@@ -46,13 +47,7 @@ export default function StatCard({
 
       {/* Large Metric Number */}
       <div className="stat-card-value-display">
-        {isLoading ? (
-          <span className="stat-number-serif stat-number-loading" aria-label="Loading metric">
-            ...
-          </span>
-        ) : (
-          <span className="stat-number-serif">{value}</span>
-        )}
+        <GuideMetricNumber value={value} loading={isLoading} className="stat-number-serif" />
       </div>
 
       {/* Divider Line between number and caption */}

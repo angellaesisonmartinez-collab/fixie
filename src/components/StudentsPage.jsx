@@ -44,6 +44,7 @@ import {
 import bcrypt from 'bcryptjs';
 import Banner from './Banner';
 import fixieMascotSuccess from '../assets/fixie-mascot-success.png';
+import GuideMetricNumber from './GuideMetricNumber';
 import fixieMascotSad from '../assets/fixie-mascot-sad.png';
 
 import { getStudentAvatar, getStudentInitials } from '../lib/studentAvatarUtils';
@@ -1183,7 +1184,7 @@ export default function StudentsPage() {
               </div>
             </div>
             <div className="student-metric-value-wrap">
-              <span className="student-metric-number">{activeCount}</span>
+              <GuideMetricNumber value={activeCount} />
             </div>
             <p className="student-metric-caption">Currently enrolled students.</p>
           </div>
@@ -1206,7 +1207,7 @@ export default function StudentsPage() {
               </div>
             </div>
             <div className="student-metric-value-wrap">
-              <span className="student-metric-number">{deactivatedCount}</span>
+              <GuideMetricNumber value={deactivatedCount} />
             </div>
             <p className="student-metric-caption">Graduated or transferred students.</p>
           </div>

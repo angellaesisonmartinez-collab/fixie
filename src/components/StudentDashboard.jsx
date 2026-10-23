@@ -31,6 +31,7 @@ import ReportProblemModal from './ReportProblemModal';
 import SubmitReportPage from './SubmitReportPage';
 import HeaderRings from './HeaderRings';
 import Banner from './Banner';
+import GuideMetricNumber from './GuideMetricNumber';
 import AppLayout from './AppLayout';
 import ErrorBoundary from './ErrorBoundary';
 import { formatStudentName, formatYearBlock } from '../lib/studentFormatUtils';
@@ -635,9 +636,7 @@ export default function StudentDashboard({
                   </div>
                 </div>
                 <div className="stat-card-value-display">
-                  <span className="stat-number-serif">
-                    {studentReportsData.isLoading && allReports.length === 0 ? '...' : activeReportsCount}
-                  </span>
+                  <GuideMetricNumber className="stat-number-serif" value={activeReportsCount} loading={studentReportsData.isLoading && allReports.length === 0} />
                 </div>
                 <p className="stat-card-caption">
                   Reports still being reviewed or repaired.
@@ -665,9 +664,7 @@ export default function StudentDashboard({
                   </div>
                 </div>
                 <div className="stat-card-value-display">
-                  <span className="stat-number-serif">
-                    {studentReportsData.isLoading && allReports.length === 0 ? '...' : resolvedCount}
-                  </span>
+                  <GuideMetricNumber className="stat-number-serif" value={resolvedCount} loading={studentReportsData.isLoading && allReports.length === 0} />
                 </div>
                 <p className="stat-card-caption">
                   Reports fixed by technical personnel.
@@ -699,9 +696,7 @@ export default function StudentDashboard({
                   </div>
                 </div>
                 <div className="stat-card-value-display">
-                  <span className="stat-number-serif">
-                    {studentReportsData.isLoading && allReports.length === 0 ? '...' : savedGuidesCount}
-                  </span>
+                  <GuideMetricNumber className="stat-number-serif" value={savedGuidesCount} loading={studentReportsData.isLoading && allReports.length === 0} />
                 </div>
                 <p className="stat-card-caption">
                   Your bookmarked laboratory guides.
