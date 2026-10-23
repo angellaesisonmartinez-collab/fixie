@@ -19,6 +19,7 @@ import {
   broadcastGuideChange,
 } from '../lib/realtimeSyncService';
 import StudentGuidesPage from './StudentGuidesPage';
+import fixieMascotSuccess from '../assets/fixie-mascot-success.png';
 import {
   formatGuideDateDisplay,
   getGuideSortTime,
