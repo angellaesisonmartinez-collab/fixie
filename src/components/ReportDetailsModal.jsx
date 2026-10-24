@@ -417,9 +417,13 @@ async function syncReportToSupabase(targetId, updatePayload, report = null) {
     const firstName = studentName.trim().split(/\s+/)[0].toLowerCase();
     const cleanFull = studentName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     const targetTables = new Set([`${firstName}-reports`, `${cleanFull}-reports`]);
+    // NOTE: Supabase query builders are thenables without a .catch method; calling .catch
+    // here previously threw a TypeError that aborted the whole sync (nothing was saved).
     targetTables.forEach((tbl) => {
       promises.push(
-        supabase.from(tbl).update(reportsPayload).eq('report_id', reportCode).catch(() => { })
+        Promise.resolve(
+          supabase.from(tbl).update(reportsPayload).eq('report_id', reportCode)
+        ).catch(() => { })
       );
     });
   }
