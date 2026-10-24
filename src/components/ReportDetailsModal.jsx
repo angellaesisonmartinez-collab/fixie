@@ -400,6 +400,11 @@ async function syncReportToSupabase(targetId, updatePayload, report = null) {
   } else if (reportCode) {
     promises.push(supabase.from('reports').update(reportsPayload).eq('report_id', reportCode));
   }
+  // Also target by the unique human report code so the student-facing row is always updated,
+  // even if the UUID in hand belongs to a different table (e.g. reports_of_student.id).
+  if (canonicalUuid && reportCode) {
+    promises.push(supabase.from('reports').update(reportsPayload).eq('report_id', reportCode));
+  }
 
   if (reportCode) {
     promises.push(supabase.from('reports_of_student').update(rosPayload).eq('report_id', reportCode));
@@ -894,7 +899,12 @@ export default function ReportDetailsModal({
       const liveReport = repRes.data || null;
       const liveRos = rosRes.data || null;
 
-      const rawActive = liveReport?.status || liveRos?.status || curReport?.status || currentStatusRef.current;
+      const liveTs = liveReport?.updated_at ? new Date(liveReport.updated_at).getTime() : 0;
+      const rosTs = liveRos?.updated_at ? new Date(liveRos.updated_at).getTime() : 0;
+      const newestLiveStatus = rosTs > liveTs
+        ? (liveRos?.status || liveReport?.status)
+        : (liveReport?.status || liveRos?.status);
+      const rawActive = newestLiveStatus || curReport?.status || currentStatusRef.current;
       const activeStatus = normalizeStatusLabel(rawActive);
 
       // Ignore stale data that would move the workflow backwards right after a local update
