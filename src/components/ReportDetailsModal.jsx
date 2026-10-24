@@ -243,6 +243,7 @@ export function buildUnifiedHistoryEntries({
   // Normalized current status of the report
   const normCurrent = normalizeDbStatus(currentStatus || currentReport.status || 'Submitted');
 
+  const underRepairRow0 = rawList.find((e) => e.status === 'Under Repair');
   // Check if an authentic review event has occurred or status is past review
   const reviewedRow = rawList.find(
     (e) => e.status === 'Reviewed' || e.status === 'Under Review'
@@ -256,11 +257,17 @@ export function buildUnifiedHistoryEntries({
     Boolean(currentReport.reviewed_at);
 
   if (isReviewedOrBeyond && normCurrent !== 'Submitted') {
-    const reviewTime =
+    // Never fall back to the submission time: Reviewed happens after submission.
+    // Prefer the real review time, then the next real event's time, then updated_at.
+    let reviewTime =
       reviewedRow?.created_at ||
       currentReport.reviewed_at ||
       (normCurrent === 'Reviewed' ? currentReport.updated_at : null) ||
+      underRepairRow0?.created_at ||
+      currentReport.under_repair_at ||
+      currentReport.updated_at ||
       subTime;
+    if (new Date(reviewTime).getTime() < new Date(subTime).getTime()) reviewTime = subTime;
     const formattedRevTime = formatManilaHistoryTime(reviewTime);
 
     entries.push({
@@ -803,6 +810,16 @@ export default function ReportDetailsModal({
     setLabHoursError('');
     return true;
   };
+
+  // Authoritative "now" for the moment a technical personnel button is clicked
+  const getActionIso = async () => {
+    try {
+      const t = await getServerTime();
+      const d = t instanceof Date ? t : new Date(t);
+      if (!Number.isNaN(d.getTime())) return d.toISOString();
+    } catch {}
+    return new Date().toISOString();
+  };
   const [timestamps, setTimestamps] = useState(() => getInitialTimestamps(report));
   const [statusHistory, setStatusHistory] = useState(() => getInitialStatusHistory(report));
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -1158,7 +1175,7 @@ export default function ReportDetailsModal({
     setIsSubmitting(true);
     const nextStatus = 'Under Review';
     const dbStatus = 'Reviewed';
-    const nowIso = new Date().toISOString();
+    const nowIso = await getActionIso();
     const nowFormatted = formatManilaHistoryTime(nowIso);
     const updatedTimestamps = {
       ...timestamps,
@@ -1230,7 +1247,7 @@ export default function ReportDetailsModal({
     setIsSubmitting(true);
     const nextStatus = 'Under Repair';
     const dbStatus = 'Under Repair';
-    const nowIso = new Date().toISOString();
+    const nowIso = await getActionIso();
     const nowFormatted = formatManilaHistoryTime(nowIso);
     const updatedTimestamps = {
       ...timestamps,
@@ -1328,7 +1345,7 @@ export default function ReportDetailsModal({
       setIsSubmitting(true);
       const nextStatus = 'Resolved';
       const trimmedRemarks = remarks.trim();
-      const nowIso = new Date().toISOString();
+      const nowIso = await getActionIso();
       const nowFormatted = formatManilaHistoryTime(nowIso);
       const updatedTimestamps = {
         ...timestamps,
@@ -1413,7 +1430,7 @@ export default function ReportDetailsModal({
     setIsSubmitting(true);
     const nextStatus = 'On Hold';
     const trimmedRemarks = remarks.trim();
-    const nowIso = new Date().toISOString();
+    const nowIso = await getActionIso();
     const nowFormatted = formatManilaHistoryTime(nowIso);
     const updatedTimestamps = {
       ...timestamps,
@@ -1495,7 +1512,7 @@ export default function ReportDetailsModal({
     setIsSubmitting(true);
     setRemarks(trimmed);
     setIsEditingRemarks(false);
-    const nowIso = new Date().toISOString();
+    const nowIso = await getActionIso();
 
     const updatedHistory = statusHistory.map((h) =>
       h.status === 'On Hold' ? { ...h, remarks: trimmed } : h
@@ -1569,7 +1586,7 @@ export default function ReportDetailsModal({
     setResolutionError(false);
     setIsSubmitting(true);
     const nextStatus = 'Resolved';
-    const nowIso = new Date().toISOString();
+    const nowIso = await getActionIso();
     const nowFormatted = formatManilaHistoryTime(nowIso);
     const updatedTimestamps = {
       ...timestamps,
