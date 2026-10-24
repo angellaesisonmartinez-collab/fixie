@@ -103,7 +103,7 @@ export async function getCanonicalReportInfo(rep) {
         canonicalUuidCache.set(data.id, data.id);
         return { canonicalUuid: data.id, reportCode: data.report_id || humanCode };
       }
-    } catch {}
+    } catch { }
   }
 
   // 4. Fallback: Check reports_of_student to find report_id, then resolve reports.id
@@ -118,7 +118,7 @@ export async function getCanonicalReportInfo(rep) {
         canonicalUuidCache.set(humanCode, rosRow.id);
         return { canonicalUuid: rosRow.id, reportCode: humanCode };
       }
-    } catch {}
+    } catch { }
   }
 
   return { canonicalUuid: null, reportCode: humanCode };
@@ -407,7 +407,7 @@ async function syncReportToSupabase(targetId, updatePayload, report = null) {
     const targetTables = new Set([`${firstName}-reports`, `${cleanFull}-reports`]);
     targetTables.forEach((tbl) => {
       promises.push(
-        supabase.from(tbl).update(reportsPayload).eq('report_id', reportCode).catch(() => {})
+        supabase.from(tbl).update(reportsPayload).eq('report_id', reportCode).catch(() => { })
       );
     });
   }
@@ -538,7 +538,7 @@ async function recordStatusHistory(rep, status, remarks = null, nowIso = new Dat
     if (canonicalUuid) reportHistoryCache.set(canonicalUuid, updatedCached);
     if (reportCode) reportHistoryCache.set(reportCode, updatedCached);
     if (rep?.id) reportHistoryCache.set(rep.id, updatedCached);
-  } catch {}
+  } catch { }
 }
 
 function formatHistoryTime(timeInput, fallbackTime) {
@@ -832,17 +832,24 @@ export default function ReportDetailsModal({
   }, [report]);
 
   const currentStatusRef = useRef(currentStatus);
+  const statusChangedAtRef = useRef(0);
   useEffect(() => {
     currentStatusRef.current = currentStatus;
+    statusChangedAtRef.current = Date.now();
   }, [currentStatus]);
 
   const isFetchingRef = useRef(false);
+  const refetchQueuedRef = useRef(false);
 
   // Load fresh report details and audit history from Supabase with parallel queries
   const loadFreshReportAndHistory = useCallback(async (isInitial = false) => {
     const curReport = reportRef.current;
     if (!curReport) return;
-    if (isFetchingRef.current) return;
+    if (isFetchingRef.current) {
+      // A fetch may have started before the latest local change; re-run once it finishes
+      refetchQueuedRef.current = true;
+      return;
+    }
     isFetchingRef.current = true;
     try {
       const { canonicalUuid, reportCode } = await getCanonicalReportInfo(curReport);
@@ -850,10 +857,10 @@ export default function ReportDetailsModal({
       // Fast parallel queries via Promise.all
       const historyPromise = canonicalUuid
         ? supabase
-            .from('report_status_history')
-            .select('id, status, remarks, created_at')
-            .eq('report_id', canonicalUuid)
-            .order('created_at', { ascending: true })
+          .from('report_status_history')
+          .select('id, status, remarks, created_at')
+          .eq('report_id', canonicalUuid)
+          .order('created_at', { ascending: true })
         : Promise.resolve({ data: [] });
 
       const liveReportPromise = canonicalUuid
@@ -872,6 +879,14 @@ export default function ReportDetailsModal({
 
       const rawActive = liveReport?.status || liveRos?.status || curReport?.status || currentStatusRef.current;
       const activeStatus = normalizeStatusLabel(rawActive);
+
+      // Ignore stale data that would move the workflow backwards right after a local update
+      const isStaleBehindLocal =
+        getPhaseIndex(activeStatus) < getPhaseIndex(currentStatusRef.current) &&
+        Date.now() - statusChangedAtRef.current < 10000;
+      if (isStaleBehindLocal) {
+        return;
+      }
       const activeRemarks =
         liveReport?.remarks !== undefined
           ? liveReport.remarks
@@ -920,6 +935,10 @@ export default function ReportDetailsModal({
       console.warn('Error loading fresh report and status history:', err);
     } finally {
       isFetchingRef.current = false;
+      if (refetchQueuedRef.current) {
+        refetchQueuedRef.current = false;
+        setTimeout(() => loadFreshReportAndHistory(false), 400);
+      }
     }
   }, []);
 
@@ -1087,18 +1106,10 @@ export default function ReportDetailsModal({
     report?.students?.student_id ||
     report?.students?.id;
 
-  const isAuthorizedToViewAttachment = useMemo(() => {
-    if (!isStudentView) return true; // Technical Personnel can view all
-    if (!currentStudentId) return true; // Default fallback if not passed
-    const idMatch =
-      reportStudentId &&
-      String(reportStudentId).toLowerCase() === String(currentStudentId).toLowerCase();
-    const emailMatch =
-      studentProfile?.email &&
-      report?.student_email &&
-      studentProfile.email.toLowerCase() === report.student_email.toLowerCase();
-    return idMatch || emailMatch || !reportStudentId;
-  }, [isStudentView, currentStudentId, reportStudentId, studentProfile, report]);
+  // Both the reporting student and Technical Personnel can view photo attachments.
+  // The student view only ever opens the student's own reports, so the previous strict ID
+  // comparison (which mixed UUIDs and student numbers) produced false "restricted" notices.
+  const isAuthorizedToViewAttachment = useMemo(() => true, []);
 
   if (!report) return null;
 
@@ -2174,9 +2185,8 @@ export default function ReportDetailsModal({
         )}
         {!isStudentView && currentStatus !== 'Resolved' && (
           <div
-            className={`report-modal-footer-green ${
-              currentStatus === 'Under Repair' ? 'footer-between' : 'footer-end'
-            }`}
+            className={`report-modal-footer-green ${currentStatus === 'Under Repair' ? 'footer-between' : 'footer-end'
+              }`}
           >
             {/* Stage 1: Newly Submitted -> Review */}
             {currentStatus === 'Submitted' && (
